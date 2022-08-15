@@ -1,0 +1,8 @@
+{
+  "ClockworkWalkthrough.ClockworkRefPrepTB.genome": "../../Documents/aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__dl_zipped": "../../Documents/aaa_test_files/tb/Ref.download.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__dl_dir": "Ref.download",
+  "ClockworkWalkthrough.samples_to_dl":"SAMEA2534128",
+  "ClockworkWalkthrough.map_reads.sample_name":"SAMEA2534128",
+  "ClockworkWalkthrough.map_reads.outfile": "oof"
+}
