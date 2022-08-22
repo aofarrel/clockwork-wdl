@@ -2,7 +2,6 @@ version 1.0
 
 task download_tb_reference_files {
 	input {
-
 		# runtime attributes
 		Int disk = 100
 		Int cpu = 4
@@ -13,10 +12,6 @@ task download_tb_reference_files {
 	String outdir = "Ref.download" # hardcoded for now
 
 	command <<<
-	pwd > ahhh.txt
-	ls -lha .. > foo.txt
-	find . -name "download_tb_reference_files*" > bar.txt
-
 	/clockwork/scripts/download_tb_reference_files.pl ~{outdir}
 
 	zip -r ~{outdir}.zip ~{outdir}
@@ -33,6 +28,6 @@ task download_tb_reference_files {
 
 	output {
 		String dl_dir = "~{outdir}"
-		File dl_zipped = "~{outdir}.zip"
+		File   dl_zipped = "~{outdir}.zip"
 	}
 }
