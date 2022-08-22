@@ -15,11 +15,15 @@ version 1.0
 # Note that miniwdl has a slightly different way of handling JSONs; the examples
 # above are the Cromwell method.
 
+#import "./wf-refprep-TB.wdl" as clockwork_refprepWF
+#import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
+#import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as enaDataGetTask
+#import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
-import "./wf-refprep-TB.wdl" as clockwork_refprepWF
-import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
-import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as enaDataGetTask
-import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.1/tasks/enaDataGet.wdl" as enaDataGetTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
 
 workflow ClockworkWalkthrough {
 	input {
