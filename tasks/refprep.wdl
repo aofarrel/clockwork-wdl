@@ -46,11 +46,11 @@ task reference_prepare {
 	String is_there_any_tsv = select_first([tsv_no_dir, contam_tsv, "false"])
 	String str_tsv1 = if defined(tsv_no_dir) then "~{ref_dir_without_zip}/~{tsv_no_dir}" else ""
 	String str_tsv2 = if defined(contam_tsv) then "~{contam_tsv}" else ""
-	String str_tsv3 = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{str_tsv1}~{str_tsv2}"
+	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{str_tsv1}~{str_tsv2}"
 	
-	String str_ref = if defined(ref_file) then "~{ref_file}" else "~{ref_dir_without_zip}/~{ref_no_dir}"
-	String str_cmh = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
-	String str_nam = if defined(name) then "--name ~{name}" else ""
+	String arg_ref               = if defined(ref_file) then "~{ref_file}" else "~{ref_dir_without_zip}/~{ref_no_dir}"
+	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
+	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
 	command <<<
 		set -eux -o pipefail
@@ -60,7 +60,7 @@ task reference_prepare {
 			unzip ~{ref_directory}
 		fi
 
-		clockwork reference_prepare --outdir ~{outdir} ~{str_ref} ~{str_cmh} ~{str_tsv3} ~{str_nam}
+		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
 		zip -r ~{outdir}.zip ~{outdir}
 	>>>

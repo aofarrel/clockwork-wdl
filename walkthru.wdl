@@ -19,6 +19,7 @@ version 1.0
 import "./wf-refprep-TB.wdl" as clockwork_refprepWF
 import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
 import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as enaDataGetTask
+import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
 workflow ClockworkWalkthrough {
 	input {
@@ -72,6 +73,14 @@ workflow ClockworkWalkthrough {
 					optionB__ref_folder_zipped = ClockworkRefPrepTB.indexed_decontam_reference,
 					optionB__ref_filename = ClockworkRefPrepTB.decontam_ref_filename
 			}
+		}
+	}
+
+	Array[File] mapped_reads = select_first([map_reads_quick, map_reads_slow])
+	scatter(sam_file in mapped_reads) {
+		call clockwork_removecontamTask {
+			input:
+				
 		}
 	}
 }

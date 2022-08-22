@@ -19,8 +19,27 @@
 
  The walkthru workflow [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.2.0/badge.svg)](https://github.com/nikku/works-on-my-machine) with a runtime of about 45 minutes when skipping refprep.
 
+## Variable weirdness
+The original pipeline assumes that you can pass entire directories around. WDL 1.0 does allow for this, and Cromwell has (to my knowledge) no timeline on supporting WDL 1.1, so we have to get a little creative. When dealing with an input variable that is often passed in from a directory, the following naming schema is used:
+
+Public:  
+* fullpath_varname: File   - "Ref.remove_contam/remove_contam_metadata.tsv"  
+* filename_varname: String - "remove_contam_metadata.tsv"  
+* dirnozip_varname: String - "Ref.remove_contam"  
+* dirzippd_varname: File   - "Ref.remove_contam.zip"  
+
+Private:  
+* intermed_varname: String - Intermediate variable used to calculate arg_varname. Not always present.  
+* arg_varname:      String - Argument for a command line call in a task's command section.
+
+Generally speaking:
+
+`arg_varname = if(defined(fullpath_varname)) then "~{fullpath_varname}" else "~{dirnozip_varname}/~{filename_varname}"`
+
+...with the assumption that `~{dirzippd_varname}` gets unzipped before arg_varname is used in the command section.
 
 ## To-do list:
+[] Use the newly-coined naming schema consistently  
 [] Finish the walkthru pipeline  
 [] Better cloud runtime attribute estimates  
 [] Merge bluepeter version of refprep with non-bluepeter version  
