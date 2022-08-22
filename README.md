@@ -21,8 +21,8 @@
 
 
 ## To-do list:
-[] Finish the walkthru pipeline
-[] Better cloud runtime attribute estimates
-[] Merge bluepeter version of refprep with non-bluepeter version
-[] Merge bluepeter version of walkthru with non-bluepeter version
-[] Finish miscellanous TODO stuff in code
+[] Finish the walkthru pipeline  
+[] Better cloud runtime attribute estimates  
+[] Merge bluepeter version of refprep with non-bluepeter version  
+[] Merge bluepeter version of walkthru with non-bluepeter version  
+[] Finish miscellanous TODO stuff in code  
