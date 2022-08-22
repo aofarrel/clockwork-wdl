@@ -32,14 +32,14 @@ task remove_contam {
 		File reads_out_1
 		File reads_out_2
 
-		String? dir_metadata_tsv
+		String? dirnozip_tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
 	}
-	String arg_metadata_tsv = if(!defined(dir_metadata_tsv)) then "~{dir_metadata_tsv}/~{metadata_tsv}" else "~{metadata_tsv}"
+	String arg_metadata_tsv = if(!defined(dirnozip_tsv)) then "~{dirnozip_tsv}/~{metadata_tsv}" else "~{metadata_tsv}"
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
 	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"

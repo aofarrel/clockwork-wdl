@@ -54,7 +54,7 @@ task reference_prepare {
 	String is_there_any_tsv = select_first([filename_tsv, fullpath_tsv, "false"])
 	String intermed_tsv1 = if defined(filename_tsv) then "~{dirnozip_reference}/~{filename_tsv}" else ""
 	String intermed_tsv2 = if defined(fullpath_tsv) then "~{fullpath_tsv}" else ""
-	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--fullpath_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
 	String arg_ref               = if defined(fullpath_reference) then "~{fullpath_reference}" else "~{dirnozip_reference}/~{filename_reference}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
