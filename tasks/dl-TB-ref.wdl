@@ -14,6 +14,8 @@ task download_tb_reference_files {
 	command <<<
 	/clockwork/scripts/download_tb_reference_files.pl ~{outdir}
 
+	ls -lhaR > workdir.txt
+
 	zip -r ~{outdir}.zip ~{outdir}
 	>>>
 
@@ -29,5 +31,6 @@ task download_tb_reference_files {
 	output {
 		String dl_dir = "~{outdir}"
 		File   dl_zipped = "~{outdir}.zip"
+		File   debug_workdir = "workdir.txt"
 	}
 }

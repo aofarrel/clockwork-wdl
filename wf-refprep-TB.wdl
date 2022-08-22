@@ -39,25 +39,25 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__indexed_decontam_reference)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
-				ref_directory       = select_first([bluepeter__download_tb_reference_files__dl_zipped,
+				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__dl_zipped,
 													download_tb_reference_files.dl_zipped]),
-				ref_dir_without_zip = select_first([bluepeter__download_tb_reference_files__dl_dir,
+				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__dl_dir,
 													download_tb_reference_files.dl_dir]),
-				ref_no_dir = "remove_contam.fa.gz",
-				tsv_no_dir = "remove_contam.tsv",
-				outdir     = "Ref.remove_contam"
+				filename_reference = "remove_contam.fa.gz",
+				filename_tsv       = "remove_contam.tsv",
+				outdir             = "Ref.remove_contam"
 		}
 	}
 
 	if (!defined(bluepeter__indexed_H37Rv_reference)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
-				ref_directory       = select_first([bluepeter__download_tb_reference_files__dl_zipped,
+				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__dl_zipped,
 													download_tb_reference_files.dl_zipped]),
-				ref_dir_without_zip = select_first([bluepeter__download_tb_reference_files__dl_dir,
+				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__dl_dir,
 													download_tb_reference_files.dl_dir]),
-				ref_no_dir = "NC_000962.3.fa",
-				outdir     = "Ref.H37Rv"
+				filename_reference = "NC_000962.3.fa",
+				outdir             = "Ref.H37Rv"
 		}
 	}
 

@@ -76,11 +76,8 @@ workflow ClockworkWalkthrough {
 		}
 	}
 
-	Array[File] mapped_reads = select_first([map_reads_quick, map_reads_slow])
-	scatter(sam_file in mapped_reads) {
-		call clockwork_removecontamTask {
-			input:
-				
-		}
-	}
+	#Array[File] mapped_reads = select_first([map_reads_quick, map_reads_slow])
+	#scatter(sam_file in mapped_reads) {
+	#	call clockwork_removecontamTask
+	#}
 }

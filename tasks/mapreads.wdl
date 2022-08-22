@@ -66,6 +66,8 @@ task map_reads {
 	fi
 
 	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
+
+	ls -lhaR > workdir.txt
 	>>>
 
 	runtime {
@@ -78,5 +80,6 @@ task map_reads {
 
 	output {
 		File mapped_reads = glob("*.sam")[0]
+		File debug_workdir = "workdir.txt"
 	}
 }

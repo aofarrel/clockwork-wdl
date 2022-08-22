@@ -70,6 +70,8 @@ task reference_prepare {
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
+		ls -lhaR > workdir.txt
+
 		zip -r ~{outdir}.zip ~{outdir}
 	>>>
 	
@@ -83,6 +85,7 @@ task reference_prepare {
 	}
 	output {
 		File zipped_outs = glob("*.zip")[0]
-		String fullpath_referencename = select_first([fullpath_reference, filename_reference, "error"])
+		String ref_filename = select_first([fullpath_reference, filename_reference, "error"])  # TODO: Is this accurate
+		File debug_workdir = "workdir.txt"
 	}
 }
