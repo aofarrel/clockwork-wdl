@@ -12,3 +12,8 @@ _LAST
 */aaa_test_files/tb/Ref.download.zip
 Cromwell.stderr.txt
 Cromwell.stdout.txt
+Ref.download/NC_000962.1.fa
+Ref.download/NC_000962.2.fa
+Ref.download/NC_000962.3.fa
+Ref.download/remove_contam.fa.gz
+Ref.download/remove_contam.tsv
