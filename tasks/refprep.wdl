@@ -49,8 +49,8 @@ task reference_prepare {
 	}
 	# estimate disk size required
 	Int size_in = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
-	Int finalDiskSize = (2)(size_in) + addldisk
-
+	Int finalDiskSize = 2*size_in + addldisk
+	
 	# play with some variables
 	String is_there_any_tsv = select_first([filename_tsv, fullpath_tsv, "false"])
 	String intermed_tsv1 = if defined(filename_tsv) then "~{dirnozip_reference}/~{filename_tsv}" else ""

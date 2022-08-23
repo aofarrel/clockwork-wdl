@@ -38,6 +38,13 @@ task remove_contam {
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
+
+		# Runtime attributes
+		Int addldisk = 100
+		Int cpu      = 8
+		Int retries  = 1
+		Int memory   = 16
+		Int preempt  = 1
 	}
 	String arg_metadata_tsv = if(!defined(dirnozip_tsv)) then "~{dirnozip_tsv}/~{metadata_tsv}" else "~{metadata_tsv}"
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
@@ -51,7 +58,12 @@ task remove_contam {
 	>>>
 
 	runtime {
+		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		disks: "local-disk " + finalDiskSize + " HDD"
+		maxRetries: "${retries}"
+		memory: "${memory} GB"
+		preemptibles: "${preempt}"
 	}
 
 	output {
