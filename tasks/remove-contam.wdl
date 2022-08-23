@@ -47,7 +47,7 @@ task remove_contam {
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
 	command <<<
-	clockwork remove_contam ~{arg_metadata_tsv}
+	clockwork remove_contam ~{arg_metadata_tsv} ~{bam_in} ~{counts_out} ~{reads_out_1} ~{reads_out_2}
 	>>>
 
 	runtime {

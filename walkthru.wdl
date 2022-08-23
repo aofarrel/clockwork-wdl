@@ -22,7 +22,7 @@ version 1.0
 
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
-import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.1/tasks/enaDataGet.wdl" as enaDataGetTask
+import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.3/tasks/enaDataGet.wdl" as enaDataGetTask
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
 
 workflow ClockworkWalkthrough {

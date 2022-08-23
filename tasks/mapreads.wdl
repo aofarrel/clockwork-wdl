@@ -22,7 +22,7 @@ task map_reads {
 		Boolean unsorted_sam = false
 		Int threads = 1
 
-		# usually, what you're passing in is the decomination reference
+		# usually, what you're passing in is the decontamination reference
 		File optionB__ref_folder_zipped
 		String? optionB__ref_filename
 

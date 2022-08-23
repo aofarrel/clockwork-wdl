@@ -41,14 +41,15 @@ task reference_prepare {
 		String? outdir
 
 		# Runtime attributes
-		Int addldisk = 1
-		Int cpu = 8
-		Int retries = 1
-		Int memory = 8
-		Int preempt = 1
+		Int addldisk = 100
+		Int cpu      = 8
+		Int retries  = 1
+		Int memory   = 16
+		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int finalDiskSize = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
+	Int size_in = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
+	Int finalDiskSize = (2)(size_in) + addldisk
 
 	# play with some variables
 	String is_there_any_tsv = select_first([filename_tsv, fullpath_tsv, "false"])
