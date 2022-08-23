@@ -53,6 +53,8 @@ task remove_contam {
 	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
+	Int finalDiskSize = size(metadata_tsv, "GB") + size(bam_in, "GB") + size(counts_out, "GB") + size(reads_out_1, "GB") + size(reads_out_2, "GB") + addldisk
+
 	command <<<
 	clockwork remove_contam ~{arg_metadata_tsv} ~{bam_in} ~{counts_out} ~{reads_out_1} ~{reads_out_2}
 	>>>
