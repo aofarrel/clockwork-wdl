@@ -40,6 +40,15 @@ workflow ClockworkRefPrepTB {
 		call dl_TB_ref.download_tb_reference_files
 	}
 
+	# Note that we do here deviates slightly from what the wiki suggests. The wiki has:
+	#
+	# singularity exec clockwork.img clockwork reference_prepare \
+	#  --contam_tsv Ref.download/remove_contam.tsv \
+	#  --outdir Ref.remove_contam \
+	#  Ref.download/remove_contam.fa.gz
+	#
+	# ...but I think filename_reference actually needs to be remove_contam.fa (no .gz)
+
 	if (!defined(bluepeter__indexed_decontam_reference)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
@@ -47,7 +56,7 @@ workflow ClockworkRefPrepTB {
 													download_tb_reference_files.dl_zipped]),
 				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__dl_dir,
 													download_tb_reference_files.dl_dir]),
-				filename_reference = "remove_contam.fa.gz",
+				filename_reference = "remove_contam.fa",
 				filename_tsv       = "remove_contam.tsv",
 				outdir             = "Ref.remove_contam"
 		}
@@ -70,13 +79,15 @@ workflow ClockworkRefPrepTB {
 														index_decontamination_ref.zipped_outs])
 		
 		String decontam_ref_filename    = select_first([bluepeter__decontam_ref_filename,
-														index_decontamination_ref.ref_filename])
+														#index_decontamination_ref.ref_filename])
+														index_decontamination_ref.ref_out_filename])
 		
 		File indexed_H37Rv_reference    = select_first([bluepeter__indexed_H37Rv_reference,
 														index_H37Rv_reference.zipped_outs])
 		
 		String H37Rv_ref_filename       = select_first([bluepeter__H37Rv_ref_filename,
-														index_H37Rv_reference.ref_filename])
+														#index_H37Rv_reference.ref_filename])
+														index_H37Rv_reference.ref_out_filename])
 	}
 
 	meta {
