@@ -66,17 +66,17 @@ workflow ClockworkRefPrepTB {
 	}
 
 	output {
-		File indexed_decontam_reference = select_first([bluepeter__indexed_decontam_reference,
+		File   indexed_decontam_reference 		= select_first([bluepeter__indexed_decontam_reference,
 														index_decontamination_ref.zipped_outs])
 		
-		String decontam_ref_filename    = select_first([bluepeter__decontam_ref_filename,
-														index_decontamination_ref.ref_filename])
+		String indexed_decontam_ref_filename    = select_first([bluepeter__decontam_ref_filename,
+														"ref.fa"])
 		
-		File indexed_H37Rv_reference    = select_first([bluepeter__indexed_H37Rv_reference,
+		File   indexed_H37Rv_reference    		= select_first([bluepeter__indexed_H37Rv_reference,
 														index_H37Rv_reference.zipped_outs])
 		
-		String H37Rv_ref_filename       = select_first([bluepeter__H37Rv_ref_filename,
-														index_H37Rv_reference.ref_filename])
+		String indexed_H37Rv_ref_filename       = select_first([bluepeter__H37Rv_ref_filename,
+														"ref.fa"])
 	}
 
 	meta {

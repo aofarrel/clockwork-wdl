@@ -17,14 +17,14 @@ version 1.0
 
 task map_reads {
 	input {
-		String sample_name
+		String      sample_name
 		Array[File] reads_files
-		Boolean unsorted_sam = false
-		Int threads = 1
+		Boolean     unsorted_sam = false
+		Int         threads = 1
 
 		# usually, what you're passing in is the decontamination reference
-		File optionB__ref_folder_zipped
-		String? optionB__ref_filename
+		File    DIRZIPPD_reference
+		String? FILENAME_reference
 
 		# runtime attributes
 		Int disk = 100
@@ -33,18 +33,18 @@ task map_reads {
 		Int preempt = 2
 	}
 	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basename_zip = basename(optionB__ref_folder_zipped)
+	String basename_zip = basename(DIRZIPPD_reference)
 	String basename_zip_noext = sub(basename_zip, "\.zip(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_ref_fasta = "~{basename_zip_noext}/~{optionB__ref_filename}"
+	String arg_ref_fasta = "~{basename_zip_noext}/~{FILENAME_reference}"
 
-	# TODO: support threads
+	# TODO: properly support threads
 
 	command <<<
 	set -eux -o pipefail
 
-	echo "optionB__ref_folder_zipped" ~{optionB__ref_folder_zipped}
-	echo "optionB__ref_filename" ~{optionB__ref_filename}
+	echo "DIRZIPPD_reference" ~{DIRZIPPD_reference}
+	echo "FILENAME_reference" ~{FILENAME_reference}
 	echo "basename_zip" ~{basename_zip}
 	echo "sample_name" ~{sample_name}
 	echo "outfile" ~{outfile}
@@ -59,9 +59,9 @@ task map_reads {
 	#	cp ${FASTQ_FILE} .
 	#done
 
-	if [[ ! "~{optionB__ref_folder_zipped}" = "" ]]
+	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
 	then
-		cp ~{optionB__ref_folder_zipped} .
+		cp ~{DIRZIPPD_reference} .
 		unzip ~{basename_zip}
 	fi
 

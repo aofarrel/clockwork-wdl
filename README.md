@@ -46,7 +46,7 @@ Generally speaking:
 ...with the assumption that `~{dirzippd_varname}` gets unzipped before arg_varname is used in the command section.
 
 ## To-do list:
-[] Investigate why Terra ran enaDataGet very quickly, no error, but cromwell failed to find any fastq.gz files  
+[X] Investigate why Terra ran enaDataGet very quickly, no error, but cromwell failed to find any fastq.gz files  
 [] Use the newly-coined naming schema consistently  
 [] Finish the walkthru pipeline  
 [] Better cloud runtime attribute estimates  

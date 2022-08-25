@@ -56,8 +56,8 @@ workflow ClockworkWalkthrough {
 					sample_name = data.left,
 					reads_files = data.right,
 					unsorted_sam = true,
-					optionB__ref_folder_zipped = ClockworkRefPrepTB.indexed_decontam_reference,
-					optionB__ref_filename = ClockworkRefPrepTB.decontam_ref_filename
+					DIRZIPPD_reference = ClockworkRefPrepTB.indexed_decontam_reference,
+					FILENAME_reference = ClockworkRefPrepTB.indexed_decontam_ref_filename
 			}
 		}
 	}
@@ -74,8 +74,8 @@ workflow ClockworkWalkthrough {
 					reads_files = enaDataGet.fastqs,
 					sample_name = enaDataGet.sample_out,
 					unsorted_sam = true,
-					optionB__ref_folder_zipped = ClockworkRefPrepTB.indexed_decontam_reference,
-					optionB__ref_filename = ClockworkRefPrepTB.decontam_ref_filename
+					DIRZIPPD_reference = ClockworkRefPrepTB.indexed_decontam_reference,
+					FILENAME_reference = ClockworkRefPrepTB.indexed_decontam_ref_filename
 			}
 		}
 	}
