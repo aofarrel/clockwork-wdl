@@ -26,7 +26,7 @@ task reference_prepare {
 		# Or all three of these.
 		File?   dirzippd_reference  # download_tb_reference_files.dl_zipped
 		String? dirnozip_reference  # download_tb_reference_files.dl_dir
-		String? filename_reference  # "remove_contam.fa" or "NC_000962.3.fa"
+		String? filename_reference  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
 		# one of these two. It is assumed that if filename_tsv is defined, the
@@ -50,7 +50,7 @@ task reference_prepare {
 	# estimate disk size required
 	Int size_in = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
 	Int finalDiskSize = 2*size_in + addldisk
-
+	
 	# play with some variables
 	String is_there_any_tsv = select_first([filename_tsv, fullpath_tsv, "false"])
 	String intermed_tsv1 = if defined(filename_tsv) then "~{dirnozip_reference}/~{filename_tsv}" else ""
@@ -85,10 +85,8 @@ task reference_prepare {
 		preemptibles: "${preempt}"
 	}
 	output {
-		File zipped_outs        = glob("*.zip")[0]
-		String ref_out_dirname  = outdir
-		String ref_out_filename = "ref.fa"  # for some reason the output always seem to be ref.fa
-		#String ref_out_filename= select_first([fullpath_reference, filename_reference, "error"])  # old code that likely passes the wrong reference file name; more testing is required
-		File debug_workdir      = "workdir.txt"
+		File zipped_outs = glob("*.zip")[0]
+		String ref_filename = select_first([fullpath_reference, filename_reference, "error"])  # TODO: Is this accurate
+		File debug_workdir = "workdir.txt"
 	}
 }
