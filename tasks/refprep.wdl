@@ -24,13 +24,13 @@ task reference_prepare {
 		File? fullpath_reference
 
 		# Or all three of these.
-		File?   dirzippd_reference  # download_tb_reference_files.file_dirzippd_tbref_taskout
+		File?   file_dirzippd_reference_taskin  # download_tb_reference_files.file_dirzippd_tbref_taskout
 		String? dirnozip_reference  # download_tb_reference_files.strg_dirnozip_tbref_taskout
 		String? filename_reference  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
 		# one of these two. It is assumed that if filename_tsv is defined, the
-		# TSV is located inside dirzippd_reference, and its path will be
+		# TSV is located inside file_dirzippd_reference_taskin, and its path will be
 		# constructed as "~{dirnozip_reference}/~{filename_tsv}"
 		File?   fullpath_tsv
 		String? filename_tsv
@@ -48,7 +48,7 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
+	Int size_in = select_first([ceil(size(file_dirzippd_reference_taskin, "GB")), ceil(size(fullpath_reference, "GB")), 0])
 	Int finalDiskSize = 2*size_in + addldisk
 	
 	# play with some variables
@@ -64,9 +64,9 @@ task reference_prepare {
 	command <<<
 		set -eux -o pipefail
 
-		if [[ ! "~{dirzippd_reference}" = "" ]]
+		if [[ ! "~{file_dirzippd_reference_taskin}" = "" ]]
 		then
-			unzip ~{dirzippd_reference}
+			unzip ~{file_dirzippd_reference_taskin}
 		fi
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
@@ -85,8 +85,8 @@ task reference_prepare {
 		preemptibles: "${preempt}"
 	}
 	output {
-		File zipped_outs = glob("*.zip")[0]
-		String ref_filename = select_first([fullpath_reference, filename_reference, "error"])  # TODO: Is this accurate
+		File file_dirzipped_refprepd_taskout = glob("*.zip")[0]
+		String strg_filename_refprepd_taskout = select_first([fullpath_reference, filename_reference, "error"])  # TODO: Is this accurate
 		File debug_workdir = "workdir.txt"
 	}
 }

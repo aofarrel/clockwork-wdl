@@ -21,12 +21,12 @@ workflow ClockworkRefPrepTB {
 		# If you define these next two, then download_tb_reference_files will be
 		# skipped, and so will index_H37v_reference.
 		File?   bluepeter__indexed_decontam_reference
-		String? bluepeter__decontam_ref_filename
+		String? bluepeter__decontam_strg_filename_refprepd_taskout
 		#
 		# If you define these last two, then download_tb_reference_files and
 		# will be skipped.
 		File?   bluepeter__indexed_H37Rv_reference
-		String? bluepeter__H37Rv_ref_filename
+		String? bluepeter__H37Rv_strg_filename_refprepd_taskout
 		#
 		# Yes, that does mean that the *entire* pipeline can be skipped if the
 		# user inputs the last four inputs, and those four inputs will be considered
@@ -43,7 +43,7 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__indexed_decontam_reference)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
-				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
+				file_dirzippd_reference_taskin = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
 													download_tb_reference_files.file_dirzippd_tbref_taskout]),
 				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout,
 													download_tb_reference_files.strg_dirnozip_tbref_taskout]),
@@ -56,7 +56,7 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__indexed_H37Rv_reference)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
-				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
+				file_dirzippd_reference_taskin = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
 													download_tb_reference_files.file_dirzippd_tbref_taskout]),
 				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout,
 													download_tb_reference_files.strg_dirnozip_tbref_taskout]),
@@ -67,15 +67,15 @@ workflow ClockworkRefPrepTB {
 
 	output {
 		File   indexed_decontam_reference 		= select_first([bluepeter__indexed_decontam_reference,
-														index_decontamination_ref.zipped_outs])
+														index_decontamination_ref.file_dirzipped_refprepd_taskout])
 		
-		String indexed_decontam_ref_filename    = select_first([bluepeter__decontam_ref_filename,
+		String indexed_decontam_strg_filename_refprepd_taskout    = select_first([bluepeter__decontam_strg_filename_refprepd_taskout,
 														"ref.fa"])
 		
 		File   indexed_H37Rv_reference    		= select_first([bluepeter__indexed_H37Rv_reference,
-														index_H37Rv_reference.zipped_outs])
+														index_H37Rv_reference.file_dirzipped_refprepd_taskout])
 		
-		String indexed_H37Rv_ref_filename       = select_first([bluepeter__H37Rv_ref_filename,
+		String indexed_H37Rv_strg_filename_refprepd_taskout       = select_first([bluepeter__H37Rv_strg_filename_refprepd_taskout,
 														"ref.fa"])
 	}
 

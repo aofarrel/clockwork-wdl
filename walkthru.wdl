@@ -5,8 +5,8 @@ version 1.0
 # You can skip clockwork_refprepWF by defining the following:
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_H37Rv_reference"
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_decontam_reference"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_ref_filename"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_ref_filename"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_strg_filename_refprepd_taskout"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_strg_filename_refprepd_taskout"
 #
 # You can skip enaDataGetTask.enaDataGet by defining the following as an array
 # of arrays where each inner array corresponds with a sample in samples:
@@ -61,7 +61,7 @@ workflow ClockworkWalkthrough {
 				reads_files = data.right,
 				unsorted_sam = true,
 				DIRZIPPD_reference = ClockworkRefPrepTB.indexed_decontam_reference,
-				FILENAME_reference = ClockworkRefPrepTB.indexed_decontam_ref_filename
+				FILENAME_reference = ClockworkRefPrepTB.indexed_decontam_strg_filename_refprepd_taskout
 		}
 	}
 
