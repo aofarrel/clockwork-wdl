@@ -24,8 +24,8 @@ task reference_prepare {
 		File? fullpath_reference
 
 		# Or all three of these.
-		File?   dirzippd_reference  # download_tb_reference_files.dl_zipped
-		String? dirnozip_reference  # download_tb_reference_files.dl_dir
+		File?   dirzippd_reference  # download_tb_reference_files.file_dirzippd_tbref_taskout
+		String? dirnozip_reference  # download_tb_reference_files.strg_dirnozip_tbref_taskout
 		String? filename_reference  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define

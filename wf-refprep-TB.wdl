@@ -1,9 +1,9 @@
 version 1.0
-#import "./tasks/refprep.wdl"
-#import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
+import "./tasks/refprep.wdl"
+import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/refprep.wdl"
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl-TB-ref.wdl" as dl_TB_ref
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/refprep.wdl"
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl-TB-ref.wdl" as dl_TB_ref
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
@@ -15,8 +15,8 @@ workflow ClockworkRefPrepTB {
 		# These inputs should ONLY be used if you intend on skipping steps, using
 		# "here's one I made earlier" inputs.
 		# The first two skip the download of the TB reference files.
-		File?   bluepeter__download_tb_reference_files__dl_zipped
-		String? bluepeter__download_tb_reference_files__dl_dir
+		File?   bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout
+		String? bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout
 		#
 		# If you define these next two, then download_tb_reference_files will be
 		# skipped, and so will index_H37v_reference.
@@ -36,17 +36,17 @@ workflow ClockworkRefPrepTB {
 		# files where you expect them to go) getting tested.
 	}
 
-	if (!defined(bluepeter__download_tb_reference_files__dl_zipped)) {
+	if (!defined(bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout)) {
 		call dl_TB_ref.download_tb_reference_files
 	}
 
 	if (!defined(bluepeter__indexed_decontam_reference)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
-				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__dl_zipped,
-													download_tb_reference_files.dl_zipped]),
-				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__dl_dir,
-													download_tb_reference_files.dl_dir]),
+				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
+													download_tb_reference_files.file_dirzippd_tbref_taskout]),
+				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout,
+													download_tb_reference_files.strg_dirnozip_tbref_taskout]),
 				filename_reference = "remove_contam.fa.gz",
 				filename_tsv       = "remove_contam.tsv",
 				outdir             = "Ref.remove_contam"
@@ -56,10 +56,10 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__indexed_H37Rv_reference)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
-				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__dl_zipped,
-													download_tb_reference_files.dl_zipped]),
-				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__dl_dir,
-													download_tb_reference_files.dl_dir]),
+				dirzippd_reference = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
+													download_tb_reference_files.file_dirzippd_tbref_taskout]),
+				dirnozip_reference = select_first([bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout,
+													download_tb_reference_files.strg_dirnozip_tbref_taskout]),
 				filename_reference = "NC_000962.3.fa",
 				outdir             = "Ref.H37Rv"
 		}

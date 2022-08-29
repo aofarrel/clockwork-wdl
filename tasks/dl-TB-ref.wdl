@@ -29,8 +29,8 @@ task download_tb_reference_files {
 	}
 
 	output {
-		String dl_dir = "~{outdir}"
-		File   dl_zipped = "~{outdir}.zip"
+		String strg_dirnozip_tbref_taskout = "~{outdir}"
+		File   file_dirzippd_tbref_taskout = "~{outdir}.zip"
 		File   debug_workdir = "workdir.txt"
 	}
 }

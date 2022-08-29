@@ -30,14 +30,15 @@ All are Cromwell-formatted.
 The original pipeline assumes that you can pass entire directories around. WDL 1.0 does allow for this, and Cromwell has (to my knowledge) no timeline on supporting WDL 1.1, so we have to get a little creative. When dealing with an input variable that is often passed in from a directory, the following naming schema is used:
 
 Public:  
-* fullpath_varname: File   - "Ref.remove_contam/remove_contam_metadata.tsv"  
-* filename_varname: String - "remove_contam_metadata.tsv"  
-* dirnozip_varname: String - "Ref.remove_contam"  
-* dirzippd_varname: File   - "Ref.remove_contam.zip"  
+* strg_fullpath_varname: String - "Ref.remove_contam/remove_contam_metadata.tsv"  
+* strg_filename_varname: String - "remove_contam_metadata.tsv"  
+* strg_dirnozip_varname: String - "Ref.remove_contam"  
+* file_dirzippd_varname: File   - "Ref.remove_contam.zip"  
+* file_lonesome_varname: File   - "remove_contam_metadata.tsv"
 
 Private:  
-* intermed_varname: String - Intermediate variable used to calculate arg_varname. Not always present.  
-* arg_varname:      String - Argument for a command line call in a task's command section.
+* strg_intermed_varname: String - Intermediate variable used to calculate arg_varname. Not always present.  
+* strg_argument_varname: String - Argument for a command line call in a task's command section.
 
 Suffixes:
 * \_taskinn: Variable is a task-level input
