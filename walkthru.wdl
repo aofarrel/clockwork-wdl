@@ -4,9 +4,9 @@ version 1.0
 #
 # You can skip clockwork_refprepWF by defining the following:
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__file_indxdH37Rvref_wrkfout"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__file_dirzippd_indxddeconref_wrkfout"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_strg_filename_refprepd_taskout"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_strg_filename_refprepd_taskout"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_STRG_FILENAME_refprepd_taskout"
 #
 # You can skip enaDataGetTask.enaDataGet by defining the following as an array
 # of arrays where each inner array corresponds with a sample in samples:
@@ -60,21 +60,16 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.file_dirzippd_indxddeconref_wrkfout,
-				FILENAME_reference = ClockworkRefPrepTB.strg_filename_indxddeconref_wrkfout
+				DIRZIPPD_reference = ClockworkRefPrepTB.FILE_DIRZIPPD_indxddeconref_wrkfout,
+				FILENAME_reference = ClockworkRefPrepTB.STRG_FILENAME_indxddeconref_wrkfout
 		}
 	}
 
 
-#	Array[File] mapped_reads = select_first([map_reads_quick, map_reads_slow])
-#	scatter(sam_file in mapped_reads) {
-#		call clockwork_removecontamTask
-#			input:
-#				bam_in = sam_file,
-#				dirnozip_metadata_tsv = ClockworkRefPrepTB.file_dirzippd_indxddeconref_wrkfout,
-#				counts_out,
-#				reads_out_1,
-#				reads_out_2,
-#				dirnozip_tsv
-#	}
+	scatter(sam_file in map_reads.mapped_reads) {
+		call clockwork_removecontamTask
+			input:
+				bam_in = sam_file,
+				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.FILE_DIRZIPPD_indxddeconref_wrkfout,
+	}
 }

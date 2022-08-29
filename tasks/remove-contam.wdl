@@ -20,17 +20,19 @@ version 1.0
 task remove_contam {
 	input {
 		File bam_in
-		String counts_out
-		String reads_out_1
-		String reads_out_2
 
 		# for the metadata TSV, you can either pass in the file directly...
 		File? metadata_tsv
 
 		# ...or you can pass in the zipped prepared reference plus the name
 		# of the TSV file
-		File?   dirzippd_decontam_ref
-		String? dirnozip_metadata_tsv = "remove_contam_metadata.tsv"
+		File?   DIRZIPPD_decontam_ref
+		String? FILENAME_metadata_tsv = "remove_contam_metadata.tsv"
+
+		# these three are required in the original pipeline, but we can calculate them ourselves
+		String? counts_out
+		String? reads_out_1
+		String? reads_out_2
 
 		String? no_match_out_1
 		String? no_match_out_2
@@ -45,29 +47,26 @@ task remove_contam {
 		Int memory = 16
 		Int preempt	= 1
 	}
-	String? intemed_basename_bam = basename(bam_in)
-	String? arg_counts_out = if(!defined(counts_out)) then "~{counts_out}" else 
-	String arg_metadata_tsv = if(!defined(dirnozip_tsv)) then "~{dirnozip_tsv}/~{metadata_tsv}" else "~{metadata_tsv}"
+	String? intermed_basestem_bamin = sub(basename(bam_in), "\.bam(?!.{5,})|\.sam(?!.{5,})", "")  # TODO: double check the regex
+	String? arg_counts_out = if(defined(counts_out)) then "~{counts_out}" else "~{intermed_basestem_bamin}.decontam.counts.tsv"
+	String? arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}.decontam_1.fq.gz"
+	String? arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
+	String arg_metadata_tsv = if(!defined(DIRZIPPD_decontam_ref)) then "~{DIRZIPPD_decontam_ref}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
 	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
 	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
-	Int finalDiskSize = size(metadata_tsv, "GB") + 
-						size(bam_in, "GB") + 
-						size(counts_out, "GB") + 
-						size(reads_out_1, "GB") + 
-						size(reads_out_2, "GB") + 
-						addldisk
+	Int finalDiskSize = size(metadata_tsv, "GB") + size(DIRZIPPD_decontam_ref, "GB") + size(bam_in, "GB") + addldisk
 
 	command <<<
 	clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		~{bam_in} \
-		~{counts_out} \
-		~{reads_out_1} \
-		~{reads_out_2} \
+		~{arg_counts_out} \
+		~{arg_reads_out1} \
+		~{arg_reads_out2} \
 		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
 	ls -lhaR > workdir.txt

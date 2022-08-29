@@ -1,7 +1,7 @@
 version 1.0
 # Limitations: 
 # * This does not support usage of a database nor db_config_file
-# * strg_dirnozip_outdir_taskin is hardcoded and output is given in the form of a single
+# * STRG_DIRNOZIP_outdir_TASKIN is hardcoded and output is given in the form of a single
 #   zip file, as WDL does not support outputting a directory
 
 # clockwork reference_prepare essentially runs these steps:
@@ -14,31 +14,31 @@ version 1.0
 #	--se_list /cromwell_root/ref_dir/ref.fofn --max_read_len 10000 \
 #	--dump_binary /cromwell_root/ref_dir/ref.k31.ctx --sample_id REF
 
-# * TODO: previously assumed that if file_lonesome_reference_taskin, then don't input file_lonesome_tsv_taskin, but
-#   is that actually true? --> seems unlikely, could probably use file_lonesome_reference_taskin for an
+# * TODO: previously assumed that if FILE_LONESOME_reference_TASKIN, then don't input FILE_LONESOME_tsv_TASKIN, but
+#   is that actually true? --> seems unlikely, could probably use FILE_LONESOME_reference_TASKIN for an
 #   index decontamination run which does need a tsv someway or another
 
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? file_lonesome_reference_taskin
+		File? FILE_LONESOME_reference_TASKIN
 
 		# Or all three of these.
-		File?   file_dirzippd_reference_taskin  # download_tb_reference_files.file_dirzippd_tbref_taskout
-		String? strg_dirnozip_reference_taskin  # download_tb_reference_files.strg_dirnozip_tbref_taskout
-		String? strg_filename_reference_taskin  # "remove_contam.fa.gz" or "NC_000962.3.fa"
+		File?   FILE_DIRZIPPD_reference_TASKIN  # download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout
+		String? STRG_DIRNOZIP_reference_TASKIN  # download_tb_reference_files.STRG_DIRNOZIP_tbref_taskout # TODO: Replace with regex
+		String? STRG_FILENAME_reference_TASKIN  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
-		# one of these two. It is assumed that if strg_filename_tsv_taskin is defined, the
-		# TSV is located inside file_dirzippd_reference_taskin, and its path will be
-		# constructed as "~{strg_dirnozip_reference_taskin}/~{strg_filename_tsv_taskin}"
-		File?   file_lonesome_tsv_taskin
-		String? strg_filename_tsv_taskin
+		# one of these two. It is assumed that if STRG_FILENAME_tsv_TASKIN is defined, the
+		# TSV is located inside FILE_DIRZIPPD_reference_TASKIN, and its path will be
+		# constructed as "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_tsv_TASKIN}"
+		File?   FILE_LONESOME_tsv_TASKIN
+		String? STRG_FILENAME_tsv_TASKIN
 
 		# Other stuff
 		Int?    cortex_mem_height
 		String? name
-		String? strg_dirnozip_outdir_taskin
+		String? STRG_DIRNOZIP_outdir_TASKIN
 
 		# Runtime attributes
 		Int addldisk = 100
@@ -48,32 +48,31 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(file_dirzippd_reference_taskin, "GB")), ceil(size(file_lonesome_reference_taskin, "GB")), 0])
+	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
 	Int finalDiskSize = 2*size_in + addldisk
 	
 	# play with some variables
-	String is_there_any_tsv = select_first([strg_filename_tsv_taskin, file_lonesome_tsv_taskin, "false"])
-	String intermed_tsv1 = if defined(strg_filename_tsv_taskin) then "~{strg_dirnozip_reference_taskin}/~{strg_filename_tsv_taskin}" else ""
-	String intermed_tsv2 = if defined(file_lonesome_tsv_taskin) then "~{file_lonesome_tsv_taskin}" else ""
+	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
+	String intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_tsv_TASKIN}" else ""
+	String intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
 	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
-	
-	String arg_ref               = if defined(file_lonesome_reference_taskin) then "~{file_lonesome_reference_taskin}" else "~{strg_dirnozip_reference_taskin}/~{strg_filename_reference_taskin}"
+	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_reference_TASKIN}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
 	command <<<
 		set -eux -o pipefail
 
-		if [[ ! "~{file_dirzippd_reference_taskin}" = "" ]]
+		if [[ ! "~{FILE_DIRZIPPD_reference_TASKIN}" = "" ]]
 		then
-			unzip ~{file_dirzippd_reference_taskin}
+			unzip ~{FILE_DIRZIPPD_reference_TASKIN}
 		fi
 
-		clockwork reference_prepare --strg_dirnozip_outdir_taskin ~{strg_dirnozip_outdir_taskin} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
+		clockwork reference_prepare --outdir ~{STRG_DIRNOZIP_outdir_TASKIN} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
 		ls -lhaR > workdir.txt
 
-		zip -r ~{strg_dirnozip_outdir_taskin}.zip ~{strg_dirnozip_outdir_taskin}
+		zip -r ~{STRG_DIRNOZIP_outdir_TASKIN}.zip ~{STRG_DIRNOZIP_outdir_TASKIN}
 	>>>
 	
 	runtime {
@@ -86,8 +85,7 @@ task reference_prepare {
 	}
 	output {
 		File    file_dirzipped_refprepd_taskout = glob("*.zip")[0]
-		String  strg_filename_refprepd_taskout = select_first([file_lonesome_reference_taskin, strg_filename_reference_taskin, "error"])  # TODO: Is this accurate
-		#String? strg_filename_decontsv_taskout = strg_filename_tsv_taskin
+		String  STRG_FILENAME_refprepd_taskout = select_first([FILE_LONESOME_reference_TASKIN, STRG_FILENAME_reference_TASKIN, "error"])  # TODO: Is this accurate
 		File    debug_workdir = "workdir.txt"
 	}
 }

@@ -1,5 +1,5 @@
 {
   "ClockworkRefPrepTB.genome": "/Users/ash/Documents/aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta",
-  "ClockworkRefPrepTB.bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
-  "ClockworkRefPrepTB.bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout": "Ref.download"
+  "ClockworkRefPrepTB.bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
+  "ClockworkRefPrepTB.bluepeter__download_tb_reference_files__STRG_DIRNOZIP_tbref_taskout": "Ref.download"
 }

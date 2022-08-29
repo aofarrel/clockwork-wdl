@@ -33,10 +33,9 @@ task map_reads {
 		Int preempt = 2
 	}
 	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basename_zip = basename(DIRZIPPD_reference)
-	String basename_zip_noext = sub(basename_zip, "\.zip(?!.{5,})", "")  # TODO: double check the regex
+	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.zip(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_ref_fasta = "~{basename_zip_noext}/~{FILENAME_reference}"
+	String arg_ref_fasta = "~{basestem_reference}/~{FILENAME_reference}"
 
 	# TODO: properly support threads
 
@@ -45,7 +44,7 @@ task map_reads {
 
 	echo "DIRZIPPD_reference" ~{DIRZIPPD_reference}
 	echo "FILENAME_reference" ~{FILENAME_reference}
-	echo "basename_zip" ~{basename_zip}
+	echo "basestem_reference" ~{basestem_reference}
 	echo "sample_name" ~{sample_name}
 	echo "outfile" ~{outfile}
 	echo "arg_unsorted_sam" ~{arg_unsorted_sam}
@@ -62,7 +61,7 @@ task map_reads {
 	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
 	then
 		cp ~{DIRZIPPD_reference} .
-		unzip ~{basename_zip}
+		unzip ~{basestem_reference}.zip
 	fi
 
 	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
