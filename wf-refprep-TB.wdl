@@ -20,12 +20,12 @@ workflow ClockworkRefPrepTB {
 		#
 		# If you define these next two, then download_tb_reference_files will be
 		# skipped, and so will index_H37v_reference.
-		File?   bluepeter__indxd_decontam_reference
+		File?   bluepeter__file_dirzippd_indxddeconref_wrkfout
 		String? bluepeter__decontam_strg_filename_refprepd_taskout
 		#
 		# If you define these last two, then download_tb_reference_files and
 		# will be skipped.
-		File?   bluepeter__indxd_H37Rv_reference
+		File?   bluepeter__file_indxdH37Rvref_wrkfout
 		String? bluepeter__H37Rv_strg_filename_refprepd_taskout
 		#
 		# Yes, that does mean that the *entire* pipeline can be skipped if the
@@ -47,7 +47,7 @@ workflow ClockworkRefPrepTB {
 		#  └── remove_contam.tsv
 	}
 
-	if (!defined(bluepeter__indxd_decontam_reference)) {
+	if (!defined(bluepeter__file_dirzippd_indxddeconref_wrkfout)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
 				file_dirzippd_reference_taskin = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
@@ -66,7 +66,7 @@ workflow ClockworkRefPrepTB {
 		#  └── remove_contam_metadata.tsv
 	}
 
-	if (!defined(bluepeter__indxd_H37Rv_reference)) {
+	if (!defined(bluepeter__file_indxdH37Rvref_wrkfout)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
 				file_dirzippd_reference_taskin = select_first([bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout,
@@ -85,16 +85,16 @@ workflow ClockworkRefPrepTB {
 	}
 
 	output {
-		File   indxd_decontam_reference 		= select_first([bluepeter__indxd_decontam_reference,
+		File   file_dirzippd_indxddeconref_wrkfout 		= select_first([bluepeter__file_dirzippd_indxddeconref_wrkfout,
 														index_decontamination_ref.file_dirzipped_refprepd_taskout])
 		
-		String indxd_decontam_strg_filename_refprepd_taskout    = select_first([bluepeter__decontam_strg_filename_refprepd_taskout,
+		String strg_filename_indxddeconref_wrkfout    = select_first([bluepeter__decontam_strg_filename_refprepd_taskout,
 														"ref.fa"])
 		
-		File   indxd_H37Rv_reference    		= select_first([bluepeter__indxd_H37Rv_reference,
+		File   file_indxdH37Rvref_wrkfout    		= select_first([bluepeter__file_indxdH37Rvref_wrkfout,
 														index_H37Rv_reference.file_dirzipped_refprepd_taskout])
 		
-		String indxd_H37Rv_strg_filename_refprepd_taskout       = select_first([bluepeter__H37Rv_strg_filename_refprepd_taskout,
+		String strg_filename_indxdH37Rvref_wrkfout       = select_first([bluepeter__H37Rv_strg_filename_refprepd_taskout,
 														"ref.fa"])
 	}
 

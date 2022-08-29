@@ -29,8 +29,9 @@ task remove_contam {
 
 		# ...or you can pass in the zipped prepared reference plus the name
 		# of the TSV file
+		File?   dirzippd_decontam_ref
+		String? dirnozip_metadata_tsv = "remove_contam_metadata.tsv"
 
-		String? dirnozip_tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
@@ -44,6 +45,8 @@ task remove_contam {
 		Int memory = 16
 		Int preempt	= 1
 	}
+	String? intemed_basename_bam = basename(bam_in)
+	String? arg_counts_out = if(!defined(counts_out)) then "~{counts_out}" else 
 	String arg_metadata_tsv = if(!defined(dirnozip_tsv)) then "~{dirnozip_tsv}/~{metadata_tsv}" else "~{metadata_tsv}"
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
 	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
