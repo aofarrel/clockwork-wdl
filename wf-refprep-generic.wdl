@@ -9,7 +9,7 @@ workflow ClockworkRefPrepGeneric {
 	call refprep.reference_prepare {
 		input:
 			ref_file = genome,
-			outdir = "ref_dir"
+			strg_dirnozip_outdir_taskin = "ref_dir"
 	}
 
 	meta {

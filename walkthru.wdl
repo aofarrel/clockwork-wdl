@@ -3,8 +3,8 @@ version 1.0
 # https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only
 #
 # You can skip clockwork_refprepWF by defining the following:
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_H37Rv_reference"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_decontam_reference"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indxd_H37Rv_reference"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indxd_decontam_reference"
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_strg_filename_refprepd_taskout"
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_strg_filename_refprepd_taskout"
 #
@@ -60,8 +60,8 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.indexed_decontam_reference,
-				FILENAME_reference = ClockworkRefPrepTB.indexed_decontam_strg_filename_refprepd_taskout
+				DIRZIPPD_reference = ClockworkRefPrepTB.indxd_decontam_reference,
+				FILENAME_reference = ClockworkRefPrepTB.indxd_decontam_strg_filename_refprepd_taskout
 		}
 	}
 

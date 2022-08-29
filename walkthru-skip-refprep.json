@@ -1,8 +1,8 @@
 {
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__file_dirzippd_tbref_taskout": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__strg_dirnozip_tbref_taskout": "Ref.download",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_H37Rv_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_decontam_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indxd_H37Rv_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indxd_decontam_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_strg_filename_refprepd_taskout":"ref.fa",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_strg_filename_refprepd_taskout":"ref.fa",
   "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],
