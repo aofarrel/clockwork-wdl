@@ -28,9 +28,9 @@ task remove_contam {
 	input {
 		File metadata_tsv
 		File bam_in # can also be a sam
-		File counts_out
-		File reads_out_1
-		File reads_out_2
+		String counts_out
+		String reads_out_1
+		String reads_out_2
 
 		String? dirnozip_tsv
 		String? no_match_out_1
@@ -56,7 +56,16 @@ task remove_contam {
 	Int finalDiskSize = size(metadata_tsv, "GB") + size(bam_in, "GB") + size(counts_out, "GB") + size(reads_out_1, "GB") + size(reads_out_2, "GB") + addldisk
 
 	command <<<
-	clockwork remove_contam ~{arg_metadata_tsv} ~{bam_in} ~{counts_out} ~{reads_out_1} ~{reads_out_2}
+	clockwork remove_contam \
+	  ~{arg_metadata_tsv} \
+	  ~{bam_in} \
+	  ~{counts_out} \
+	  ~{reads_out_1} \
+	  ~{reads_out_2} \
+	  ~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+
+	ls -lhaR > workdir.txt
+
 	>>>
 
 	runtime {
@@ -69,6 +78,8 @@ task remove_contam {
 	}
 
 	output {
-
+		File decontaminated_fastq_1 = contam_out_1
+		File decontaminated_fastq_2 = contam_out_2
+		File debug_workdir = "workdir.txt"
 	}
 }
