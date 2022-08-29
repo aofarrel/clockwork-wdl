@@ -5,5 +5,5 @@
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_decontam_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_ref_filename":"ref.fa",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_ref_filename":"ref.fa",
-  "ClockworkWalkthrough.samples_to_dl":["SAMEA2534421","SAMEA2534128"],
+  "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],
 }

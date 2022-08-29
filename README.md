@@ -39,6 +39,12 @@ Private:
 * intermed_varname: String - Intermediate variable used to calculate arg_varname. Not always present.  
 * arg_varname:      String - Argument for a command line call in a task's command section.
 
+Suffixes:
+* \_taskinn: Variable is a task-level input
+* \_taskout: Variable is a task-level output
+* \_wrkfinn: Variable is a workflow-level input
+* \_wrkfout: Variable is a workflow-level output
+
 Generally speaking:
 
 `arg_varname = if(defined(fullpath_varname)) then "~{fullpath_varname}" else "~{dirnozip_varname}/~{filename_varname}"`
