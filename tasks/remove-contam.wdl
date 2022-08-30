@@ -57,12 +57,12 @@ task remove_contam {
 
 	command <<<
 	clockwork remove_contam \
-	  ~{arg_metadata_tsv} \
-	  ~{bam_in} \
-	  ~{counts_out} \
-	  ~{reads_out_1} \
-	  ~{reads_out_2} \
-	  ~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+		~{arg_metadata_tsv} \
+		~{bam_in} \
+		~{counts_out} \
+		~{reads_out_1} \
+		~{reads_out_2} \
+		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
 	ls -lhaR > workdir.txt
 
