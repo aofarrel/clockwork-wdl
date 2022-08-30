@@ -67,9 +67,10 @@ workflow ClockworkWalkthrough {
 
 
 	scatter(sam_file in map_reads.mapped_reads) {
-		call clockwork_removecontamTask
+		call clockwork_removecontamTask.remove_contam {
 			input:
 				bam_in = sam_file,
 				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.FILE_DIRZIPPD_indxddeconref_wrkfout,
+		}
 	}
 }

@@ -27,7 +27,7 @@ task map_reads {
 		String? FILENAME_reference
 
 		# runtime attributes
-		Int disk = 100
+		#Int disk = 100
 		Int cpu = 4
 		Int memory = 8
 		Int preempt = 2
@@ -72,7 +72,7 @@ task map_reads {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
-		disks: "local-disk " + disk + " HDD"
+		#disks: "local-disk " + disk + " HDD"
 		memory: "${memory} GB"
 		preemptibles: "${preempt}"
 	}

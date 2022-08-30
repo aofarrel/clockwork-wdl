@@ -1,21 +1,4 @@
 version 1.0
-#usage: clockwork remove_contam [options] <ref seq metadata tsv> <bam file> <counts outfile> <reads_out_1> #<reads_out_2>
-#
-#(SAM or BAM) -> paired FASTQ files split into OK, contaminated, and unmapped
-#
-#
-#optional arguments:
-#  -h, --help            show this help message and exit
-#  --no_match_out_1 NO_MATCH_OUT_1
-#                        Name of output file 1 of reads that did not match. If not given, reads are included in reads_out_1. Must be used with --no_match_out_2
-#  --no_match_out_2 NO_MATCH_OUT_2
-#                        Name of output file 2 of reads that did not match. If not given, reads are included in reads_out_2. Must be used with --no_match_out_1
-#  --contam_out_1 CONTAM_OUT_1
-#                        Name of output file 1 of contamination reads. If not given, reads are discarded. Must be used with --contam_out_2
-#  --contam_out_2 CONTAM_OUT_2
-#                        Name of output file 2 of contamination reads. If not given, reads are discarded. Must be used with --contam_out_1
-#  --done_file DONE_FILE#
-#                        Write a file of the given name when the script is finished
 
 task remove_contam {
 	input {
@@ -74,12 +57,18 @@ task remove_contam {
 	>>>
 
 	parameter_meta {
-		metadata_tsv: "Metadata TSV file. Format: one group of ref seqs per line. Tab-delimited columns: 1) group name; 2) 1|0 for is|is not contamination; 3+) sequence names."
-		bam_in: "Input bam or sam file."
-		counts_out: "Name of output file of read counts"
-		reads_out_1: "Name of output reads file 1"
-		reads_out_2: "Name of output reads file 2"
-
+		metadata_tsv: "Metadata TSV file. 1st positional arg of ''clockwork remove_contam''. Format: one group of ref seqs per line. Tab-delimited columns: 1) group name; 2) 1|0 for is|is not contamination; 3+) sequence names."
+		DIRZIPPD_decontam_ref: "Zipped decontamination reference. Only needed if metadata_tsv is not provided."
+		FILENAME_metadata_tsv: "Filename of the metadata TSV within DIRZIPPD_decontam_ref. Only needed if metadata_tsv is not provided. This plus DIRZIPPD_decontam_ref will be used to construct 1st positional arg of ''clockwork remove_contam'' Default: remove_contam_metadata.tsv"
+		bam_in: "Input bam or sam file. 2nd positional arg of ''clockwork remove_contam''"
+		counts_out: "Name of output file of read counts. 3rd positional arg of ''clockwork remove_contam''. If not provided, will be generated from the basename stem of bam_in."
+		reads_out_1: "Name of output reads file 1. If not provided, will be generated from the basename stem of bam_in. 4th positional arg of ''clockwork remove_contam''"
+		reads_out_2: "Name of output reads file 2. If not provided, will be generated from the basename stem of bam_in. 5th positional arg of ''clockwork remove_contam''"
+		no_match_out_1: "Name of output file 1 of reads that did not match. If not given, reads are included in reads_out_1. Must be used with --no_match_out_2"
+		no_match_out_2: "Name of output file 2 of reads that did not match. If not given, reads are included in reads_out_2. Must be used with --no_match_out_1"
+		contam_out_1: "Name of output file 1 of contamination reads. If not given, reads are discarded. Must be used with --contam_out_2"
+		contam_out_2: "Name of output file 2 of contamination reads. If not given, reads are discarded. Must be used with --contam_out_1"
+		done_file: "Write a file of the given name when the script is finished."
 	}
 
 	runtime {

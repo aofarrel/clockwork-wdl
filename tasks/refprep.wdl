@@ -23,40 +23,42 @@ task reference_prepare {
 		# You need to define either this...
 		File? FILE_LONESOME_reference_TASKIN
 
-		# Or all three of these.
+		# Or both of these.
 		File?   FILE_DIRZIPPD_reference_TASKIN  # download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout
-		String? STRG_DIRNOZIP_reference_TASKIN  # download_tb_reference_files.STRG_DIRNOZIP_tbref_taskout # TODO: Replace with regex
 		String? STRG_FILENAME_reference_TASKIN  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
 		# one of these two. It is assumed that if STRG_FILENAME_tsv_TASKIN is defined, the
 		# TSV is located inside FILE_DIRZIPPD_reference_TASKIN, and its path will be
-		# constructed as "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_tsv_TASKIN}"
+		# constructed as "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}"
 		File?   FILE_LONESOME_tsv_TASKIN
 		String? STRG_FILENAME_tsv_TASKIN
 
 		# Other stuff
-		Int?    cortex_mem_height
+		String outdir
+		Int? cortex_mem_height
 		String? name
-		String? STRG_DIRNOZIP_outdir_TASKIN
 
 		# Runtime attributes
-		Int addldisk = 100
+		Int addldisk = 250
 		Int cpu      = 8
 		Int retries  = 1
 		Int memory   = 16
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
-	Int finalDiskSize = 2*size_in + addldisk
+	# TODO: these are broken! fix em!
+	#Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
+	#Int finalDiskSize = ceil(2*size_in + addldisk)
+	Int finalDiskSize = addldisk
 	
 	# play with some variables
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
-	String intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_tsv_TASKIN}" else ""
+	String dirnozip_reference = sub(select_first([FILE_DIRZIPPD_reference_TASKIN, "error"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
+	String intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
 	String intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
-	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
-	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{STRG_DIRNOZIP_reference_TASKIN}/~{STRG_FILENAME_reference_TASKIN}"
+	String arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{dirnozip_reference}/~{STRG_FILENAME_reference_TASKIN}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
@@ -68,11 +70,11 @@ task reference_prepare {
 			unzip ~{FILE_DIRZIPPD_reference_TASKIN}
 		fi
 
-		clockwork reference_prepare --outdir ~{STRG_DIRNOZIP_outdir_TASKIN} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
+		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
 		ls -lhaR > workdir.txt
 
-		zip -r ~{STRG_DIRNOZIP_outdir_TASKIN}.zip ~{STRG_DIRNOZIP_outdir_TASKIN}
+		zip -r ~{outdir}.zip ~{outdir}
 	>>>
 	
 	runtime {
@@ -86,6 +88,7 @@ task reference_prepare {
 	output {
 		File    file_dirzipped_refprepd_taskout = glob("*.zip")[0]
 		String  STRG_FILENAME_refprepd_taskout = select_first([FILE_LONESOME_reference_TASKIN, STRG_FILENAME_reference_TASKIN, "error"])  # TODO: Is this accurate
+		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
 		File    debug_workdir = "workdir.txt"
 	}
 }

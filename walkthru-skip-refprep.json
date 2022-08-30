@@ -1,6 +1,5 @@
 {
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__STRG_DIRNOZIP_tbref_taskout": "Ref.download",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__file_indxdH37Rvref_wrkfout":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout":"ref.fa",

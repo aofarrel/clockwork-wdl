@@ -29,7 +29,6 @@ task download_tb_reference_files {
 	}
 
 	output {
-		String STRG_DIRNOZIP_tbref_taskout = "~{STRG_DIRNOZIP_outdir_TASKIN}"
 		File   FILE_DIRZIPPD_tbref_taskout = "~{STRG_DIRNOZIP_outdir_TASKIN}.zip"
 		File   debug_workdir = "workdir.txt"
 	}

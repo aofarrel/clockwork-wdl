@@ -16,7 +16,6 @@ workflow ClockworkRefPrepTB {
 		# "here's one I made earlier" inputs.
 		# The first two skip the download of the TB reference files.
 		File?   bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout
-		String? bluepeter__download_tb_reference_files__STRG_DIRNOZIP_tbref_taskout
 		#
 		# If you define these next two, then download_tb_reference_files will be
 		# skipped, and so will index_H37v_reference.
@@ -52,11 +51,9 @@ workflow ClockworkRefPrepTB {
 			input:
 				FILE_DIRZIPPD_reference_TASKIN = select_first([bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout,
 													download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout]),
-				STRG_DIRNOZIP_reference_TASKIN = select_first([bluepeter__download_tb_reference_files__STRG_DIRNOZIP_tbref_taskout,
-													download_tb_reference_files.STRG_DIRNOZIP_tbref_taskout]),
 				STRG_FILENAME_reference_TASKIN = "remove_contam.fa.gz",
 				STRG_FILENAME_tsv_TASKIN       = "remove_contam.tsv",
-				STRG_DIRNOZIP_outdir_TASKIN    = "Ref.remove_contam"
+				outdir    = "Ref.remove_contam"
 		}
 		#################### output ####################
 		# Ref.remove_contam.zip
@@ -71,10 +68,8 @@ workflow ClockworkRefPrepTB {
 			input:
 				FILE_DIRZIPPD_reference_TASKIN = select_first([bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout,
 													download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout]),
-				STRG_DIRNOZIP_reference_TASKIN = select_first([bluepeter__download_tb_reference_files__STRG_DIRNOZIP_tbref_taskout,
-													download_tb_reference_files.STRG_DIRNOZIP_tbref_taskout]),
 				STRG_FILENAME_reference_TASKIN = "NC_000962.3.fa",
-				STRG_DIRNOZIP_outdir_TASKIN    = "Ref.H37Rv"
+				outdir    = "Ref.H37Rv"
 		}
 		#################### output ####################
 		# Ref.H37Rv.zip
