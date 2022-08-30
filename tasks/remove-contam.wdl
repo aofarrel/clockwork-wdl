@@ -7,8 +7,7 @@ task remove_contam {
 		# for the metadata TSV, you can either pass in the file directly...
 		File? metadata_tsv
 
-		# ...or you can pass in the zipped prepared reference plus the name
-		# of the TSV file
+		# ...or you can pass in the zipped prepared reference plus the name of the TSV file
 		File?   DIRZIPPD_decontam_ref
 		String? FILENAME_metadata_tsv = "remove_contam_metadata.tsv"
 
@@ -17,31 +16,38 @@ task remove_contam {
 		String? reads_out_1
 		String? reads_out_2
 
+		# these are optional in the both the original pipeline and our WDL
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
 
-		# Runtime attributes
+		# runtime attributes
 		Int addldisk = 100
 		Int cpu	= 8
 		Int retries	= 1
 		Int memory = 16
 		Int preempt	= 1
 	}
-	String? intermed_basestem_bamin = sub(basename(bam_in), "\.bam(?!.{5,})|\.sam(?!.{5,})", "")  # TODO: double check the regex
-	String? arg_counts_out = if(defined(counts_out)) then "~{counts_out}" else "~{intermed_basestem_bamin}.decontam.counts.tsv"
-	String? arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}.decontam_1.fq.gz"
-	String? arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
+	# calculate the last three positional arguments based on input sam/bam file's basename stem ("basestem")
+	String intermed_basestem_bamin = sub(basename(bam_in), "\.bam(?!.{5,})|\.sam(?!.{5,})", "")  # TODO: double check the regex
+	String arg_counts_out = if(defined(counts_out)) then "~{counts_out}" else "~{intermed_basestem_bamin}.decontam.counts.tsv"
+	String arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}.decontam_1.fq.gz"
+	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
+
+	# the metadata TSV will be either be passed in directly, or will be zipped in DIRZIPPD_decontam_ref
 	String arg_metadata_tsv = if(!defined(DIRZIPPD_decontam_ref)) then "~{DIRZIPPD_decontam_ref}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
+	
+	# calculate the optional inputs
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
 	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
 	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
-	Int finalDiskSize = size(metadata_tsv, "GB") + size(DIRZIPPD_decontam_ref, "GB") + size(bam_in, "GB") + addldisk
+	# estimate disk size
+	Int finalDiskSize = ceil(size(metadata_tsv, "GB")) + ceil(size(DIRZIPPD_decontam_ref, "GB")) + ceil(size(bam_in, "GB")) + addldisk
 
 	command <<<
 	clockwork remove_contam \
@@ -82,8 +88,8 @@ task remove_contam {
 
 	output {
 		# paired FASTQ files split into OK, contaminated, and unmapped
-		File decontaminated_fastq_1 = contam_out_1
-		File decontaminated_fastq_2 = contam_out_2
+		File decontaminated_fastq_1 = "${arg_reads_out1}"
+		File decontaminated_fastq_2 = "${arg_reads_out2}"
 		File debug_workdir = "workdir.txt"
 	}
 }

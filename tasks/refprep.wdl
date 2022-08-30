@@ -47,11 +47,9 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	# TODO: these are broken! fix em!
-	#Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
-	#Int finalDiskSize = ceil(2*size_in + addldisk)
-	Int finalDiskSize = addldisk
-	
+	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
+	Int finalDiskSize = ceil(2*size_in + addldisk)
+
 	# play with some variables
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
 	String dirnozip_reference = sub(select_first([FILE_DIRZIPPD_reference_TASKIN, "error"]), "\.zip(?!.{5,})", "") # TODO: double check the regex

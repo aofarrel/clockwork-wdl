@@ -24,8 +24,6 @@ All are Cromwell-formatted.
 ## Note to local Cromwell users
  My testing indicates that running the refprep workflow on a typical laptop setup will not be successful due to processes getting sigkilled thanks to lack of compute resources. You'll know you're having this issue because you will see "killed" and/or a return code of 137 in your Clockwork logs (you likely won't see this in Cromwell's terminal output). You may have some luck increasing Docker's resources or running more than once, but it's probably best to run these once in the cloud, download the results, and then use them as bluepeter inputs from then on (or just run the whole thing in the cloud).
 
- The walkthru workflow [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.2.0/badge.svg)](https://github.com/nikku/works-on-my-machine) with a runtime of about 45 minutes when skipping refprep
-
 ## Variable weirdness
 The original pipeline assumes that you can pass entire directories around. WDL 1.0 does allow for this, and Cromwell has (to my knowledge) no timeline on supporting WDL 1.1, so we have to get a little creative. When dealing with an input variable that is often passed in from a directory, the following naming schema is used (inconsistently, because everything is still in development):
 
