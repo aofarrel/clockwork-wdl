@@ -54,7 +54,7 @@ task reference_prepare {
 	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
 	# interestingly, 
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
-	String? basename_reference = basename(FILE_DIRZIPPD_reference_TASKIN)
+	String? basename_reference = basename(select_first([FILE_DIRZIPPD_reference_TASKIN, "bogus fallback value"]))
 	String? basestem_reference = sub(select_first([basename_reference, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
 	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
 	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
