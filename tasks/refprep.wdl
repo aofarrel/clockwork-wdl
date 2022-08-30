@@ -50,13 +50,18 @@ task reference_prepare {
 	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
-	# play with some variables
+	# find where the reference TSV is going to be located, if it exists at all
+	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
+	# interestingly, 
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
-	String dirnozip_reference = sub(select_first([FILE_DIRZIPPD_reference_TASKIN, "error"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
-	String intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
-	String intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
-	String arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
-	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{dirnozip_reference}/~{STRG_FILENAME_reference_TASKIN}"
+	String? basename_reference = basename(FILE_DIRZIPPD_reference_TASKIN)
+	String? basestem_reference = sub(select_first([basename_reference, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
+	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
+	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
+	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	
+	# calculate the remaining arguments
+	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{basestem_reference}/~{STRG_FILENAME_reference_TASKIN}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
@@ -65,7 +70,8 @@ task reference_prepare {
 
 		if [[ ! "~{FILE_DIRZIPPD_reference_TASKIN}" = "" ]]
 		then
-			unzip ~{FILE_DIRZIPPD_reference_TASKIN}
+			cp ~{FILE_DIRZIPPD_reference_TASKIN} .
+			unzip ~{basename_reference}
 		fi
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
