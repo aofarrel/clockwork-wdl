@@ -39,6 +39,9 @@ task map_reads {
 
 	# TODO: properly support threads
 
+	# estimate disk size
+	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(DIRZIPPD_reference, "GB")) + addldisk
+
 	command <<<
 	set -eux -o pipefail
 
@@ -72,7 +75,7 @@ task map_reads {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
-		disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + finalDiskSize + " HDD"
 		memory: "${memory} GB"
 		preemptibles: "${preempt}"
 	}
