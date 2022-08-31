@@ -22,18 +22,30 @@ version 1.0
 task variant_call_one_sample {
 	input {
 		File ref_dir
-		String outdir
+		String outdir # you can construct this in the calling workflow
 		Array[File] reads_files
 
-		# optional args, not fully implemented yet
+		# optional args
+		# TODO: finish implementing these
 		String? sample_name
 		Int? mem_height
 		Boolean? force
 		Boolean? keep_bam
 		Boolean? debug
 	}
-
+	String basename_ref_dir = basename(ref_dir)
+	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{sample_name}" else ""
+	
 	command <<<
+	cp ~{ref_dir} .
+	unzip ~{basename_ref_dir}
+	FASTQ_FILES=(~{sep=" " reads_files})
+
+	clockwork variant_call_one_sample \
+		~{arg_sample_name} \
+		~{basename_ref_dir} ~{outdir} \
+		${FASTQ_FILES}
+
 	>>>
 
 	output {
