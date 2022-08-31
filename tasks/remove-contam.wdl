@@ -37,7 +37,8 @@ task remove_contam {
 	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
 
 	# the metadata TSV will be either be passed in directly, or will be zipped in DIRZIPPD_decontam_ref
-	String arg_metadata_tsv = if(defined(DIRZIPPD_decontam_ref)) then "~{DIRZIPPD_decontam_ref}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
+	String basestem_reference = sub(basename([DIRZIPPD_decontam_ref, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
+	String arg_metadata_tsv = if(defined(DIRZIPPD_decontam_ref)) then "~{basestem_reference}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
 	
 	# calculate the optional inputs
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
@@ -47,9 +48,17 @@ task remove_contam {
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
 	# estimate disk size
-	Int finalDiskSize = ceil(size(metadata_tsv, "GB")) + ceil(size(DIRZIPPD_decontam_ref, "GB")) + ceil(size(bam_in, "GB")) + addldisk
+	Int finalDiskSize = ceil(size(metadata_tsv, "GB")) + 3*ceil(size(DIRZIPPD_decontam_ref, "GB")) + ceil(size(bam_in, "GB")) + addldisk
 
 	command <<<
+	set -eux -o pipefail
+
+	if [[ ! "~{DIRZIPPD_decontam_ref}" = "" ]]
+	then
+		cp ~{DIRZIPPD_decontam_ref} .
+		unzip ~{basename_reference}
+	fi
+
 	clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		~{bam_in} \

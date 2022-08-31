@@ -52,7 +52,6 @@ task reference_prepare {
 
 	# find where the reference TSV is going to be located, if it exists at all
 	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
-	# interestingly, 
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
 	String? basename_reference = basename(select_first([FILE_DIRZIPPD_reference_TASKIN, "bogus fallback value"]))
 	String? basestem_reference = sub(select_first([basename_reference, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
