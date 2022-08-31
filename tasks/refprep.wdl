@@ -75,9 +75,11 @@ task reference_prepare {
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
-		ls -lhaR > workdir.txt
+		rm ~{FILE_DIRZIPPD_reference_TASKIN} # needed to prevent output glob grabbing the wrong file
 
 		zip -r ~{outdir}.zip ~{outdir}
+
+		ls -lhaR > workdir.txt
 	>>>
 	
 	runtime {
