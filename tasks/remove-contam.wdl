@@ -37,7 +37,7 @@ task remove_contam {
 	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
 
 	# the metadata TSV will be either be passed in directly, or will be zipped in DIRZIPPD_decontam_ref
-	String arg_metadata_tsv = if(!defined(DIRZIPPD_decontam_ref)) then "~{DIRZIPPD_decontam_ref}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
+	String arg_metadata_tsv = if(defined(DIRZIPPD_decontam_ref)) then "~{DIRZIPPD_decontam_ref}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
 	
 	# calculate the optional inputs
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
