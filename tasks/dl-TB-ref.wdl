@@ -25,7 +25,7 @@ task download_tb_reference_files {
 		disks: "local-disk " + disk + " HDD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 
 	output {

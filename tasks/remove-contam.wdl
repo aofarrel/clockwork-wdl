@@ -92,7 +92,7 @@ task remove_contam {
 		disks: "local-disk " + finalDiskSize + " HDD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 
 	output {

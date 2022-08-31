@@ -77,7 +77,7 @@ task map_reads {
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
 		disks: "local-disk " + finalDiskSize + " HDD"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 
 	output {

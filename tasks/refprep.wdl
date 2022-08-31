@@ -88,7 +88,7 @@ task reference_prepare {
 		disks: "local-disk " + finalDiskSize + " HDD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 	output {
 		File    file_dirzipped_refprepd_taskout = glob("*.zip")[0]
