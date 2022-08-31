@@ -80,16 +80,18 @@ workflow ClockworkRefPrepTB {
 	}
 
 	output {
-		File   FILE_DIRZIPPD_indxddeconref_wrkfout 		= select_first([bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout,
+		File   FILE_DIRZIPPD_indxddeconref_wrkfout    = select_first([bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout,
 														index_decontamination_ref.file_dirzipped_refprepd_taskout])
 		
 		String STRG_FILENAME_indxddeconref_wrkfout    = select_first([bluepeter__decontam_STRG_FILENAME_refprepd_taskout,
+														index_decontamination_ref.STRG_FILENAME_refprepd_taskout,
 														"ref.fa"])
 		
-		File   file_indxdH37Rvref_wrkfout    		= select_first([bluepeter__file_indxdH37Rvref_wrkfout,
+		File   file_indxdH37Rvref_wrkfout             = select_first([bluepeter__file_indxdH37Rvref_wrkfout,
 														index_H37Rv_reference.file_dirzipped_refprepd_taskout])
 		
-		String STRG_FILENAME_indxdH37Rvref_wrkfout       = select_first([bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout,
+		String STRG_FILENAME_indxdH37Rvref_wrkfout    = select_first([bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout,
+														index_H37Rv_reference.STRG_FILENAME_refprepd_taskout,
 														"ref.fa"])
 	}
 
