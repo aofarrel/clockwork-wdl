@@ -1,22 +1,8 @@
 version 1.0
 
-#usage: clockwork variant_call_one_sample [options] <ref_dir> <outdir> <reads_fwd.fq> <reads_rev.fq> [reads2_fwd.fq reads2_rev.fq ...]
-#
-#Runs the clockwork variant calling pipeline on a single sample. Can provide more than one run of reads from the same sample - if you do this then the reads are all
-#used together, treated as if they were all from one big run. This is for convenience to save catting fastq files.
-#
-#positional arguments:
-#  ref_dir            
-#  outdir             
-#  reads_files        
-#
-#optional arguments:
-#  -h, --help         show this help message and exit
-#  --sample_name STR  Name of sample [sample]
-#  --mem_height INT    [22]
-#  --force            
-#  --keep_bam         
-#  --debug            
+# Runs the clockwork variant calling pipeline on a single sample.
+# Can provide more than one run of reads from the same sample - if you do this then the reads are all
+# used together, treated as if they were all from one big run.
 
 task variant_call_one_sample {
 	input {
@@ -27,9 +13,9 @@ task variant_call_one_sample {
 		String? sample_name
 		String? outdir
 		Int? mem_height
-		Boolean force = false
+		Boolean force    = false
 		Boolean keep_bam = false
-		Boolean debug = false
+		Boolean debug    = false
 
 		# Runtime attributes
 		Int addldisk = 250
