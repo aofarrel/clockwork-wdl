@@ -67,6 +67,8 @@ task reference_prepare {
 	command <<<
 		set -eux -o pipefail
 
+		apt-get install pigz -y  # zip has forced my hand
+
 		if [[ ! "~{FILE_DIRZIPPD_reference_TASKIN}" = "" ]]
 		then
 			cp ~{FILE_DIRZIPPD_reference_TASKIN} .
@@ -75,9 +77,7 @@ task reference_prepare {
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
-		rm ~{basename_reference} # needed to prevent output glob grabbing the wrong file
-
-		zip -r ~{outdir}.zip ~{outdir}
+		tar cf - ~{outdir}/ | pigz --fast > ~{outdir}.tar.gz
 
 		ls -lhaR > workdir.txt
 	>>>
@@ -91,8 +91,8 @@ task reference_prepare {
 		preemptible: "${preempt}"
 	}
 	output {
-		File    file_dirzipped_refprepd_taskout = glob("*.zip")[0]
-		String  STRG_FILENAME_refprepd_taskout = select_first([FILE_LONESOME_reference_TASKIN, STRG_FILENAME_reference_TASKIN, "error"])
+		File    file_dirzipped_refprepd_taskout = glob("*.tar.gz")[0]
+		String  STRG_FILENAME_refprepd_taskout = "ref.fa" # seems to always be this
 		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
 		File    debug_workdir = "workdir.txt"
 	}
