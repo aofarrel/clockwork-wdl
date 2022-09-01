@@ -11,6 +11,10 @@ task download_tb_reference_files {
 	}
 	String STRG_DIRNOZIP_outdir_TASKIN = "Ref.download" # hardcoded for now
 
+	# estimate disk size required
+	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
+	Int finalDiskSize = ceil(2*size_in + addldisk)
+
 	command <<<
 	/clockwork/scripts/download_tb_reference_files.pl ~{STRG_DIRNOZIP_outdir_TASKIN}
 

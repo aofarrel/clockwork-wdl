@@ -30,8 +30,21 @@ task variant_call_one_sample {
 		Boolean force = false
 		Boolean keep_bam = false
 		Boolean debug = false
+
+		# Runtime attributes
+		Int addldisk = 250
+		Int cpu      = 16
+		Int retries  = 1
+		Int memory   = 32
+		Int preempt  = 1
 	}
+	# estimate disk size required
+	Int size_in = ceil(size(reads_files, "GB")) + addldisk
+	Int finalDiskSize = ceil(2*size_in + addldisk)
+
 	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar.gz(?!.{5,})", "") # TODO: double check the regex
+	
+	# generate command line arguments
 	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{sample_name}" else ""
 	String arg_outdir = "var_call_" + select_first([outdir, sample_name, "unnamed"])
 	String arg_debug = if(debug) then "--debug" else ""
@@ -60,6 +73,15 @@ task variant_call_one_sample {
 		force: "Overwrite outdir if it already exists"
 		keep_bam: "Keep BAM file of rmdup reads"
 		debug: "Debug mode: do not clean up any files"
+	}
+
+	runtime {
+		cpu: cpu
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		disks: "local-disk " + finalDiskSize + " HDD"
+		maxRetries: "${retries}"
+		memory: "${memory} GB"
+		preemptible: "${preempt}"
 	}
 
 	output {
