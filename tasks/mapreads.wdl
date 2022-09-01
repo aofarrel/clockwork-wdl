@@ -27,25 +27,27 @@ task map_reads {
 		String? FILENAME_reference
 
 		# runtime attributes
-		Int disk = 100
+		Int addldisk = 100
 		Int cpu = 4
 		Int memory = 8
 		Int preempt = 2
 	}
 	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basename_zip = basename(DIRZIPPD_reference)
-	String basename_zip_noext = sub(basename_zip, "\.zip(?!.{5,})", "")  # TODO: double check the regex
+	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.tar.gz(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_ref_fasta = "~{basename_zip_noext}/~{FILENAME_reference}"
+	String arg_ref_fasta = "~{basestem_reference}/~{FILENAME_reference}"
 
 	# TODO: properly support threads
+
+	# estimate disk size
+	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(DIRZIPPD_reference, "GB")) + addldisk
 
 	command <<<
 	set -eux -o pipefail
 
 	echo "DIRZIPPD_reference" ~{DIRZIPPD_reference}
 	echo "FILENAME_reference" ~{FILENAME_reference}
-	echo "basename_zip" ~{basename_zip}
+	echo "basestem_reference" ~{basestem_reference}
 	echo "sample_name" ~{sample_name}
 	echo "outfile" ~{outfile}
 	echo "arg_unsorted_sam" ~{arg_unsorted_sam}
@@ -62,7 +64,8 @@ task map_reads {
 	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
 	then
 		cp ~{DIRZIPPD_reference} .
-		unzip ~{basename_zip}
+		gunzip ~{basestem_reference}.tar.gz # could also use pigs for this, not sure if it'd actually be faster
+		tar -xvf ~{basestem_reference}.tar
 	fi
 
 	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
@@ -73,9 +76,9 @@ task map_reads {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
-		disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + finalDiskSize + " HDD"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 
 	output {

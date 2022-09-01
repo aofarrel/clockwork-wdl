@@ -8,8 +8,7 @@ workflow ClockworkRefPrepGeneric {
 
 	call refprep.reference_prepare {
 		input:
-			ref_file = genome,
-			outdir = "ref_dir"
+			ref_file = genome
 	}
 
 	meta {

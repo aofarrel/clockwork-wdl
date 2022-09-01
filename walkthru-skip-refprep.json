@@ -1,9 +1,8 @@
 {
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__dl_zipped": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__dl_dir": "Ref.download",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_H37Rv_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__indexed_decontam_reference":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_ref_filename":"ref.fa",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_ref_filename":"ref.fa",
-  "ClockworkWalkthrough.samples_to_dl":["SAMEA2534421","SAMEA2534128"],
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__FILE_DIRZIPPD_tbref_taskout": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__file_indxdH37Rvref_wrkfout":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout":"ref.fa",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_STRG_FILENAME_refprepd_taskout":"ref.fa",
+  "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],
 }

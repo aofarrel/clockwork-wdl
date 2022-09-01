@@ -9,14 +9,14 @@ task download_tb_reference_files {
 		Int memory = 8
 		Int preempt = 2
 	}
-	String outdir = "Ref.download" # hardcoded for now
+	String STRG_DIRNOZIP_outdir_TASKIN = "Ref.download" # hardcoded for now
 
 	command <<<
-	/clockwork/scripts/download_tb_reference_files.pl ~{outdir}
+	/clockwork/scripts/download_tb_reference_files.pl ~{STRG_DIRNOZIP_outdir_TASKIN}
 
 	ls -lhaR > workdir.txt
 
-	zip -r ~{outdir}.zip ~{outdir}
+	zip -r ~{STRG_DIRNOZIP_outdir_TASKIN}.zip ~{STRG_DIRNOZIP_outdir_TASKIN}
 	>>>
 
 	runtime {
@@ -25,12 +25,11 @@ task download_tb_reference_files {
 		disks: "local-disk " + disk + " HDD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 
 	output {
-		String dl_dir = "~{outdir}"
-		File   dl_zipped = "~{outdir}.zip"
+		File   FILE_DIRZIPPD_tbref_taskout = "~{STRG_DIRNOZIP_outdir_TASKIN}.zip"
 		File   debug_workdir = "workdir.txt"
 	}
 }

@@ -1,7 +1,7 @@
 version 1.0
 # Limitations: 
 # * This does not support usage of a database nor db_config_file
-# * outdir is hardcoded and output is given in the form of a single
+# * STRG_DIRNOZIP_outdir_TASKIN is hardcoded and output is given in the form of a single
 #   zip file, as WDL does not support outputting a directory
 
 # clockwork reference_prepare essentially runs these steps:
@@ -14,66 +14,72 @@ version 1.0
 #	--se_list /cromwell_root/ref_dir/ref.fofn --max_read_len 10000 \
 #	--dump_binary /cromwell_root/ref_dir/ref.k31.ctx --sample_id REF
 
-# * TODO: previously assumed that if fullpath_reference, then don't input fullpath_tsv, but
-#   is that actually true? --> seems unlikely, could probably use fullpath_reference for an
+# * TODO: previously assumed that if FILE_LONESOME_reference_TASKIN, then don't input FILE_LONESOME_tsv_TASKIN, but
+#   is that actually true? --> seems unlikely, could probably use FILE_LONESOME_reference_TASKIN for an
 #   index decontamination run which does need a tsv someway or another
 
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? fullpath_reference
+		File? FILE_LONESOME_reference_TASKIN
 
-		# Or all three of these.
-		File?   dirzippd_reference  # download_tb_reference_files.dl_zipped
-		String? dirnozip_reference  # download_tb_reference_files.dl_dir
-		String? filename_reference  # "remove_contam.fa.gz" or "NC_000962.3.fa"
+		# Or both of these.
+		File?   FILE_DIRZIPPD_reference_TASKIN  # download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout
+		String? STRG_FILENAME_reference_TASKIN  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
-		# one of these two. It is assumed that if filename_tsv is defined, the
-		# TSV is located inside dirzippd_reference, and its path will be
-		# constructed as "~{dirnozip_reference}/~{filename_tsv}"
-		File?   fullpath_tsv
-		String? filename_tsv
+		# one of these two. It is assumed that if STRG_FILENAME_tsv_TASKIN is defined, the
+		# TSV is located inside FILE_DIRZIPPD_reference_TASKIN, and its path will be
+		# constructed as "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}"
+		File?   FILE_LONESOME_tsv_TASKIN
+		String? STRG_FILENAME_tsv_TASKIN
 
 		# Other stuff
-		Int?    cortex_mem_height
+		String outdir
+		Int? cortex_mem_height
 		String? name
-		String? outdir
 
 		# Runtime attributes
-		Int addldisk = 100
-		Int cpu      = 8
+		Int addldisk = 250
+		Int cpu      = 16
 		Int retries  = 1
-		Int memory   = 16
+		Int memory   = 32
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(dirzippd_reference, "GB")), ceil(size(fullpath_reference, "GB")), 0])
-	Int finalDiskSize = 2*size_in + addldisk
+	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
+	Int finalDiskSize = ceil(2*size_in + addldisk)
+
+	# find where the reference TSV is going to be located, if it exists at all
+	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
+	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
+	String? basename_reference = basename(select_first([FILE_DIRZIPPD_reference_TASKIN, "bogus fallback value"]))
+	String? basestem_reference = sub(select_first([basename_reference, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
+	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
+	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
+	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
-	# play with some variables
-	String is_there_any_tsv = select_first([filename_tsv, fullpath_tsv, "false"])
-	String intermed_tsv1 = if defined(filename_tsv) then "~{dirnozip_reference}/~{filename_tsv}" else ""
-	String intermed_tsv2 = if defined(fullpath_tsv) then "~{fullpath_tsv}" else ""
-	String arg_tsv  = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
-	
-	String arg_ref               = if defined(fullpath_reference) then "~{fullpath_reference}" else "~{dirnozip_reference}/~{filename_reference}"
+	# calculate the remaining arguments
+	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{basestem_reference}/~{STRG_FILENAME_reference_TASKIN}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
 	command <<<
 		set -eux -o pipefail
 
-		if [[ ! "~{dirzippd_reference}" = "" ]]
+		apt-get install pigz -y  # zip has forced my hand
+
+		if [[ ! "~{FILE_DIRZIPPD_reference_TASKIN}" = "" ]]
 		then
-			unzip ~{dirzippd_reference}
+			cp ~{FILE_DIRZIPPD_reference_TASKIN} .
+			unzip ~{basename_reference}
 		fi
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
-		ls -lhaR > workdir.txt
+		tar cf - ~{outdir}/ | pigz --fast > ~{outdir}.tar.gz
 
-		zip -r ~{outdir}.zip ~{outdir}
+		ls -lhaR > workdir.txt
 	>>>
 	
 	runtime {
@@ -82,11 +88,12 @@ task reference_prepare {
 		disks: "local-disk " + finalDiskSize + " HDD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
-		preemptibles: "${preempt}"
+		preemptible: "${preempt}"
 	}
 	output {
-		File zipped_outs = glob("*.zip")[0]
-		String ref_filename = select_first([fullpath_reference, filename_reference, "error"])  # TODO: Is this accurate
-		File debug_workdir = "workdir.txt"
+		File    file_dirzipped_refprepd_taskout = glob("*.tar.gz")[0]
+		String  STRG_FILENAME_refprepd_taskout = "ref.fa" # seems to always be this
+		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
+		File    debug_workdir = "workdir.txt"
 	}
 }
