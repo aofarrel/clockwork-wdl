@@ -41,9 +41,9 @@ task reference_prepare {
 
 		# Runtime attributes
 		Int addldisk = 250
-		Int cpu      = 8
+		Int cpu      = 16
 		Int retries  = 1
-		Int memory   = 16
+		Int memory   = 32
 		Int preempt  = 1
 	}
 	# estimate disk size required
