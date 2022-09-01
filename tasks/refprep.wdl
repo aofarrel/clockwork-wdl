@@ -92,7 +92,7 @@ task reference_prepare {
 	}
 	output {
 		File    file_dirzipped_refprepd_taskout = glob("*.zip")[0]
-		String  STRG_FILENAME_refprepd_taskout = select_first([FILE_LONESOME_reference_TASKIN, STRG_FILENAME_reference_TASKIN, "error"])
+		String  STRG_FILENAME_refprepd_taskout = "ref.fa" # seems to always be this
 		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
 		File    debug_workdir = "workdir.txt"
 	}
