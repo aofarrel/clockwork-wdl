@@ -22,8 +22,9 @@ version 1.0
 
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
-import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.3/tasks/enaDataGet.wdl" as enaDataGetTask
+import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as enaDataGetTask
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
 workflow ClockworkWalkthrough {
 	input {
@@ -67,10 +68,19 @@ workflow ClockworkWalkthrough {
 
 
 	scatter(sam_file in map_reads.mapped_reads) {
-		call clockwork_removecontamTask.remove_contam {
+		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
 				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.FILE_DIRZIPPD_indxddeconref_wrkfout,
+		}
+
+		call clockwork_varcalloneTask.variant_call_one_sample {
+			input:
+				sample_name = sam_file,
+				ref_dir = ClockworkRefPrepTB.file_indxdH37Rvref_wrkfout,
+				reads_files = [remove_contamination.decontaminated_fastq_1, remove_contamination.decontaminated_fastq_2]
+
+
 		}
 	}
 }
