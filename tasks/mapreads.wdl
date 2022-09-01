@@ -33,7 +33,7 @@ task map_reads {
 		Int preempt = 2
 	}
 	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.zip(?!.{5,})", "")  # TODO: double check the regex
+	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.tar.gz(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{FILENAME_reference}"
 
@@ -64,7 +64,8 @@ task map_reads {
 	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
 	then
 		cp ~{DIRZIPPD_reference} .
-		unzip ~{basestem_reference}.zip
+		gunzip ~{basestem_reference}.tar.gz # could also use pigs for this, not sure if it'd actually be faster
+		tar -xvf ~{basestem_reference}.tar
 	fi
 
 	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}

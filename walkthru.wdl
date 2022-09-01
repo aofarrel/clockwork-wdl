@@ -20,10 +20,10 @@ version 1.0
 #import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as enaDataGetTask
 #import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/rename-variables/wf-refprep-TB.wdl" as clockwork_refprepWF
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/rename-variables/tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/faster-zipping-experiment/wf-refprep-TB.wdl" as clockwork_refprepWF
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/faster-zipping-experiment/tasks/mapreads.wdl" as clockwork_mapreadsTask
 import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.3/tasks/enaDataGet.wdl" as enaDataGetTask
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/rename-variables/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/faster-zipping-experiment/tasks/remove-contam.wdl" as clockwork_removecontamTask
 
 workflow ClockworkWalkthrough {
 	input {
