@@ -19,13 +19,11 @@ workflow ClockworkRefPrepTB {
 		#
 		# If you define these next two, then download_tb_reference_files will be
 		# skipped, and so will index_H37v_reference.
-		File?   bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout
-		String? bluepeter__decontam_STRG_FILENAME_refprepd_taskout
+		File?   bluepeter__tar_indexd_dcontm_ref
 		#
 		# If you define these last two, then download_tb_reference_files and
 		# will be skipped.
-		File?   bluepeter__file_indxdH37Rvref_wrkfout
-		String? bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout
+		File?   bluepeter__tar_indexd_H37Rv_ref
 		#
 		# Yes, that does mean that the *entire* pipeline can be skipped if the
 		# user inputs the last four inputs, and those four inputs will be considered
@@ -46,7 +44,7 @@ workflow ClockworkRefPrepTB {
 		#  └── remove_contam.tsv
 	}
 
-	if (!defined(bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout)) {
+	if (!defined(bluepeter__tar_indexd_dcontm_ref)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
 				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
@@ -56,14 +54,14 @@ workflow ClockworkRefPrepTB {
 				outdir                         = "Ref.remove_contam"
 		}
 		#################### output ####################
-		# Ref.remove_contam.zip
+		# Ref.remove_contam.tar
 		#  ├── ref.fa
 		#  ├── ref.fa.fai
 		#  ├── ref.fa.minimap2_idx
 		#  └── remove_contam_metadata.tsv
 	}
 
-	if (!defined(bluepeter__file_indxdH37Rvref_wrkfout)) {
+	if (!defined(bluepeter__tar_indexd_H37Rv_ref)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
 				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
@@ -72,7 +70,7 @@ workflow ClockworkRefPrepTB {
 				outdir                         = "Ref.H37Rv"
 		}
 		#################### output ####################
-		# Ref.H37Rv.zip
+		# Ref.H37Rv.tar
 		#  ├── ref.fa
 		#  ├── ref.fa.fai
 		#  ├── ref.fa.minimap2_idx
@@ -80,19 +78,11 @@ workflow ClockworkRefPrepTB {
 	}
 
 	output {
-		File   FILE_DIRZIPPD_indxddeconref_wrkfout    = select_first([bluepeter__FILE_DIRZIPPD_indxddeconref_wrkfout,
-														index_decontamination_ref.file_dirzipped_refprepd_taskout])
+		File   tar_indexd_dcontm_ref    = select_first([bluepeter__tar_indexd_dcontm_ref,
+														index_decontamination_ref.tar_refprepd])
 		
-		String STRG_FILENAME_indxddeconref_wrkfout    = select_first([bluepeter__decontam_STRG_FILENAME_refprepd_taskout,
-														index_decontamination_ref.STRG_FILENAME_refprepd_taskout,
-														"ref.fa"])
-		
-		File   file_indxdH37Rvref_wrkfout             = select_first([bluepeter__file_indxdH37Rvref_wrkfout,
-														index_H37Rv_reference.file_dirzipped_refprepd_taskout])
-		
-		String STRG_FILENAME_indxdH37Rvref_wrkfout    = select_first([bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout,
-														index_H37Rv_reference.STRG_FILENAME_refprepd_taskout,
-														"ref.fa"])
+		File   tar_indexd_H37Rv_ref     = select_first([bluepeter__tar_indexd_H37Rv_ref,
+														index_H37Rv_reference.tar_refprepd])
 	}
 
 	meta {

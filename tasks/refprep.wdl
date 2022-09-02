@@ -88,9 +88,8 @@ task reference_prepare {
 		preemptible: "${preempt}"
 	}
 	output {
-		File    file_dirzipped_refprepd_taskout = glob("*.tar")[0]
-		String  STRG_FILENAME_refprepd_taskout = "ref.fa" # seems to always be this
-		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
+		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_refprepd
+		File    tar_refprepd = glob("*.tar")[0]
 		File    debug_workdir = "workdir.txt"
 	}
 }

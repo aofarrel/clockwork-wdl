@@ -56,7 +56,6 @@ task remove_contam {
 	if [[ ! "~{DIRZIPPD_decontam_ref}" = "" ]]
 	then
 		cp ~{DIRZIPPD_decontam_ref} .
-		gunzip ~{basestem_reference}.tar.gz # could also use pigs for this, not sure if it'd actually be faster
 		tar -xvf ~{basestem_reference}.tar
 	fi
 

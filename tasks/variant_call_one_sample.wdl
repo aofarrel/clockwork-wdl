@@ -51,7 +51,7 @@ task variant_call_one_sample {
 	>>>
 
 	parameter_meta {
-		ref_dir: "tar.gz'd directory of reference files, made by clockwork reference_prepare"
+		ref_dir: "tar'd directory of reference files, made by clockwork reference_prepare"
 		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
 		sample_name: "Name of the sample"
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
@@ -74,6 +74,5 @@ task variant_call_one_sample {
 		File vcf_final_call_set = "final.vcf"
 		File vcf_cortex = "cortex.vcf"
 		File vcf_samtools = "samtools.vcf"
-		File? bam_mapped_reads = "TODO replace this"
 	}
 }
