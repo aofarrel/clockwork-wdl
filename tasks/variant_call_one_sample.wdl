@@ -15,7 +15,7 @@ task variant_call_one_sample {
 		Int? mem_height
 		Boolean force    = false
 		Boolean keep_bam = false
-		Boolean debug    = false
+		Boolean debug    = true
 
 		# Runtime attributes
 		Int addldisk = 250
@@ -49,6 +49,7 @@ task variant_call_one_sample {
 		~{basestem_ref_dir} ~{arg_outdir} \
 		~{sep=" " reads_files}
 
+	ls -lhaR > workdir.txt
 	>>>
 
 	parameter_meta {
