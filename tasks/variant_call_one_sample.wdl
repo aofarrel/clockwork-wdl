@@ -73,9 +73,8 @@ task variant_call_one_sample {
 	}
 
 	output {
-		File vcf_final_call_set = "var_call_SAMEA2534421/final.vcf"
-		File vcf_cortex = "var_call_SAMEA2534421/cortex.vcf"
-		File vcf_samtools = "var_call_SAMEA2534421/samtools.vcf"
-		#File? bam_mapped_reads = "TODO replace this"
+		File vcf_final_call_set = "var_call_~{basestem_sample_name}/final.vcf"
+		File vcf_cortex = "var_call_~{basestem_sample_name}/cortex.vcf"
+		File vcf_samtools = "var_call_~{basestem_sample_name}/samtools.vcf"
 	}
 }
