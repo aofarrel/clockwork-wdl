@@ -32,7 +32,7 @@ task variant_call_one_sample {
 	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
-	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample_name}" else ""
+	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample}" else ""
 	String arg_outdir = "var_call_" + select_first([outdir, basestem_sample_name, "unnamed"])
 	String arg_debug = if(debug) then "--debug" else ""
 	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
