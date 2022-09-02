@@ -8,11 +8,12 @@
  * mapreads: implementation of `clockwork map_reads`
  * refprep: limited implementation of `clockwork reference_prepare`, does not support databases
  * remove-contam: implementation of `clockwork remove_contam`
+ * variant_call_one_sample: implementation of `clockwork variant_call_one_sample`
 
  **Workflows**
  * wf-refprep-generic: runs a generic refprep workflow
  * wf-refprep-TB: runs a tuberculosis-specific refprep workflow [based on this](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes)
- * walkthru: WIP, not complete, but will eventually go from FASTQ input to minos' adjudicated VCF output
+ * walkthru: goes from FASTQ input to minos' adjudicated VCF output
 
 ## Skipping steps on walkthru.wdl
 All are Cromwell-formatted.
