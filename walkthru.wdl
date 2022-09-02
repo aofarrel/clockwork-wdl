@@ -8,7 +8,7 @@ version 1.0
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__H37Rv_STRG_FILENAME_refprepd_taskout"
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__decontam_STRG_FILENAME_refprepd_taskout"
 #
-# You can skip enaDataGetTask.enaDataGet by defining the following as an array
+# You can skip ena.enaDataGet by defining the following as an array
 # of arrays where each inner array corresponds with a sample in samples:
 # * "ClockworkWalkthrough.bluepeter__fastqs"
 #
@@ -17,12 +17,12 @@ version 1.0
 
 #import "./wf-refprep-TB.wdl" as clockwork_refprepWF
 #import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
-#import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as enaDataGetTask
+#import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as ena
 #import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
-import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as enaDataGetTask
+import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as ena
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
@@ -41,7 +41,7 @@ workflow ClockworkWalkthrough {
 
 	if(!defined(bluepeter__fastqs)) {
 		scatter(sample in samples) {
-			call enaDataGetTask.enaDataGet {
+			call ena.enaDataGet {
 				input:
 					sample = sample
 			}

@@ -2,6 +2,8 @@ version 1.0
 
 task download_tb_reference_files {
 	input {
+		String outdir = "Ref.download"
+
 		# runtime attributes
 		Int disk = 100
 		Int cpu = 4
@@ -9,14 +11,11 @@ task download_tb_reference_files {
 		Int memory = 8
 		Int preempt = 2
 	}
-	String STRG_DIRNOZIP_outdir_TASKIN = "Ref.download" # hardcoded for now
 
 	command <<<
-	/clockwork/scripts/download_tb_reference_files.pl ~{STRG_DIRNOZIP_outdir_TASKIN}
-
+	/clockwork/scripts/download_tb_reference_files.pl ~{outdir}
+	tar cf - ~{outdir}/
 	ls -lhaR > workdir.txt
-
-	zip -r ~{STRG_DIRNOZIP_outdir_TASKIN}.zip ~{STRG_DIRNOZIP_outdir_TASKIN}
 	>>>
 
 	runtime {
@@ -29,7 +28,7 @@ task download_tb_reference_files {
 	}
 
 	output {
-		File   FILE_DIRZIPPD_tbref_taskout = "~{STRG_DIRNOZIP_outdir_TASKIN}.zip"
+		File   tar_tb_ref_raw = "~{outdir}.tar"
 		File   debug_workdir = "workdir.txt"
 	}
 }

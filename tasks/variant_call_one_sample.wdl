@@ -28,7 +28,8 @@ task variant_call_one_sample {
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
-	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar.gz(?!.{5,})", "") # TODO: double check the regex
+	String basename_sample = sub(basename(select_first([sample_name, "unnamed"])), "\.sam(?!.{5,})", "") # TODO: double check the regex
+	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
 	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{sample_name}" else ""
@@ -40,7 +41,6 @@ task variant_call_one_sample {
 	
 	command <<<
 	cp ~{ref_dir} .
-	gunzip ~{basestem_ref_dir}.tar.gz
 	tar -xvf ~{basestem_ref_dir}.tar
 
 	clockwork variant_call_one_sample \
