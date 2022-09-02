@@ -28,10 +28,11 @@ task variant_call_one_sample {
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
+	String basestem_sample_name = sub(basename(select_first([ref_dir, "untitled"])), "\.sam(?!.{5,})", "") # TODO: double check the regex
 	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar.gz(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
-	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{sample_name}" else ""
+	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample_name}" else ""
 	String arg_outdir = "var_call_" + select_first([outdir, sample_name, "unnamed"])
 	String arg_debug = if(debug) then "--debug" else ""
 	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
