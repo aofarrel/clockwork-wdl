@@ -70,6 +70,7 @@ task reference_prepare {
 		then
 			cp ~{reference_folder} .
 			tar -xvf ~{basestem_reference}.tar
+			rm ~{basestem_reference}.tar
 		fi
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
