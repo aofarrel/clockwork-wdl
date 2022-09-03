@@ -18,11 +18,11 @@ version 1.0
 #import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as ena
 #import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/tar_everything/wf-refprep-TB.wdl" as clockwork_refprepWF
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/tar_everything/tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
 import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as ena
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/tar_everything/tasks/remove-contam.wdl" as clockwork_removecontamTask
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/tar_everything/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
 workflow ClockworkWalkthrough {
 	input {
