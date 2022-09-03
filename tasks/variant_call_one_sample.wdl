@@ -28,12 +28,12 @@ task variant_call_one_sample {
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
-	String basestem_sample_name = sub(basename(select_first([sample_name, "untitled"])), "\.sam(?!.{5,})", "") # TODO: double check the regex
-	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar.gz(?!.{5,})", "") # TODO: double check the regex
+	String basestem_sample = sub(basename(select_first([sample_name, "unnamed"])), "\.sam(?!.{5,})", "") # TODO: double check the regex
+	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
-	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample_name}" else ""
-	String arg_outdir = "var_call_" + select_first([outdir, basestem_sample_name, "unnamed"])
+	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample}" else ""
+	String arg_outdir = "var_call_" + select_first([outdir, basestem_sample, "unnamed"])
 	String arg_debug = if(debug) then "--debug" else ""
 	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
 	String arg_keep_bam = if(keep_bam) then "--keep_bam" else ""
@@ -41,7 +41,6 @@ task variant_call_one_sample {
 	
 	command <<<
 	cp ~{ref_dir} .
-	gunzip ~{basestem_ref_dir}.tar.gz
 	tar -xvf ~{basestem_ref_dir}.tar
 
 	clockwork variant_call_one_sample \
@@ -53,7 +52,7 @@ task variant_call_one_sample {
 	>>>
 
 	parameter_meta {
-		ref_dir: "tar.gz'd directory of reference files, made by clockwork reference_prepare"
+		ref_dir: "tar'd directory of reference files, made by clockwork reference_prepare"
 		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
 		sample_name: "Name of the sample"
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
@@ -73,8 +72,9 @@ task variant_call_one_sample {
 	}
 
 	output {
-		File vcf_final_call_set = "var_call_~{basestem_sample_name}/final.vcf"
-		File vcf_cortex = "var_call_~{basestem_sample_name}/cortex.vcf"
-		File vcf_samtools = "var_call_~{basestem_sample_name}/samtools.vcf"
+		File vcf_final_call_set = "var_call_~{basestem_sample}/final.vcf"
+		File vcf_cortex = "var_call_~{basestem_sample}/cortex.vcf"
+		File vcf_samtools = "var_call_~{basestem_sample}/samtools.vcf"
+		File debug_workdir = "workdir.txt"
 	}
 }

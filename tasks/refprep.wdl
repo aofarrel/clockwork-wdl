@@ -14,22 +14,22 @@ version 1.0
 #	--se_list /cromwell_root/ref_dir/ref.fofn --max_read_len 10000 \
 #	--dump_binary /cromwell_root/ref_dir/ref.k31.ctx --sample_id REF
 
-# * TODO: previously assumed that if FILE_LONESOME_reference_TASKIN, then don't input FILE_LONESOME_tsv_TASKIN, but
-#   is that actually true? --> seems unlikely, could probably use FILE_LONESOME_reference_TASKIN for an
+# * TODO: previously assumed that if reference_fa_file, then don't input FILE_LONESOME_tsv_TASKIN, but
+#   is that actually true? --> seems unlikely, could probably use reference_fa_file for an
 #   index decontamination run which does need a tsv someway or another
 
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? FILE_LONESOME_reference_TASKIN
+		File? reference_fa_file
 
 		# Or both of these.
-		File?   FILE_DIRZIPPD_reference_TASKIN  # download_tb_reference_files.FILE_DIRZIPPD_tbref_taskout
-		String? STRG_FILENAME_reference_TASKIN  # "remove_contam.fa.gz" or "NC_000962.3.fa"
+		File?   reference_folder     # download_tb_reference_files.tar_tb_ref_raw
+		String? reference_fa_string  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
 		# one of these two. It is assumed that if STRG_FILENAME_tsv_TASKIN is defined, the
-		# TSV is located inside FILE_DIRZIPPD_reference_TASKIN, and its path will be
+		# TSV is located inside reference_folder, and its path will be
 		# constructed as "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}"
 		File?   FILE_LONESOME_tsv_TASKIN
 		String? STRG_FILENAME_tsv_TASKIN
@@ -47,37 +47,35 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(FILE_DIRZIPPD_reference_TASKIN, "GB")), ceil(size(FILE_LONESOME_reference_TASKIN, "GB")), 0])
+	Int size_in = select_first([ceil(size(reference_folder, "GB")), ceil(size(reference_fa_file, "GB")), 0])
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
 	# find where the reference TSV is going to be located, if it exists at all
 	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
-	String? basename_reference = basename(select_first([FILE_DIRZIPPD_reference_TASKIN, "bogus fallback value"]))
-	String? basestem_reference = sub(select_first([basename_reference, "bogus fallback value"]), "\.zip(?!.{5,})", "") # TODO: double check the regex
+	String basestem_reference = sub(basename(select_first([reference_folder, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
 	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
 	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
 	# calculate the remaining arguments
-	String arg_ref               = if defined(FILE_LONESOME_reference_TASKIN) then "~{FILE_LONESOME_reference_TASKIN}" else "~{basestem_reference}/~{STRG_FILENAME_reference_TASKIN}"
+	String arg_ref               = if defined(reference_fa_file) then "~{reference_fa_file}" else "~{basestem_reference}/~{reference_fa_string}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
 	command <<<
 		set -eux -o pipefail
 
-		apt-get install pigz -y  # zip has forced my hand
-
-		if [[ ! "~{FILE_DIRZIPPD_reference_TASKIN}" = "" ]]
+		if [[ ! "~{reference_folder}" = "" ]]
 		then
-			cp ~{FILE_DIRZIPPD_reference_TASKIN} .
-			unzip ~{basename_reference}
+			cp ~{reference_folder} .
+			tar -xvf ~{basestem_reference}.tar
+			rm ~{basestem_reference}.tar
 		fi
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
-		tar cf - ~{outdir}/ | pigz --fast > ~{outdir}.tar.gz
+		tar -c ~{outdir}/ > ~{outdir}.tar
 
 		ls -lhaR > workdir.txt
 	>>>
@@ -91,9 +89,8 @@ task reference_prepare {
 		preemptible: "${preempt}"
 	}
 	output {
-		File    file_dirzipped_refprepd_taskout = glob("*.tar.gz")[0]
-		String  STRG_FILENAME_refprepd_taskout = "ref.fa" # seems to always be this
-		# it is assumed that if indexing the decontam ref, the file remove_contam_metadata.tsv will be created in file_dirzipped_refprepd_taskout
+		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_refprepd
+		File    tar_refprepd = glob("*.tar")[0]
 		File    debug_workdir = "workdir.txt"
 	}
 }
