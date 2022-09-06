@@ -5,6 +5,7 @@
 
  **Tasks**
  * dl-TB-ref: downloads tuberculosis reference files using [download_tb_reference_files.pl](https://github.com/iqbal-lab-org/clockwork/blob/master/scripts/download_tb_reference_files.pl)
+ * gvcf: implementation of `clockwork gvcf_from_minos_and_samtools`
  * mapreads: implementation of `clockwork map_reads`
  * refprep: limited implementation of `clockwork reference_prepare`, does not support databases
  * remove-contam: implementation of `clockwork remove_contam`
@@ -31,4 +32,8 @@ All are Cromwell-formatted.
 [X] Better cloud runtime attribute estimates  
 [X] Merge bluepeter version of refprep with non-bluepeter version  
 [X] Merge bluepeter version of walkthru with non-bluepeter version  
+[] Have all tasks support taking in either a tar'd ref folder or a ref_fasta where appropriate.
+    * Check if base stem of ref_fasta == basename of ref_fasta
+        * true: continue
+        * false: untar, assume filename is either user-defined optional ref_fasta_string or fall back to default ref.fa
 [] Finish miscellanous TODO stuff in code  

@@ -13,8 +13,6 @@ version 1.0
 # 6. Unzip the workdir copy
 # 7. Actually run the task
 
-# TODO: Double check help output of `clockwork map_reads` and ensure we don't need ref_index
-
 task map_reads {
 	input {
 		String      sample_name
