@@ -1,0 +1,5 @@
+{
+  "ClockworkGVCFConversion.ref_fasta": "gs://fc-9f0bdb6d-155d-41bc-90af-35ef59252ff8/submissions/efc8ca96-bbfa-4075-a5da-299bde078a6b/ClockworkWalkthrough/0931bf7d-2e56-4ef3-a000-7d62a86af370/call-ClockworkRefPrepTB/ClockworkRefPrepTB/d6098382-d3c2-43db-b2fb-bda8b2afc9f0/call-index_H37Rv_reference/glob-0e4fa73ce50489196046be8ee5f8355c/Ref.H37Rv.tar",
+  "ClockworkGVCFConversion.samtools_vcf": "gs://fc-9f0bdb6d-155d-41bc-90af-35ef59252ff8/submissions/efc8ca96-bbfa-4075-a5da-299bde078a6b/ClockworkWalkthrough/0931bf7d-2e56-4ef3-a000-7d62a86af370/call-variant_call_one_sample/shard-0/var_call_SAMEA2534421/samtools.vcf",
+  "ClockworkGVCFConversion.minos_vcf": "gs://fc-9f0bdb6d-155d-41bc-90af-35ef59252ff8/submissions/efc8ca96-bbfa-4075-a5da-299bde078a6b/ClockworkWalkthrough/0931bf7d-2e56-4ef3-a000-7d62a86af370/call-variant_call_one_sample/shard-0/var_call_SAMEA2534421/final.vcf"
+}
