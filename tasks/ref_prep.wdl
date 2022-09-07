@@ -14,14 +14,14 @@ version 1.0
 #	--se_list /cromwell_root/ref_dir/ref.fofn --max_read_len 10000 \
 #	--dump_binary /cromwell_root/ref_dir/ref.k31.ctx --sample_id REF
 
-# * TODO: previously assumed that if reference_fa_file, then don't input FILE_LONESOME_tsv_TASKIN, but
-#   is that actually true? --> seems unlikely, could probably use reference_fa_file for an
+# * TODO: previously assumed that if fasta_file, then don't input FILE_LONESOME_tsv_TASKIN, but
+#   is that actually true? --> seems unlikely, could probably use fasta_file for an
 #   index decontamination run which does need a tsv someway or another
 
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? reference_fa_file
+		File? fasta_file
 
 		# Or both of these.
 		File?   reference_folder     # download_tb_reference_files.tar_tb_ref_raw
@@ -47,7 +47,7 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(reference_folder, "GB")), ceil(size(reference_fa_file, "GB")), 0])
+	Int size_in = select_first([ceil(size(reference_folder, "GB")), ceil(size(fasta_file, "GB")), 0])
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
 	# find where the reference TSV is going to be located, if it exists at all
@@ -59,7 +59,7 @@ task reference_prepare {
 	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
 	# calculate the remaining arguments
-	String arg_ref               = if defined(reference_fa_file) then "~{reference_fa_file}" else "~{basestem_reference}/~{reference_fa_string}"
+	String arg_ref               = if defined(fasta_file) then "~{fasta_file}" else "~{basestem_reference}/~{reference_fa_string}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 

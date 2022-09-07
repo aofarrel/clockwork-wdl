@@ -9,7 +9,7 @@ workflow ClockworkGVCFConversion {
 		File minos_vcf
 		File samtools_vcf
 		String? outfile
-		String? ref_fasta_filename
+		String? ref_fasta_in_tarball
 	}
 
 	call gvcftask.gvcf_from_minos_and_samtools {
@@ -18,7 +18,7 @@ workflow ClockworkGVCFConversion {
 			minos_vcf = minos_vcf,
 			samtools_vcf = samtools_vcf,
 			outfile = outfile,
-			ref_fasta_filename = ref_fasta_filename
+			ref_fasta_in_tarball = ref_fasta_in_tarball
 	}
 
 	meta {

@@ -7,9 +7,9 @@ task gvcf_from_minos_and_samtools {
 		File samtools_vcf
 		String outfile = "output.gvcf"
 
-		# If ref_fasta is actually a tarball, define this value with the name
+		# Iff ref_fasta is actually a tarball, define this value with the name
 		# of the actual reference fasta file within that directory
-		String ref_fasta_filename = "ref.fa"
+		String ref_fasta_in_tarball = "ref.fa"
 
 		# runtime attributes
 		Int addldisk = 100
@@ -19,7 +19,9 @@ task gvcf_from_minos_and_samtools {
 	}
 	String basename_reference = basename(ref_fasta)
 	String basetarr_reference = basename(ref_fasta, ".tar")
-	String arg_ref_fasta = if(basename_reference != basetarr_reference) then "~{basetarr_reference}/~{ref_fasta_filename}" else "~{basetarr_reference}"
+	String arg_ref_fasta = if(basename_reference != basetarr_reference) 
+						then "~{basetarr_reference}/~{ref_fasta_in_tarball}"
+						else "~{basetarr_reference}"
 
 	# estimate disk size
 	Int finalDiskSize = ceil(size(ref_fasta, "GB")) + 
@@ -32,7 +34,7 @@ task gvcf_from_minos_and_samtools {
 
 	echo "~{basename_reference}"
 	echo "~{basetarr_reference}"
-	echo "~{ref_fasta_filename}"
+	echo "~{ref_fasta_in_tarball}"
 	echo "~{arg_ref_fasta}"
 
 	if [[ ! "~{basename_reference}" = "~{basetarr_reference}" ]]
@@ -51,7 +53,7 @@ task gvcf_from_minos_and_samtools {
 		minos_vcf: "VCF file made by minos to turn into gVCF."
 		samtools_vcf: "VCF file made by samtools to turn into gVCF."
 		outfile: "String used in the output gVCF name. Default: output"
-		ref_fasta_filename: "If ref_fasta is tarball, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_filename to buzz.fa. Default: ref.fa"
+		ref_fasta_in_tarball: "If ref_fasta is tarball, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_in_tarball to buzz.fa. Default: ref.fa"
 	}
 
 	runtime {
