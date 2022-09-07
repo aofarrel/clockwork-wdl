@@ -1,8 +1,11 @@
 # clockwork-wdl
- An in-progress WDLization of [clockwork](https://github.com/iqbal-lab-org/clockwork), focusing on functions used by [this walkthrough](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only).
+ An in-progress WDLization of [clockwork](https://github.com/iqbal-lab-org/clockwork), focusing on functions used by [this walkthrough](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only). Supports (and sometimes requires) tarball inputs -- please make sure to read the inputs section.
 
  To allow for quicker runs, several workflows have "bluepeter" options. Named after the TV show coining the term "here's one I made earlier," these are files you can insert when running a workflow more than once in order to avoid downloading the same set of files over and over again.
 
+## Inputs (very important!)
+
+## Supported tasks and workflows
  **Tasks**
  * dl-TB-ref: downloads tuberculosis reference files using [download_tb_reference_files.pl](https://github.com/iqbal-lab-org/clockwork/blob/master/scripts/download_tb_reference_files.pl)
  * gvcf: implementation of `clockwork gvcf_from_minos_and_samtools`
@@ -32,7 +35,8 @@ All are Cromwell-formatted.
 [X] Better cloud runtime attribute estimates  
 [X] Merge bluepeter version of refprep with non-bluepeter version  
 [X] Merge bluepeter version of walkthru with non-bluepeter version  
-[] Have all tasks support taking in either a tar'd ref folder or a ref_fasta where appropriate.
+[] Check if any tasks can take in *just* a fasta reference, instead of a folder
+[] Have all tasks support taking in either a tarball ref folder or a ref_fasta where appropriate.
     * Check if base stem of ref_fasta == basename of ref_fasta
         * true: continue
         * false: untar, assume filename is either user-defined optional ref_fasta_string or fall back to default ref.fa

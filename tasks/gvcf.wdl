@@ -7,7 +7,7 @@ task gvcf_from_minos_and_samtools {
 		File samtools_vcf
 		String outfile = "output.gvcf"
 
-		# If ref_fasta is actually a tar'd directory, define this value with the name
+		# If ref_fasta is actually a tarball, define this value with the name
 		# of the actual reference fasta file within that directory
 		String ref_fasta_filename = "ref.fa"
 
@@ -47,11 +47,11 @@ task gvcf_from_minos_and_samtools {
 	>>>
 
 	parameter_meta {
-		ref_fasta: "Reference genome FASTA file, or a tar'd directory containing said FASTA file. If tar'd, also define ref_fasta_filename."
+		ref_fasta: "Reference genome FASTA file, or a tarball directory containing said FASTA file. If tarball, also define ref_fasta_filename."
 		minos_vcf: "VCF file made by minos to turn into gVCF."
 		samtools_vcf: "VCF file made by samtools to turn into gVCF."
 		outfile: "String used in the output gVCF name. Default: output"
-		ref_fasta_filename: "If ref_fasta is tar'd, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_filename to buzz.fa. Default: ref.fa"
+		ref_fasta_filename: "If ref_fasta is tarball, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_filename to buzz.fa. Default: ref.fa"
 	}
 
 	runtime {
