@@ -56,8 +56,9 @@ workflow ClockworkRefPrepTB {
 
 	output {
 		File   tar_indexd_dcontm_ref    = select_first([index_decontamination_ref.tar_refprepd])
-		
 		File   tar_indexd_H37Rv_ref     = select_first([index_H37Rv_reference.tar_refprepd])
+		File   metadata_tsv = index_decontamination_ref.metadata_tsv
+		File   decontam_ref_out =  index_decontamination_ref.ref_out
 	}
 
 	meta {

@@ -13,16 +13,16 @@ version 1.0
 # Note that miniwdl has a slightly different way of handling JSONs; the examples
 # above are the Cromwell method.
 
-#import "./wf-refprep-TB.wdl" as clockwork_refprepWF
-#import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "./wf-refprep-TB.wdl" as clockwork_refprepWF
+import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
 #import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as ena
 #import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/wf-refprep-TB.wdl" as clockwork_refprepWF
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/mapreads.wdl" as clockwork_mapreadsTask
 import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as ena
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
 workflow ClockworkWalkthrough {
 	input {
@@ -59,8 +59,7 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
-				FILENAME_reference = "ref.fa"
+				ref_fasta = ClockworkRefPrepTB.decontam_ref_out
 		}
 	}
 
@@ -69,7 +68,7 @@ workflow ClockworkWalkthrough {
 		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
-				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.decontam_ref_out,
 		}
 
 		call clockwork_varcalloneTask.variant_call_one_sample {

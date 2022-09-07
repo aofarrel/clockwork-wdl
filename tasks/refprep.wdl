@@ -86,6 +86,8 @@ task reference_prepare {
 
 		tar -c ~{outdir}/ > ~{outdir}.tar
 
+		touch ~{outdir}/"bogus_output_do_not_use.tsv"  # TODO: remove this awful workaround that keeps the output non-optional
+
 		ls -lhaR > workdir.txt
 	>>>
 	
@@ -101,5 +103,7 @@ task reference_prepare {
 		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_refprepd
 		File    tar_refprepd = glob("*.tar")[0]
 		File    debug_workdir = "workdir.txt"
+		File    metadata_tsv = glob("~{outdir}/*.tsv")[0]
+		File    ref_out = "~{outdir}/ref.fa"
 	}
 }

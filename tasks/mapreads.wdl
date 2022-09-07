@@ -21,8 +21,11 @@ task map_reads {
 		Int         threads = 1
 
 		# usually, what you're passing in is the decontamination reference
-		File    DIRZIPPD_reference
+		File?    DIRZIPPD_reference
 		String? FILENAME_reference
+
+		File ref_fasta
+		File tsv
 
 		# runtime attributes
 		Int addldisk = 100
@@ -31,33 +34,18 @@ task map_reads {
 		Int preempt = 2
 	}
 	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.tar(?!.{5,})", "")  # TODO: double check the regex
-	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_ref_fasta = "~{basestem_reference}/~{FILENAME_reference}"
+	String arg_ref_fasta = basename(ref_fasta)
+	
 
 	# TODO: properly support threads
 
 	# estimate disk size
-	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(DIRZIPPD_reference, "GB")) + addldisk
+	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(ref_fasta, "GB")) + addldisk
 
 	command <<<
 	set -eux -o pipefail
 
-	echo "DIRZIPPD_reference" ~{DIRZIPPD_reference}
-	echo "FILENAME_reference" ~{FILENAME_reference}
-	echo "basestem_reference" ~{basestem_reference}
-	echo "sample_name" ~{sample_name}
-	echo "outfile" ~{outfile}
-	echo "arg_unsorted_sam" ~{arg_unsorted_sam}
-	echo "arg_ref_fasta" ~{arg_ref_fasta}
-	
-	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
-	then
-		cp ~{DIRZIPPD_reference} .
-		tar -xvf ~{basestem_reference}.tar
-	fi
-
-	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
+	clockwork map_reads ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
 
 	ls -lhaR > workdir.txt
 	>>>
