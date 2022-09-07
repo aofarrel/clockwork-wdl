@@ -66,6 +66,17 @@ task reference_prepare {
 	command <<<
 		set -eux -o pipefail
 
+		# validate inputs
+		if [[ ! "~{is_there_any_tsv}" = false ]]
+		then
+			echo "A TSV file is included. If you intend on indexing the decontamination reference, you're on the right track."
+			if [[ "~{reference_folder}" = "" ]] && [[ "~{"]]
+			then
+				echo "You are passing in a tarball."
+				exit 1
+			fi
+		fi
+
 		if [[ ! "~{reference_folder}" = "" ]]
 		then
 			cp ~{reference_folder} .
