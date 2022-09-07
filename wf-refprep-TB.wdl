@@ -11,6 +11,7 @@ workflow ClockworkRefPrepTB {
 	input {
 		File ref_fa_remove_contam
 		File ref_fa_the_other_one
+		File tsv_remove_contamina
 	}
 
 	#if (!defined(bluepeter__download_tb_reference_files__tar_tb_ref_raw)) {
@@ -28,7 +29,7 @@ workflow ClockworkRefPrepTB {
 	call refprep.reference_prepare as index_decontamination_ref {
 		input:
 			reference_fa_file        = ref_fa_remove_contam,
-			FILE_LONESOME_tsv_TASKIN = "remove_contam.fa.gz",
+			FILE_LONESOME_tsv_TASKIN = tsv_remove_contamina,
 			outdir                   = "Ref.remove_contam"
 	}
 	#################### output ####################

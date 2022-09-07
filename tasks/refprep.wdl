@@ -21,7 +21,7 @@ version 1.0
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? reference_fa_file
+		File reference_fa_file
 
 		# Or both of these.
 		File?   reference_folder     # download_tb_reference_files.tar_tb_ref_raw
@@ -57,6 +57,10 @@ task reference_prepare {
 	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
 	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
 	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+
+	String workdir_ref = basename(reference_fa_file)
+	String workdir_tsv = basename(select_first([FILE_LONESOME_tsv_TASKIN, "foo/bar.biz"]))
+	String workdir_tsv_final = "--contam_tsv ~{workdir_tsv}"
 	
 	# calculate the remaining arguments
 	String arg_ref               = if defined(reference_fa_file) then "~{reference_fa_file}" else "~{basestem_reference}/~{reference_fa_string}"
@@ -73,7 +77,10 @@ task reference_prepare {
 			rm ~{basestem_reference}.tar
 		fi
 
-		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
+		cp ~{reference_fa_file} .
+		cp ~{FILE_LONESOME_tsv_TASKIN} .
+
+		clockwork reference_prepare --outdir ~{outdir} ~{workdir_ref} ~{arg_cortex_mem_height} ~{workdir_tsv_final} ~{arg_name}
 
 		tar -c ~{outdir}/ > ~{outdir}.tar
 

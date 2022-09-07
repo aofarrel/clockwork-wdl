@@ -1,4 +1,5 @@
 {
-  "ClockworkRefPrepTB.ref_fa_remove_contam": "/Users/ash/Documents/aaa_test_files/tb/remove_contam.fa",
+  "ClockworkRefPrepTB.ref_fa_remove_contam": "/Users/ash/Documents/aaa_test_files/tb/remove_contam.fa.gz",
+  "ClockworkRefPrepTB.tsv_remove_contamina": "/Users/ash/Documents/aaa_test_files/tb/remove_contam.tsv",
   "ClockworkRefPrepTB.ref_fa_the_other_one": "/Users/ash/Documents/aaa_test_files/tb/NC_000962.3.fa",
 }
