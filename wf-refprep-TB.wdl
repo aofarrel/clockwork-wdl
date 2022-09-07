@@ -1,9 +1,9 @@
 version 1.0
-#import "./tasks/refprep.wdl"
-#import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
+import "./tasks/refprep.wdl"
+import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/refprep.wdl"
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/dl-TB-ref.wdl" as dl_TB_ref
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/refprep.wdl"
+#import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/dl-TB-ref.wdl" as dl_TB_ref
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
@@ -54,11 +54,9 @@ workflow ClockworkRefPrepTB {
 	#}
 
 	output {
-		File   tar_indexd_dcontm_ref    = select_first([bluepeter__tar_indexd_dcontm_ref,
-														index_decontamination_ref.tar_refprepd])
+		File   tar_indexd_dcontm_ref    = select_first([index_decontamination_ref.tar_refprepd])
 		
-		File   tar_indexd_H37Rv_ref     = select_first([bluepeter__tar_indexd_H37Rv_ref,
-														index_H37Rv_reference.tar_refprepd])
+		File   tar_indexd_H37Rv_ref     = select_first([index_H37Rv_reference.tar_refprepd])
 	}
 
 	meta {
