@@ -55,8 +55,8 @@ task reference_prepare {
 	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
 	String basestem_reference = sub(basename(select_first([reference_folder, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
-	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then basename(FILE_LONESOME_tsv_TASKIN) else ""
-	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then basename(select_first([FILE_LONESOME_tsv_TASKIN, "bogus"]) else ""
+	String? arg_tsv       = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 
 	String workdir_ref = basename(reference_fa_file)
 	
