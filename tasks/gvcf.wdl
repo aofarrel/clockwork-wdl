@@ -5,7 +5,7 @@ task gvcf_from_minos_and_samtools {
 		File ref_fasta
 		File minos_vcf
 		File samtools_vcf
-		String outfile = "output"
+		String outfile = "output.gvcf"
 
 		# If ref_fasta is actually a tar'd directory, define this value with the name
 		# of the actual reference fasta file within that directory
@@ -60,6 +60,11 @@ task gvcf_from_minos_and_samtools {
 		disks: "local-disk " + finalDiskSize + " HDD"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
+	}
+
+	output {
+		File gvcf = outfile
+		File debug_workdir = "workdir.txt"
 	}
 
 }

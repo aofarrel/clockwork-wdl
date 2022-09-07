@@ -1,6 +1,7 @@
 version 1.0
 
-import "./tasks/gvcf.wdl" as gvcftask
+#import "./tasks/gvcf.wdl" as gvcftask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/add-gvcf/tasks/gvcf.wdl" as gvcftask
 
 workflow ClockworkGVCFConversion {
 	input {
