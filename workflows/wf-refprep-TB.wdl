@@ -1,13 +1,13 @@
 version 1.0
-#import "./tasks/refprep.wdl"
-#import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
+#import "./tasks/ref_prep.wdl"
+#import "./tasks/dl_TB_ref.wdl" as dl_TB_ref
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/refprep.wdl"
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl-TB-ref.wdl" as dl_TB_ref
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/ref_prep.wdl"
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl_TB_ref.wdl" as dl_TB_ref
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
-workflow ClockworkRefPrepTB {
+workflow Clockworkref_prepTB {
 	input {
 		File? genome
 
@@ -45,7 +45,7 @@ workflow ClockworkRefPrepTB {
 	}
 
 	if (!defined(bluepeter__tar_indexd_dcontm_ref)) {
-		call refprep.reference_prepare as index_decontamination_ref {
+		call ref_prep.reference_prepare as index_decontamination_ref {
 			input:
 				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
 													download_tb_reference_files.tar_tb_ref_raw]),
@@ -62,7 +62,7 @@ workflow ClockworkRefPrepTB {
 	}
 
 	if (!defined(bluepeter__tar_indexd_H37Rv_ref)) {
-		call refprep.reference_prepare as index_H37Rv_reference {
+		call ref_prep.reference_prepare as index_H37Rv_reference {
 			input:
 				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
 													download_tb_reference_files.tar_tb_ref_raw]),
@@ -79,10 +79,10 @@ workflow ClockworkRefPrepTB {
 
 	output {
 		File   tar_indexd_dcontm_ref    = select_first([bluepeter__tar_indexd_dcontm_ref,
-														index_decontamination_ref.tar_refprepd])
+														index_decontamination_ref.tar_ref_prepd])
 		
 		File   tar_indexd_H37Rv_ref     = select_first([bluepeter__tar_indexd_H37Rv_ref,
-														index_H37Rv_reference.tar_refprepd])
+														index_H37Rv_reference.tar_ref_prepd])
 	}
 
 	meta {

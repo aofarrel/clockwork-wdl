@@ -2,9 +2,9 @@ version 1.0
 # This is workflow that mimics 
 # https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only
 #
-# You can skip clockwork_refprepWF by defining the following:
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexed_H37Rv_ref"
-# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexd_dcontm_ref"
+# You can skip clockwork_ref_prepWF by defining the following:
+# * "ClockworkWalkthrough.Clockworkref_prepTB.bluepeter__tar_indexed_H37Rv_ref"
+# * "ClockworkWalkthrough.Clockworkref_prepTB.bluepeter__tar_indexd_dcontm_ref"
 #
 # You can skip ena.enaDataGet by defining the following as an array
 # of arrays where each inner array corresponds with a sample in samples:
@@ -13,15 +13,15 @@ version 1.0
 # Note that miniwdl has a slightly different way of handling JSONs; the examples
 # above are the Cromwell method.
 
-#import "./wf-refprep-TB.wdl" as clockwork_refprepWF
-#import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
+#import "./wf-ref_prep-TB.wdl" as clockwork_ref_prepWF
+#import "./tasks/map_reads.wdl" as clockwork_map_readsTask
 #import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as ena
-#import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
+#import "./tasks/rm_contam.wdl" as clockwork_removecontamTask
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-ref_prep-TB.wdl" as clockwork_ref_prepWF
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/map_reads.wdl" as clockwork_map_readsTask
 import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as ena
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/rm_contam.wdl" as clockwork_removecontamTask
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
 workflow ClockworkWalkthrough {
@@ -35,7 +35,7 @@ workflow ClockworkWalkthrough {
 		Array[Array[File]]? bluepeter__fastqs
 	}
 
-	call clockwork_refprepWF.ClockworkRefPrepTB
+	call clockwork_ref_prepWF.Clockworkref_prepTB
 
 	if(!defined(bluepeter__fastqs)) {
 		scatter(sample in samples) {
@@ -54,12 +54,12 @@ workflow ClockworkWalkthrough {
 	Array[Array[File]] fastqs = select_first([bluepeter__fastqs, enaDataGet.fastqs, bogus])
 
 	scatter(data in zip(samples, fastqs)) {
-		call clockwork_mapreadsTask.map_reads as map_reads {
+		call clockwork_map_readsTask.map_reads as map_reads {
 			input:
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				DIRZIPPD_reference = Clockworkref_prepTB.tar_indexd_dcontm_ref,
 				FILENAME_reference = "ref.fa"
 		}
 	}
@@ -69,13 +69,13 @@ workflow ClockworkWalkthrough {
 		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
-				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				DIRZIPPD_decontam_ref = Clockworkref_prepTB.tar_indexd_dcontm_ref,
 		}
 
 		call clockwork_varcalloneTask.variant_call_one_sample {
 			input:
 				sample_name = sam_file,
-				ref_dir = ClockworkRefPrepTB.tar_indexd_H37Rv_ref,
+				ref_dir = Clockworkref_prepTB.tar_indexd_H37Rv_ref,
 				reads_files = [remove_contamination.decontaminated_fastq_1, remove_contamination.decontaminated_fastq_2]
 
 

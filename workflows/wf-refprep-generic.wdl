@@ -1,12 +1,12 @@
 version 1.0
-import "./tasks/refprep.wdl"
+import "./tasks/ref_prep.wdl"
 
-workflow ClockworkRefPrepGeneric {
+workflow Clockworkref_prepGeneric {
 	input {
 		File? genome
 	}
 
-	call refprep.reference_prepare {
+	call ref_prep.reference_prepare {
 		input:
 			ref_file = genome
 	}

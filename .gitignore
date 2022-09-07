@@ -6,7 +6,7 @@ cromwell-input/*
 
 # miniwdl's stuff
 _LAST
-*ClockworkRefPrep/*
+*Clockworkref_prep/*
 *ClockworkWalkthrough/*
 */aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta
 */aaa_test_files/tb/Ref.download.zip

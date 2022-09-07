@@ -89,8 +89,8 @@ task reference_prepare {
 		preemptible: "${preempt}"
 	}
 	output {
-		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_refprepd
-		File    tar_refprepd = glob("*.tar")[0]
+		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_ref_prepd
+		File    tar_ref_prepd = glob("*.tar")[0]
 		File    debug_workdir = "workdir.txt"
 	}
 }
