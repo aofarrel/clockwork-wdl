@@ -2,14 +2,15 @@ version 1.0
 #import "./tasks/refprep.wdl"
 #import "./tasks/dl-TB-ref.wdl" as dl_TB_ref
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/refprep.wdl"
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl-TB-ref.wdl" as dl_TB_ref
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/refprep.wdl"
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/test-if-tar-is-necessary/tasks/dl-TB-ref.wdl" as dl_TB_ref
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
 workflow ClockworkRefPrepTB {
 	input {
 		File? genome
+		File 
 
 		############################## danger zone ###############################
 		# These inputs should ONLY be used if you intend on skipping steps, using
@@ -47,10 +48,9 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__tar_indexd_dcontm_ref)) {
 		call refprep.reference_prepare as index_decontamination_ref {
 			input:
-				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
+				reference_fa_file = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
 													download_tb_reference_files.tar_tb_ref_raw]),
-				reference_fa_string = "remove_contam.fa.gz",
-				STRG_FILENAME_tsv_TASKIN       = "remove_contam.tsv",
+				FILE_LONESOME_tsv_TASKIN = "remove_contam.fa.gz",
 				outdir                         = "Ref.remove_contam"
 		}
 		#################### output ####################
@@ -64,9 +64,8 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__tar_indexd_H37Rv_ref)) {
 		call refprep.reference_prepare as index_H37Rv_reference {
 			input:
-				reference_folder = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
+				reference_fa_file = select_first([bluepeter__download_tb_reference_files__tar_tb_ref_raw,
 													download_tb_reference_files.tar_tb_ref_raw]),
-				reference_fa_string = "NC_000962.3.fa",
 				outdir                         = "Ref.H37Rv"
 		}
 		#################### output ####################
