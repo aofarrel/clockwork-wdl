@@ -1,4 +1,4 @@
 {
-  "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip"
+  "ClockworkRefPrepTB.ref_fa_remove_contam": "/Users/ash/Documents/aaa_test_files/tb/remove_contam.fa",
+  "ClockworkRefPrepTB.ref_fa_the_other_one": "/Users/ash/Documents/aaa_test_files/tb/NC_000962.3.fa",
 }
