@@ -1,6 +1,6 @@
 {
   "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],
-  "ClockworkWalkthrough.Clockworkref_prepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "gs://fc-9f0bdb6d-155d-41bc-90af-35ef59252ff8/Ref.download.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "gs://fc-9f0bdb6d-155d-41bc-90af-35ef59252ff8/Ref.download.zip",
   "ClockworkWalkthrough.enaDataGet.preempt":"2",
   "ClockworkWalkthrough.map_reads_quick.cpu":"8",
   "ClockworkWalkthrough.map_reads_quick.disk":"100",

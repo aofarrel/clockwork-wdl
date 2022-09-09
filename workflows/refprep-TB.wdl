@@ -7,7 +7,7 @@ import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl_T
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
-workflow Clockworkref_prepTB {
+workflow ClockworkRefPrepTB {
 	input {
 		File? genome
 

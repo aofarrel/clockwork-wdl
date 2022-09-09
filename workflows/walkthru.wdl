@@ -3,8 +3,8 @@ version 1.0
 # https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only
 #
 # You can skip clockwork_ref_prepWF by defining the following:
-# * "ClockworkWalkthrough.Clockworkref_prepTB.bluepeter__tar_indexed_H37Rv_ref"
-# * "ClockworkWalkthrough.Clockworkref_prepTB.bluepeter__tar_indexd_dcontm_ref"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexed_H37Rv_ref"
+# * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexd_dcontm_ref"
 #
 # You can skip ena.enaDataGet by defining the following as an array
 # of arrays where each inner array corresponds with a sample in samples:
@@ -35,7 +35,7 @@ workflow ClockworkWalkthrough {
 		Array[Array[File]]? bluepeter__fastqs
 	}
 
-	call clockwork_ref_prepWF.Clockworkref_prepTB
+	call clockwork_ref_prepWF.ClockworkRefPrepTB
 
 	if(!defined(bluepeter__fastqs)) {
 		scatter(sample in samples) {
@@ -59,7 +59,7 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = Clockworkref_prepTB.tar_indexd_dcontm_ref,
+				DIRZIPPD_reference = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
 				FILENAME_reference = "ref.fa"
 		}
 	}
@@ -69,13 +69,13 @@ workflow ClockworkWalkthrough {
 		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
-				DIRZIPPD_decontam_ref = Clockworkref_prepTB.tar_indexd_dcontm_ref,
+				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
 		}
 
 		call clockwork_varcalloneTask.variant_call_one_sample {
 			input:
 				sample_name = sam_file,
-				ref_dir = Clockworkref_prepTB.tar_indexd_H37Rv_ref,
+				ref_dir = ClockworkRefPrepTB.tar_indexd_H37Rv_ref,
 				reads_files = [remove_contamination.decontaminated_fastq_1, remove_contamination.decontaminated_fastq_2]
 
 

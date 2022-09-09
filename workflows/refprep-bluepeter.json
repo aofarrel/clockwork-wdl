@@ -1,6 +1,6 @@
 {
-  "Clockworkref_prepTB.genome": "../../Documents/aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta",
-  "Clockworkref_prepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
-  "Clockworkref_prepTB.bluepeter__tar_indexed_H37Rv_ref":"../../Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
-  "Clockworkref_prepTB.bluepeter__tar_indexd_dcontm_ref":"../../Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip"
+  "ClockworkRefPrepTB.genome": "../../Documents/aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta",
+  "ClockworkRefPrepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
+  "ClockworkRefPrepTB.bluepeter__tar_indexed_H37Rv_ref":"../../Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
+  "ClockworkRefPrepTB.bluepeter__tar_indexd_dcontm_ref":"../../Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip"
 }
