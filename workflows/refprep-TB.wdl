@@ -2,8 +2,8 @@ version 1.0
 #import "./tasks/ref_prep.wdl"
 #import "./tasks/dl_TB_ref.wdl" as dl_TB_ref
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/cleanup/tasks/ref_prep.wdl"
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/cleanup/tasks/dl_TB_ref.wdl" as dl_TB_ref
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/ref_prep.wdl"
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/dl_TB_ref.wdl" as dl_TB_ref
 
 # correspond with https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes
 
