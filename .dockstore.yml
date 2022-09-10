@@ -1,0 +1,29 @@
+version: 1.2
+workflows:
+  - subclass: WDL
+    primaryDescriptorPath: /workflows/gvcf_after_walkthru.wdl
+    testParameterFiles:
+      - /workflows/gvcf_after_walkthru.json
+    name: clockwork_gvcf_from_minos_and_samtools
+    authors:
+      - orcid: 0000-0003-4896-1858
+  - subclass: WDL
+    primaryDescriptorPath: /workflows/refprep-TB.wdl
+    testParameterFiles:
+      - /workflows/refprep-TB-skip-ref-dl.json
+      - /workflows/refprep-TB-skip-everything.json
+    name: clockwork_reference_prepare
+    authors:
+      - orcid: 0000-0003-4896-1858
+  - subclass: WDL
+    primaryDescriptorPath: /workflows/walkthru.wdl
+    testParameterFiles:
+      - /workflows/walkthru-cromwell.json
+      - /workflows/walkthru-miniwdl.json
+      - /workflows/walkthru-skip-nothing.json
+      - /workflows/walkthru-skip-refdl-terra.json
+      - /workflows/walkthru-skip-refdl-and-ena.json
+      - /workflows/walkthru-skip-refprep.json
+    name: clockwork_tuberculosis_example
+    authors:
+      - orcid: 0000-0003-4896-1858
