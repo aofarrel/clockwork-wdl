@@ -3,12 +3,12 @@ import "./tasks/ref_prep.wdl"
 
 workflow Clockworkref_prepGeneric {
 	input {
-		File? genome
+		File? fasta_file
 	}
 
 	call ref_prep.reference_prepare {
 		input:
-			ref_file = genome
+			ref_file = fasta_file
 	}
 
 	meta {
