@@ -1,6 +1,6 @@
 {
   "ClockworkWalkthrough.ClockworkRefPrepTB.genome": "/Users/ash/Documents/aaa_test_files/tb/H37Rv_version_3_refgenome_NC_000962.3.fasta",
-  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__download_tb_reference_files__tar_tb_ref_raw": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
+  "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_tb_ref_raw": "/Users/ash/Documents/aaa_test_files/tb/Ref.download.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexed_H37Rv_ref":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip",
   "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexd_dcontm_ref":"/Users/ash/Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip",
   "ClockworkWalkthrough.samples":["SAMEA2534421","SAMEA2534128"],

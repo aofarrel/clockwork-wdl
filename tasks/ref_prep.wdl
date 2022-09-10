@@ -14,25 +14,24 @@ version 1.0
 #	--se_list /cromwell_root/ref_dir/ref.fofn --max_read_len 10000 \
 #	--dump_binary /cromwell_root/ref_dir/ref.k31.ctx --sample_id REF
 
-# * TODO: previously assumed that if reference_fa_file, then don't input FILE_LONESOME_tsv_TASKIN, but
-#   is that actually true? --> seems unlikely, could probably use reference_fa_file for an
+# * TODO: previously assumed that if fasta_file, then don't input contam_tsv, but
+#   is that actually true? --> seems unlikely, could probably use fasta_file for an
 #   index decontamination run which does need a tsv someway or another
 
 task reference_prepare {
 	input {
 		# You need to define either this...
-		File? reference_fa_file
+		File? fasta_file
 
 		# Or both of these.
 		File?   reference_folder     # download_tb_reference_files.tar_tb_ref_raw
 		String? reference_fa_string  # "remove_contam.fa.gz" or "NC_000962.3.fa"
 
 		# If you are indexing the decontamination reference, you need to define
-		# one of these two. It is assumed that if STRG_FILENAME_tsv_TASKIN is defined, the
-		# TSV is located inside reference_folder, and its path will be
-		# constructed as "~{dirnozip_reference}/~{STRG_FILENAME_tsv_TASKIN}"
-		File?   FILE_LONESOME_tsv_TASKIN
-		String? STRG_FILENAME_tsv_TASKIN
+		# one of these two. It is assumed that if contam_tsv_in_reference_folder
+		# is defined, the TSV is located in reference_folder.
+		File?   contam_tsv
+		String? contam_tsv_in_reference_folder
 
 		# Other stuff
 		String outdir
@@ -47,19 +46,19 @@ task reference_prepare {
 		Int preempt  = 1
 	}
 	# estimate disk size required
-	Int size_in = select_first([ceil(size(reference_folder, "GB")), ceil(size(reference_fa_file, "GB")), 0])
+	Int size_in = select_first([ceil(size(reference_folder, "GB")), ceil(size(fasta_file, "GB")), 0])
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
 	# find where the reference TSV is going to be located, if it exists at all
 	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
-	String is_there_any_tsv = select_first([STRG_FILENAME_tsv_TASKIN, FILE_LONESOME_tsv_TASKIN, "false"])
+	String is_there_any_tsv = select_first([contam_tsv_in_reference_folder, contam_tsv, "false"])
 	String basestem_reference = sub(basename(select_first([reference_folder, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
-	String? intermed_tsv1 = if defined(STRG_FILENAME_tsv_TASKIN) then "~{basestem_reference}/~{STRG_FILENAME_tsv_TASKIN}" else ""
-	String? intermed_tsv2 = if defined(FILE_LONESOME_tsv_TASKIN) then "~{FILE_LONESOME_tsv_TASKIN}" else ""
-	String? arg_tsv               = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	String? intermed_tsv1 = if defined(contam_tsv_in_reference_folder) then "~{basestem_reference}/~{contam_tsv_in_reference_folder}" else ""
+	String? intermed_tsv2 = if defined(contam_tsv) then "~{contam_tsv}" else ""
+	String? arg_tsv       = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
 	# calculate the remaining arguments
-	String arg_ref               = if defined(reference_fa_file) then "~{reference_fa_file}" else "~{basestem_reference}/~{reference_fa_string}"
+	String arg_ref               = if defined(fasta_file) then "~{fasta_file}" else "~{basestem_reference}/~{reference_fa_string}"
 	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
 	String arg_name              = if defined(name) then "--name ~{name}" else ""
 
@@ -89,8 +88,8 @@ task reference_prepare {
 		preemptible: "${preempt}"
 	}
 	output {
-		# if indexing the decontam ref, the file remove_contam_metadata.tsv will be in tar_refprepd
-		File    tar_refprepd = glob("*.tar")[0]
-		File    debug_workdir = "workdir.txt"
+		File? remove_contam_tsv = "remove_contam_metadata.tsv"
+		File  tar_ref_prepd = glob("*.tar")[0]
+		File  debug_workdir = "workdir.txt"
 	}
 }

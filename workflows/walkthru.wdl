@@ -2,7 +2,7 @@ version 1.0
 # This is workflow that mimics 
 # https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only
 #
-# You can skip clockwork_refprepWF by defining the following:
+# You can skip clockwork_ref_prepWF by defining the following:
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexed_H37Rv_ref"
 # * "ClockworkWalkthrough.ClockworkRefPrepTB.bluepeter__tar_indexd_dcontm_ref"
 #
@@ -13,15 +13,15 @@ version 1.0
 # Note that miniwdl has a slightly different way of handling JSONs; the examples
 # above are the Cromwell method.
 
-#import "./wf-refprep-TB.wdl" as clockwork_refprepWF
-#import "./tasks/mapreads.wdl" as clockwork_mapreadsTask
+#import "./wf-ref_prep-TB.wdl" as clockwork_ref_prepWF
+#import "./tasks/map_reads.wdl" as clockwork_map_readsTask
 #import "../enaBrowserTools-wdl/tasks/enaDataGet.wdl" as ena
-#import "./tasks/remove-contam.wdl" as clockwork_removecontamTask
+#import "./tasks/rm_contam.wdl" as clockwork_removecontamTask
 
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-refprep-TB.wdl" as clockwork_refprepWF
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/mapreads.wdl" as clockwork_mapreadsTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/wf-ref_prep-TB.wdl" as clockwork_ref_prepWF
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/map_reads.wdl" as clockwork_map_readsTask
 import "https://raw.githubusercontent.com/aofarrel/enaBrowserTools-wdl/0.0.4/tasks/enaDataGet.wdl" as ena
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/remove-contam.wdl" as clockwork_removecontamTask
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/rm_contam.wdl" as clockwork_removecontamTask
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/variant_call_one_sample.wdl" as clockwork_varcalloneTask
 
 workflow ClockworkWalkthrough {
@@ -35,7 +35,7 @@ workflow ClockworkWalkthrough {
 		Array[Array[File]]? bluepeter__fastqs
 	}
 
-	call clockwork_refprepWF.ClockworkRefPrepTB
+	call clockwork_ref_prepWF.ClockworkRefPrepTB
 
 	if(!defined(bluepeter__fastqs)) {
 		scatter(sample in samples) {
@@ -54,7 +54,7 @@ workflow ClockworkWalkthrough {
 	Array[Array[File]] fastqs = select_first([bluepeter__fastqs, enaDataGet.fastqs, bogus])
 
 	scatter(data in zip(samples, fastqs)) {
-		call clockwork_mapreadsTask.map_reads as map_reads {
+		call clockwork_map_readsTask.map_reads as map_reads {
 			input:
 				sample_name = data.left,
 				reads_files = data.right,
