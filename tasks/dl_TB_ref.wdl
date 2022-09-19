@@ -15,6 +15,10 @@ task download_tb_reference_files {
 		Int memory = 8
 		Int preempt = 2
 	}
+	
+	parameter_meta {
+		outdir: "Output directory. Default: Ref.download (becomes Ref.download.tar)"
+	}
 
 	command <<<
 	/clockwork/scripts/download_tb_reference_files.pl ~{outdir}

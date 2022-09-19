@@ -38,6 +38,17 @@ task variant_call_one_sample {
 	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
 	String arg_keep_bam = if(keep_bam) then "--keep_bam" else ""
 	String arg_force = if(force) then "--force" else ""
+
+	parameter_meta {
+		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
+		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
+		sample_name: "Name of the sample"
+		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
+		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
+		force: "Overwrite outdir if it already exists"
+		keep_bam: "Keep BAM file of rmdup reads"
+		debug: "Debug mode: do not clean up any files"
+	}
 	
 	command <<<
 	cp ~{ref_dir} .
@@ -50,17 +61,6 @@ task variant_call_one_sample {
 
 	ls -lhaR > workdir.txt
 	>>>
-
-	parameter_meta {
-		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
-		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
-		sample_name: "Name of the sample"
-		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
-		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
-		force: "Overwrite outdir if it already exists"
-		keep_bam: "Keep BAM file of rmdup reads"
-		debug: "Debug mode: do not clean up any files"
-	}
 
 	runtime {
 		cpu: cpu

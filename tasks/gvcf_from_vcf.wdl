@@ -29,6 +29,14 @@ task gvcf_from_minos_and_samtools {
 						3*ceil(size(samtools_vcf, "GB")) +
 						addldisk
 
+	parameter_meta {
+		ref_fasta: "Reference genome FASTA file, or a tarball directory containing said FASTA file. If tarball, also define ref_fasta_filename."
+		minos_vcf: "VCF file made by minos to turn into gVCF."
+		samtools_vcf: "VCF file made by samtools to turn into gVCF."
+		outfile: "String used in the output gVCF name. Default: output"
+		ref_fasta_in_tarball: "If ref_fasta is tarball, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_in_tarball to buzz.fa. Default: ref.fa"
+	}
+
 	command <<<
 	set -eux -o pipefail
 
@@ -47,14 +55,6 @@ task gvcf_from_minos_and_samtools {
 
 	ls -lhaR > workdir.txt
 	>>>
-
-	parameter_meta {
-		ref_fasta: "Reference genome FASTA file, or a tarball directory containing said FASTA file. If tarball, also define ref_fasta_filename."
-		minos_vcf: "VCF file made by minos to turn into gVCF."
-		samtools_vcf: "VCF file made by samtools to turn into gVCF."
-		outfile: "String used in the output gVCF name. Default: output"
-		ref_fasta_in_tarball: "If ref_fasta is tarball, this string is used to find the actual FASTA file after untaring. Do not include leading folders. Ex: If ref_fasta = foo.tar, and foo.tar contains buzz.fa and buzz.fai, then set ref_fasta_in_tarball to buzz.fa. Default: ref.fa"
-	}
 
 	runtime {
 		cpu: cpu
