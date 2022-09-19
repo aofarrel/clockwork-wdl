@@ -33,9 +33,9 @@ All are Cromwell-formatted.
 [X] Better cloud runtime attribute estimates  
 [X] Merge bluepeter version of ref_prep with non-bluepeter version  
 [X] Merge bluepeter version of walkthru with non-bluepeter version  
-[] Check if any tasks can take in *just* a fasta reference, instead of a folder
-[] Have all tasks support taking in either a tarball ref folder or a ref_fasta where appropriate.  
+[] Check if any tasks can take in *just* a fasta reference, instead of a folder  
+[] Have all tasks support taking in either a tarball ref folder or a ref_fasta where appropriate.   
     * Check if base stem of ref_fasta == basename of ref_fasta   
         * true: continue  
         * false: untar, assume filename is either user-defined optional ref_fasta_string or fall back to default ref.fa  
-[] Finish miscellanous TODO stuff in code  
+[] Finish miscellanous TODO stuff in code   
