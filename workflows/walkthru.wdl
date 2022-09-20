@@ -59,8 +59,8 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
-				FILENAME_reference = "ref.fa"
+				tarball_ref_fasta_and_index = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				ref_fasta_filename = "ref.fa"
 		}
 	}
 
@@ -69,7 +69,7 @@ workflow ClockworkWalkthrough {
 		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
-				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				tarball_metadata_tsv = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
 		}
 
 		call clockwork_varcalloneTask.variant_call_one_sample {

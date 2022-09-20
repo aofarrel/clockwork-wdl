@@ -8,8 +8,8 @@ task remove_contam {
 		File? metadata_tsv
 
 		# ...or you can pass in the zipped prepared reference plus the name of the TSV file
-		File?   DIRZIPPD_decontam_ref
-		String? FILENAME_metadata_tsv = "remove_contam_metadata.tsv"
+		File?   tarball_metadata_tsv
+		String? filename_metadata_tsv = "remove_contam_metadata.tsv"
 
 		# these three are required in the original pipeline, but we can calculate them ourselves
 		String? counts_out
@@ -36,9 +36,9 @@ task remove_contam {
 	String arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}.decontam_1.fq.gz"
 	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
 
-	# the metadata TSV will be either be passed in directly, or will be zipped in DIRZIPPD_decontam_ref
-	String basestem_reference = sub(basename(select_first([DIRZIPPD_decontam_ref, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
-	String arg_metadata_tsv = if(defined(DIRZIPPD_decontam_ref)) then "~{basestem_reference}/~{FILENAME_metadata_tsv}" else "~{metadata_tsv}"
+	# the metadata TSV will be either be passed in directly, or will be zipped in tarball_metadata_tsv
+	String basestem_reference = sub(basename(select_first([tarball_metadata_tsv, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
+	String arg_metadata_tsv = if(defined(tarball_metadata_tsv)) then "~{basestem_reference}/~{filename_metadata_tsv}" else "~{metadata_tsv}"
 	
 	# calculate the optional inputs
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
@@ -48,12 +48,12 @@ task remove_contam {
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
 	# estimate disk size
-	Int finalDiskSize = ceil(size(metadata_tsv, "GB")) + 3*ceil(size(DIRZIPPD_decontam_ref, "GB")) + ceil(size(bam_in, "GB")) + addldisk
+	Int finalDiskSize = ceil(size(metadata_tsv, "GB")) + 3*ceil(size(tarball_metadata_tsv, "GB")) + ceil(size(bam_in, "GB")) + addldisk
 
 	parameter_meta {
 		metadata_tsv: "Metadata TSV file. 1st positional arg of ''clockwork remove_contam''. Format: one group of ref seqs per line. Tab-delimited columns: 1) group name; 2) 1|0 for is|is not contamination; 3+) sequence names."
-		DIRZIPPD_decontam_ref: "Zipped decontamination reference. Only needed if metadata_tsv is not provided."
-		FILENAME_metadata_tsv: "Filename of the metadata TSV within DIRZIPPD_decontam_ref. Only needed if metadata_tsv is not provided. This plus DIRZIPPD_decontam_ref will be used to construct 1st positional arg of ''clockwork remove_contam'' Default: remove_contam_metadata.tsv"
+		tarball_metadata_tsv: "Tarball decontamination reference. Only needed if metadata_tsv is not provided."
+		filename_metadata_tsv: "Filename of the metadata TSV within tarball_metadata_tsv. Only needed if metadata_tsv is not provided. This plus tarball_metadata_tsv will be used to construct 1st positional arg of ''clockwork remove_contam'' Default: remove_contam_metadata.tsv"
 		bam_in: "Input bam or sam file. 2nd positional arg of ''clockwork remove_contam''"
 		counts_out: "Name of output file of read counts. 3rd positional arg of ''clockwork remove_contam''. If not provided, will be generated from the basename stem of bam_in."
 		reads_out_1: "Name of output reads file 1. If not provided, will be generated from the basename stem of bam_in. 4th positional arg of ''clockwork remove_contam''"
@@ -68,9 +68,9 @@ task remove_contam {
 	command <<<
 	set -eux -o pipefail
 
-	if [[ ! "~{DIRZIPPD_decontam_ref}" = "" ]]
+	if [[ ! "~{tarball_metadata_tsv}" = "" ]]
 	then
-		cp ~{DIRZIPPD_decontam_ref} .
+		cp ~{tarball_metadata_tsv} .
 		tar -xvf ~{basestem_reference}.tar
 	fi
 

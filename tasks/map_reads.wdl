@@ -16,13 +16,12 @@ version 1.0
 task map_reads {
 	input {
 		String      sample_name
+		File        tarball_ref_fasta_and_index
+		String      ref_fasta_filename
 		Array[File] reads_files
+		String      outfile      = "~{sample_name}.sam"
 		Boolean     unsorted_sam = false
-		Int         threads = 1
-
-		# usually, what you're passing in is the decontamination reference
-		File    DIRZIPPD_reference
-		String? FILENAME_reference
+		Int?        threads
 
 		# runtime attributes
 		Int addldisk = 100
@@ -30,34 +29,33 @@ task map_reads {
 		Int memory = 8
 		Int preempt = 2
 	}
-	String outfile = "~{sample_name}.sam" # hardcoded for now
-	String basestem_reference = sub(basename(DIRZIPPD_reference), "\.tar(?!.{5,})", "")  # TODO: double check the regex
+	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_ref_fasta = "~{basestem_reference}/~{FILENAME_reference}"
-
-	# TODO: properly support threads
+	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
+	String arg_threads = if defined(threads) then "--threads {threads}" else ""
 
 	# estimate disk size
-	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(DIRZIPPD_reference, "GB")) + addldisk
+	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(tarball_ref_fasta_and_index, "GB")) + addldisk
 
 	command <<<
 	set -eux -o pipefail
 
-	echo "DIRZIPPD_reference" ~{DIRZIPPD_reference}
-	echo "FILENAME_reference" ~{FILENAME_reference}
+	# might be useful when porting to non-Terra filesystems
+	echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
+	echo "ref_fasta_filename" ~{ref_fasta_filename}
 	echo "basestem_reference" ~{basestem_reference}
 	echo "sample_name" ~{sample_name}
 	echo "outfile" ~{outfile}
-	echo "arg_unsorted_sam" ~{arg_unsorted_sam}
 	echo "arg_ref_fasta" ~{arg_ref_fasta}
 	
-	if [[ ! "~{DIRZIPPD_reference}" = "" ]]
+	# we need to copy it to the workdir, then untar the copy, or else the ref index won't be found
+	if [[ ! "~{tarball_ref_fasta_and_index}" = "" ]]
 	then
-		cp ~{DIRZIPPD_reference} .
+		cp ~{tarball_ref_fasta_and_index} .
 		tar -xvf ~{basestem_reference}.tar
 	fi
 
-	clockwork map_reads ~{arg_unsorted_sam} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
+	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
 
 	ls -lhaR > workdir.txt
 	>>>
