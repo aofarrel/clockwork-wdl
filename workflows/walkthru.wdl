@@ -59,8 +59,8 @@ workflow ClockworkWalkthrough {
 				sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
-				DIRZIPPD_reference = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
-				FILENAME_reference = "ref.fa"
+				tarball_ref_fasta_and_index = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				ref_fasta_filename = "ref.fa"
 		}
 	}
 
