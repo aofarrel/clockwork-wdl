@@ -69,7 +69,7 @@ workflow ClockworkWalkthrough {
 		call clockwork_removecontamTask.remove_contam as remove_contamination {
 			input:
 				bam_in = sam_file,
-				DIRZIPPD_decontam_ref = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
+				tarball_metadata_tsv = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
 		}
 
 		call clockwork_varcalloneTask.variant_call_one_sample {
