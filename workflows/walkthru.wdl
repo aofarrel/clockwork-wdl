@@ -54,7 +54,7 @@ workflow ClockworkWalkthrough {
 	Array[Array[File]] fastqs = select_first([bluepeter__fastqs, enaDataGet.fastqs, bogus])
 
 	scatter(data in zip(samples, fastqs)) {
-		call clockwork_map_readsTask.map_reads as map_reads {
+		call clockwork_map_readsTask.map_reads_classic as map_reads {
 			input:
 				sample_name = data.left,
 				reads_files = data.right,
