@@ -37,8 +37,8 @@ task remove_contam {
 	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
 
 	# the metadata TSV will be either be passed in directly, or will be zipped in tarball_metadata_tsv
-	String basestem_reference = sub(basename(select_first([tarball_metadata_tsv, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
-	String arg_metadata_tsv = if(defined(tarball_metadata_tsv)) then "~{basestem_reference}/~{filename_metadata_tsv}" else "~{metadata_tsv}"
+	String basename_tsv = sub(basename(select_first([tarball_metadata_tsv, metadata_tsv])), "\.tar(?!.{5,})", "") # TODO: double check the regex
+	String arg_metadata_tsv = if(defined(tarball_metadata_tsv)) then "~{basename_tsv}/~{filename_metadata_tsv}" else "~{basename_tsv}"
 	
 	# calculate the optional inputs
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
@@ -71,8 +71,16 @@ task remove_contam {
 	if [[ ! "~{tarball_metadata_tsv}" = "" ]]
 	then
 		cp ~{tarball_metadata_tsv} .
-		tar -xvf ~{basestem_reference}.tar
+		tar -xvf ~{basename_tsv}.tar
 	fi
+
+	if [[ ! "~{metadata_tsv}" = "" ]]
+	then
+		cp ~{metadata_tsv} .
+	fi
+
+	# debug
+	ls
 
 	clockwork remove_contam \
 		~{arg_metadata_tsv} \
