@@ -76,7 +76,11 @@ task remove_contam {
 
 	if [[ ! "~{metadata_tsv}" = "" ]]
 	then
+		# for some reason it seems this requires a samtools index
+		# TODO: see if the other version also needs it; 
+		# if so this has been broken for a while
 		cp ~{metadata_tsv} .
+		samtools index ~{bam_in}
 	fi
 
 	# debug
