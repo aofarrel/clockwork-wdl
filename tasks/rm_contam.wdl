@@ -72,20 +72,16 @@ task remove_contam {
 	then
 		mv ~{tarball_metadata_tsv} .
 		tar -xvf ~{basename_tsv}.tar
-		samtools index ~{bam_in}
 	fi
 
 	if [[ ! "~{metadata_tsv}" = "" ]]
 	then
-		# for some reason it seems this requires a samtools index
-		# TODO: see if the other version also needs it; 
-		# if so this has been broken for a while
 		cp ~{metadata_tsv} .
-		samtools index ~{bam_in}
 	fi
 
-	# debug
-	ls
+	# debug - this might not always be needed
+	#samtools index ~{bam_in} # TODO: check if no index file warning persists while testing sorted sam
+	samtools sort -n ~{bam_in} > sorted_by_read_name_~{intermed_basestem_bamin}.sam
 
 	clockwork remove_contam \
 		~{arg_metadata_tsv} \
