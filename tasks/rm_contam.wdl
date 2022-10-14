@@ -4,10 +4,10 @@ task remove_contam {
 	input {
 		File bam_in
 
-		# for the metadata TSV, you can either pass in the file directly...
+		# [not fully supported] for the metadata TSV, you can either pass in the file directly...
 		File? metadata_tsv
 
-		# ...or you can pass in the zipped prepared reference plus the name of the TSV file
+		# [supported] ...or you can pass in the zipped prepared reference plus the name of the TSV file
 		File?   tarball_metadata_tsv
 		String? filename_metadata_tsv = "remove_contam_metadata.tsv"
 
@@ -70,8 +70,9 @@ task remove_contam {
 
 	if [[ ! "~{tarball_metadata_tsv}" = "" ]]
 	then
-		cp ~{tarball_metadata_tsv} .
+		mv ~{tarball_metadata_tsv} .
 		tar -xvf ~{basename_tsv}.tar
+		samtools index ~{bam_in}
 	fi
 
 	if [[ ! "~{metadata_tsv}" = "" ]]
