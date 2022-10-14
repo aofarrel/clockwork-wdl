@@ -65,7 +65,7 @@ task variant_call_one_sample {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
-		disks: "local-disk " + finalDiskSize + " HDD"
+		disks: "local-disk " + finalDiskSize + " SSD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
