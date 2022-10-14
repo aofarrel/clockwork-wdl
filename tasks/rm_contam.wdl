@@ -85,7 +85,7 @@ task remove_contam {
 
 	clockwork remove_contam \
 		~{arg_metadata_tsv} \
-		~{bam_in} \
+		sorted_by_read_name_~{intermed_basestem_bamin}.sam \
 		~{arg_counts_out} \
 		~{arg_reads_out1} \
 		~{arg_reads_out2} \
