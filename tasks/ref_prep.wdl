@@ -74,9 +74,10 @@ task reference_prepare {
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv} ~{arg_name}
 
+		ls -lhaR > workdir.txt
+
 		tar -c ~{outdir}/ > ~{outdir}.tar
 
-		ls -lhaR > workdir.txt
 	>>>
 	
 	runtime {

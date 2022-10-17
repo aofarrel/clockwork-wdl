@@ -41,9 +41,10 @@ workflow ClockworkRefPrepTB {
 	if (!defined(bluepeter__tar_indexd_dcontm_ref)) {
 		call ref_prep.reference_prepare as index_decontamination_ref {
 			input:
-				reference_folder = select_first([bluepeter__tar_tb_ref_raw, download_tb_reference_files.tar_tb_ref_raw]),
+				reference_folder = select_first([bluepeter__tar_tb_ref_raw,
+					download_tb_reference_files.tar_tb_ref_raw]),
 				reference_fa_string            = "remove_contam.fa.gz",
-				contam_tsv_in_reference_folder       = "remove_contam.tsv",
+				contam_tsv_in_reference_folder = "remove_contam.tsv",
 				outdir                         = "Ref.remove_contam"
 		}
 
@@ -58,9 +59,9 @@ workflow ClockworkRefPrepTB {
 		call ref_prep.reference_prepare as index_H37Rv_reference {
 			input:
 				reference_folder = select_first([bluepeter__tar_tb_ref_raw,
-													download_tb_reference_files.tar_tb_ref_raw]),
+					download_tb_reference_files.tar_tb_ref_raw]),
 				reference_fa_string = "NC_000962.3.fa",
-				outdir                         = "Ref.H37Rv"
+				outdir              = "Ref.H37Rv"
 		}
 
 		# Ref.H37Rv.tar
@@ -76,6 +77,10 @@ workflow ClockworkRefPrepTB {
 		
 		File   tar_indexd_H37Rv_ref     = select_first([bluepeter__tar_indexd_H37Rv_ref,
 														index_H37Rv_reference.tar_ref_prepd])
+		
+		# This should never fall back to the second one; we select_first only to coerce File? to File
+		File   remove_contam_tsv        = select_first([index_decontamination_ref.remove_contam_tsv,
+														index_decontamination_ref.tar_ref_prepd])
 	}
 
 	meta {
