@@ -29,7 +29,6 @@ task variant_call_one_sample {
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
 	String basestem_sample = sub(basename(select_first([sample_name, "unnamed"])), "\.sam(?!.{5,})", "") # TODO: double check the regex
-	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
 	String arg_sample_name = if(defined(sample_name)) then "--sample_name ~{basestem_sample}" else ""
@@ -40,7 +39,7 @@ task variant_call_one_sample {
 	String arg_force = if(force) then "--force" else ""
 
 	parameter_meta {
-		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
+		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare; MUST contain file named ref.fa"
 		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
 		sample_name: "Name of the sample"
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
@@ -51,12 +50,12 @@ task variant_call_one_sample {
 	}
 	
 	command <<<
-	cp ~{ref_dir} .
-	tar -xvf ~{basestem_ref_dir}.tar
+	mv ~{ref_dir} ./Ref.H37Rv.tar
+	tar -xvf Ref.H37Rv.tar
 
 	clockwork variant_call_one_sample \
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} ~{arg_outdir} \
+		Ref.H37Rv ~{arg_outdir} \
 		~{sep=" " reads_files}
 
 	ls -lhaR > workdir.txt
