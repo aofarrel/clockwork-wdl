@@ -1,0 +1,23 @@
+If you wish to run the variant calling pipeline without clockwork using inputs from previous WDL runs, this will provide an approximation:
+
+docker run -v /[whatever local folder is called]/call-variant_call_one_sample/:/vc/ -it --entrypoint=/bin/bash ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest
+
+mkdir var_call_unnamed
+
+java -Xmx1000m -jar /bioinf-tools/Trimmomatic-0.36/trimmomatic-0.36.jar PE -threads 1 /vc/inputs/1768156686/SRR1165845.decontam_1.fq.gz /vc/inputs/1768156686/SRR1165845.decontam_2.fq.gz var_call_unnamed/trimmed_reads.0.1.fq.gz /dev/null var_call_unnamed/trimmed_reads.0.2.fq.gz /dev/null ILLUMINACLIP:/bioinf-tools/Trimmomatic-0.36/adapters/TruSeq3-PE-2.fa:2:30:10  MINLEN:50 -phred33
+
+fqtools count var_call_unnamed/trimmed_reads.0.1.fq.gz var_call_unnamed/trimmed_reads.0.2.fq.gz
+
+minimap2 --split-prefix /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sam.tmp -a -t 1 -x sr -R '@RG\tLB:LIB\tID:1\tSM:sample' /vc/execution/Ref.H37Rv/ref.fa.minimap2_idx var_call_unnamed/trimmed_reads.0.1.fq.gz var_call_unnamed/trimmed_reads.0.2.fq.gz  | awk '/^@/ || !(and($2,256) || and($2,2048))'  > /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sam
+
+grep -c -v '^@' /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sam
+
+samtools sort -o /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sorted.bam /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sam
+
+samtools rmdup /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0.tmp.map_reads.s5ysouh7/tmp.sorted.bam /vc/execution/var_call_unnamed/map.bam.tmp.map_reads_set.r1n15o_q/map.0 --verbosity 999
+
+samtools index var_call_unnamed/map.bam
+
+bcftools mpileup --output-type u -f /vc/execution/Ref.H37Rv/ref.fa var_call_unnamed/map.bam | bcftools call -vm -O v -o var_call_unnamed/samtools.vcf
+
+/bioinf-tools/cortex/scripts/calling/run_calls.pl --fastaq_index /vc/execution/var_call_unnamed/cortex/cortex.in.index --auto_cleaning yes --first_kmer 31 --bc yes --pd no --outdir /vc/execution/var_call_unnamed/cortex/cortex.out --outvcf cortex --ploidy 2 --minimap2_bin /bioinf-tools/minimap2 --list_ref_fasta /vc/execution/var_call_unnamed/cortex/cortex.in.index_ref.fofn --refbindir /vc/execution/Ref.H37Rv --genome_size 4411532 --qthresh 5 --mem_height 22 --mem_width 100 --vcftools_dir /bioinf-tools/vcftools-0.1.15 --do_union yes --ref CoordinatesAndInCalling --workflow independent --logfile /vc/execution/var_call_unnamed/cortex/cortex.log
