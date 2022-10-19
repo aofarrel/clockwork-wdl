@@ -1,0 +1,5 @@
+{
+  "DebugVarCall.ref_dir": "/Users/ash/Documents/aaa_test_files/tb/terra_outs/SRR1165845/var_call_ins/submissions_21f1dbbc-d483-4408-88ac-d52b5d184f1a_myco_9e7a4c92-c10d-4cc6-8b5c-8728835ee449_call-ClockworkRefPrepTB_ClockworkRefPrepTB_9dfa1a60-d3fe-42de-825d-8492222bb789_call-index_H37Rv_reference_cacheCopy_glob-0e4fa73ce50489196046be8ee5f.tar",
+  "DebugVarCall.reads_files": ["/Users/ash/Documents/aaa_test_files/tb/terra_outs/SRR1165845/var_call_ins/SRR1165845.decontam_1.fq.gz",
+    "/Users/ash/Documents/aaa_test_files/tb/terra_outs/SRR1165845/var_call_ins/SRR1165845.decontam_2.fq.gz"]
+}
