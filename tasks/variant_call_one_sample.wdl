@@ -58,6 +58,9 @@ task variant_call_one_sample {
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} ~{arg_outdir} \
 		~{sep=" " reads_files}
+	mv var_call_~{basestem_sample}/final.vcf ./~{basestem_sample}_final.vcf
+	mv var_call_~{basestem_sample}/cortex.vcf ./~{basestem_sample}_cortex.vcf
+	mv var_call_~{basestem_sample}/samtools.vcf ./~{basestem_sample}_samtools.vcf
 
 	ls -lhaR > workdir.txt
 	>>>
@@ -72,9 +75,9 @@ task variant_call_one_sample {
 	}
 
 	output {
-		File vcf_final_call_set = "var_call_~{basestem_sample}/final.vcf"
-		File vcf_cortex = "var_call_~{basestem_sample}/cortex.vcf"
-		File vcf_samtools = "var_call_~{basestem_sample}/samtools.vcf"
+		File vcf_final_call_set = "~{basestem_sample}_final.vcf"
+		File vcf_cortex = "~{basestem_sample}_cortex.vcf"
+		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
 		File debug_workdir = "workdir.txt"
 	}
 }
