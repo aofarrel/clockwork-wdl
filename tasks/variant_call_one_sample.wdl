@@ -14,7 +14,6 @@ task variant_call_one_sample {
 		String? outdir
 		Int? mem_height
 		Boolean force    = false
-		Boolean keep_bam = false
 		Boolean debug    = true
 
 		# Runtime attributes
@@ -24,6 +23,10 @@ task variant_call_one_sample {
 		Int memory   = 32
 		Int preempt  = 1
 	}
+	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# which will avoid awkwardness when it comes to passing that to other tasks
+	Boolean keep_bam = true
+
 	# estimate disk size required
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
@@ -46,7 +49,6 @@ task variant_call_one_sample {
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
-		keep_bam: "Keep BAM file of rmdup reads"
 		debug: "Debug mode: do not clean up any files"
 	}
 	
@@ -75,6 +77,7 @@ task variant_call_one_sample {
 	}
 
 	output {
+		File mapped_to_ref = glob("*.bam")[0]
 		File vcf_final_call_set = "~{basestem_sample}_final.vcf"
 		File vcf_cortex = "~{basestem_sample}_cortex.vcf"
 		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
