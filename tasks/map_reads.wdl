@@ -29,7 +29,7 @@ task map_reads {
 		Int memory = 8
 		Int preempt = 2
 	}
-	String sample_name = sub(reads_files[0], "_1.fastq", "")
+	String sample_name = sub(basename(reads_files[0]), "_1.fastq", "")
 	String outfile     = "~{sample_name}.sam"
 
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
