@@ -17,11 +17,9 @@ version 1.0
 
 task map_reads {
 	input {
-		String      sample_name
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
 		Array[File] reads_files
-		String      outfile      = "~{sample_name}.sam"
 		Boolean     unsorted_sam = false
 		Int?        threads
 
@@ -31,6 +29,10 @@ task map_reads {
 		Int memory = 8
 		Int preempt = 2
 	}
+	String sample_name = sub(reads_files[0], "_1.fastq", "")
+	String outfile     = "~{sample_name}.sam"
+
+
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
