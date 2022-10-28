@@ -79,7 +79,7 @@ task variant_call_one_sample {
 	}
 
 	output {
-		File mapped_to_ref = glob("~{var_call_SRR1169242}/*.bam")[0]
+		File mapped_to_ref = glob("~{basestem_sample}/*.bam")[0]
 		File vcf_final_call_set = "~{basestem_sample}_final.vcf"
 		File vcf_cortex = "~{basestem_sample}_cortex.vcf"
 		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
