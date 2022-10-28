@@ -64,6 +64,9 @@ task variant_call_one_sample {
 	mv var_call_~{basestem_sample}/cortex.vcf ./~{basestem_sample}_cortex.vcf
 	mv var_call_~{basestem_sample}/samtools.vcf ./~{basestem_sample}_samtools.vcf
 
+	# rename the bam file to the basestem
+	mv var_call_~{basestem_sample}/map.bam ./~{basestem_sample}_to_~{basestem_ref_dir}.bam
+
 	# debugging stuff
 	ls -lhaR > workdir.txt
 	tar -c var_call_~{basestem_sample}/ > ~{basestem_sample}.tar
@@ -79,7 +82,7 @@ task variant_call_one_sample {
 	}
 
 	output {
-		File mapped_to_ref = glob("var_call_~{basestem_sample}/*.bam")[0]
+		File mapped_to_ref = "~{basestem_sample}_to_~{basestem_ref_dir}.bam"
 		File vcf_final_call_set = "~{basestem_sample}_final.vcf"
 		File vcf_cortex = "~{basestem_sample}_cortex.vcf"
 		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
