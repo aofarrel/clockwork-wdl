@@ -78,10 +78,10 @@ task variant_call_one_sample {
 		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
 		echo "Read 1 is $(ls -lh var_call_~{basestem_sample}/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
 		echo "Read 2 is $(ls -lh var_call_~{basestem_sample}/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		pigz -dk var_call_~{basestem_sample}/trimmed_reads.0.2.fq.gz
+		gunzip -dk var_call_~{basestem_sample}/trimmed_reads.0.2.fq.gz
 		echo "Decompressed read 2 is $(ls -lh var_call_~{basestem_sample}/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 var_call_~{basestem_sample}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp
+		head -50 var_call_~{basestem_sample}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
