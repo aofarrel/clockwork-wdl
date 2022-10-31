@@ -25,8 +25,8 @@ task map_reads {
 
 		# runtime attributes
 		Int addldisk = 100
-		Int cpu = 4
-		Int memory = 8
+		Int cpu = 8
+		Int memory = 16
 		Int preempt = 2
 	}
 	String sample_name = sub(basename(reads_files[0]), "_1.fastq", "")
