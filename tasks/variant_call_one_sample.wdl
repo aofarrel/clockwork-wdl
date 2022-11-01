@@ -6,7 +6,7 @@ version 1.0
 
 # There are two versions of this task. You likely want variant_call_one_sample. However, if
 # you want more information about failures and/or want to fail variant calling without failing the
-# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_😎
+# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_cool
 
 task variant_call_one_sample {
 	input {
@@ -107,7 +107,7 @@ task variant_call_one_sample {
 	}
 }
 
-task variant_call_one_sample_😎 {
+task variant_call_one_sample_cool {
 	input {
 		File ref_dir
 		Array[File] reads_files
@@ -159,10 +159,14 @@ task variant_call_one_sample_😎 {
 	mv ~{ref_dir} .
 	tar -xvf ~{basestem_ref_dir}.tar
 
-	clockwork variant_call_one_sample \
+	if clockwork variant_call_one_sample \
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} ~{arg_outdir} \
-		~{sep=" " reads_files}
+		~{sep=" " reads_files}; then
+			echo "Task completed successfully (probably)"
+		else
+			echo "Caught an error."
+			touch ~{basestem_sample}
 	mv var_call_~{basestem_sample}/final.vcf ./~{basestem_sample}_final.vcf
 	mv var_call_~{basestem_sample}/cortex.vcf ./~{basestem_sample}_cortex.vcf
 	mv var_call_~{basestem_sample}/samtools.vcf ./~{basestem_sample}_samtools.vcf
@@ -186,6 +190,7 @@ task variant_call_one_sample_😎 {
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_~{basestem_sample}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
+		echo "More data please!" > ~{basestem_sample}
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
@@ -202,11 +207,12 @@ task variant_call_one_sample_😎 {
 	}
 
 	output {
-		File mapped_to_ref = "~{basestem_sample}_to_~{basestem_ref_dir}.bam"
-		File vcf_final_call_set = "~{basestem_sample}_final.vcf"
+		File? mapped_to_ref = "~{basestem_sample}_to_~{basestem_ref_dir}.bam"
+		File? vcf_final_call_set = "~{basestem_sample}_final.vcf"
 		File vcf_cortex = "~{basestem_sample}_cortex.vcf"
 		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
 		File debug_workdir = "workdir.txt"
 		File debug_tarball = "~{basestem_sample}.tar"
+		File? debug_error = "~{basestem_sample}" # only exists if we error out
 	}
 }
