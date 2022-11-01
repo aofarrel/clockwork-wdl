@@ -162,11 +162,12 @@ task variant_call_one_sample_cool {
 	if clockwork variant_call_one_sample \
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} ~{arg_outdir} \
-		~{sep=" " reads_files}; then
-			echo "Task completed successfully (probably)"
-		else
-			echo "Caught an error."
-			touch ~{basestem_sample}
+		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"
+	else
+		echo "Caught an error."
+		touch ~{basestem_sample}
+	fi
+	
 	mv var_call_~{basestem_sample}/final.vcf ./~{basestem_sample}_final.vcf
 	mv var_call_~{basestem_sample}/cortex.vcf ./~{basestem_sample}_cortex.vcf
 	mv var_call_~{basestem_sample}/samtools.vcf ./~{basestem_sample}_samtools.vcf
