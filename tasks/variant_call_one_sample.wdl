@@ -55,6 +55,8 @@ task variant_call_one_sample {
 	command <<<
 	cp ~{ref_dir} .
 	tar -xvf ~{basestem_ref_dir}.tar
+	apt-get install -y tree
+	tree > tree.txt
 
 	clockwork variant_call_one_sample \
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
@@ -104,5 +106,6 @@ task variant_call_one_sample {
 		File vcf_samtools = "~{basestem_sample}_samtools.vcf"
 		File debug_workdir = "workdir.txt"
 		File debug_tarball = "~{basestem_sample}.tar"
+		File debug_tree = "tree.txt"
 	}
 }
