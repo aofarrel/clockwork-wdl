@@ -44,7 +44,7 @@ task map_reads {
 	# this should handle the scenario where sample + run is passed, or just sample
 	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
 	basename="~{read_file_basename}"
-	sample_name="${str%%_*}"
+	sample_name="${basename%%_*}"
 	outfile="$sample_name.sam"
 
 	# echo important arguments
