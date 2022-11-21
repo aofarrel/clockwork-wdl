@@ -56,7 +56,7 @@ workflow ClockworkWalkthrough {
 	scatter(data in zip(samples, fastqs)) {
 		call clockwork_map_readsTask.map_reads as map_reads {
 			input:
-				sample_name = data.left,
+				#sample_name = data.left,
 				reads_files = data.right,
 				unsorted_sam = true,
 				tarball_ref_fasta_and_index = ClockworkRefPrepTB.tar_indexd_dcontm_ref,
