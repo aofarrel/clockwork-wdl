@@ -4,11 +4,11 @@ version 1.0
 # Can provide more than one run of reads from the same sample - if you do this then the reads are all
 # used together, treated as if they were all from one big run.
 
-# There are two versions of this task. You likely want variant_call_one_sample. However, if
+# There are two versions of this task. You likely want variant_call_one_sample_simple. However, if
 # you want more information about failures and/or want to fail variant calling without failing the
-# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_cool
+# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_verbose
 
-task variant_call_one_sample {
+task variant_call_one_sample_simple {
 	input {
 		File ref_dir
 		Array[File] reads_files
@@ -107,7 +107,7 @@ task variant_call_one_sample {
 	}
 }
 
-task variant_call_one_sample_cool {
+task variant_call_one_sample_verbose {
 	input {
 		File ref_dir
 		Array[File] reads_files
