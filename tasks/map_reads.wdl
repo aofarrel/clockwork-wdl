@@ -29,9 +29,7 @@ task map_reads {
 		Int memory = 16
 		Int preempt = 2
 	}
-	String sample_name = sub(basename(reads_files[0]), "_1.fastq", "")
-	String outfile     = "~{sample_name}.sam"
-
+	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -43,12 +41,18 @@ task map_reads {
 	command <<<
 	set -eux -o pipefail
 
-	# might be useful when porting to non-Terra filesystems
+	# this should handle the scenario where sample + run is passed, or just sample
+	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
+	basename="~{read_file_basename}"
+	sample_name="${basename%%_*}"
+	outfile="$sample_name.sam"
+
+	# echo important arguments
 	echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
 	echo "ref_fasta_filename" ~{ref_fasta_filename}
 	echo "basestem_reference" ~{basestem_reference}
-	echo "sample_name" ~{sample_name}
-	echo "outfile" ~{outfile}
+	echo "sample_name" $sample_name
+	echo "outfile" $outfile
 	echo "arg_ref_fasta" ~{arg_ref_fasta}
 	
 	# we need to mv it to the workdir, then untar, or else the ref index won't be found
@@ -58,7 +62,7 @@ task map_reads {
 		tar -xvf ~{basestem_reference}.tar
 	fi
 
-	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} ~{sample_name} ~{arg_ref_fasta} ~{outfile} ~{sep=" " reads_files}
+	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile ~{sep=" " reads_files}
 
 	ls -lhaR > workdir.txt
 	>>>

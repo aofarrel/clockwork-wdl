@@ -59,6 +59,8 @@ task variant_call_one_sample_simple {
 	command <<<
 	mv ~{ref_dir} .
 	tar -xvf ~{basestem_ref_dir}.tar
+	apt-get install -y tree
+	tree > tree.txt
 
 	clockwork variant_call_one_sample \
 		~{arg_sample_name} ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
