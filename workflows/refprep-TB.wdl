@@ -77,10 +77,6 @@ workflow ClockworkRefPrepTB {
 		
 		File   tar_indexd_H37Rv_ref     = select_first([bluepeter__tar_indexd_H37Rv_ref,
 														index_H37Rv_reference.tar_ref_prepd])
-		
-		# This should never fall back to the second one; we select_first only to coerce File? to File
-		File   remove_contam_tsv        = select_first([index_decontamination_ref.remove_contam_tsv,
-														index_decontamination_ref.tar_ref_prepd])
 	}
 
 	meta {
