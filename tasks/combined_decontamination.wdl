@@ -38,6 +38,7 @@ task combined_decontamination_single {
 
 	# the metadata TSV will be zipped in tarball_ref_fasta_and_index
 	String basename_tsv = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
+	String arg_metadata_tsv = "~{basename_tsv}/~{filename_metadata_tsv}"
 	
 	# calculate the optional inputs for remove contam
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
@@ -56,7 +57,7 @@ task combined_decontamination_single {
 	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
-	outfile_stem="$sample_name"
+	#outfile_stem="$sample_name"
 	outfile_sam="$sample_name.sam"
 
 	# echo important arguments
@@ -66,6 +67,9 @@ task combined_decontamination_single {
 	echo "sample_name" $sample_name
 	echo "outfile_sam" $outfile_sam
 	echo "arg_ref_fasta" ~{arg_ref_fasta}
+
+	# echo sample name to file so we can pass it into variant caller
+	echo $sample_name > samplename.txt
 	
 	# we need to mv it to the workdir, then untar, or else the ref index won't be found
 	mv ~{tarball_ref_fasta_and_index} .
@@ -80,19 +84,19 @@ task combined_decontamination_single {
 	then
 		arg_counts_out="~{counts_out}"
 	else
-		arg_counts_out="$outfile_stem.decontam.counts.tsv"
+		arg_counts_out="$sample_name.decontam.counts.tsv"
 	fi
 
-	arg_reads_out1="$outfile_stem.decontam_1.fq.gz"
-	arg_reads_out2="$outfile_stem.decontam_2.fq.gz"
+	arg_reads_out1="$sample_name.decontam_1.fq.gz"
+	arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
 	# debug - this might not always be needed
 	#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
-	samtools sort -n $outfile_sam > sorted_by_read_name_$outfile_stem.sam
+	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
 	clockwork remove_contam \
-		~{basename_tsv} \
-		sorted_by_read_name_$outfile_stem.sam \
+		~{arg_metadata_tsv} \
+		sorted_by_read_name_$sample_name.sam \
 		$arg_counts_out \
 		$arg_reads_out1 \
 		$arg_reads_out2 \
@@ -114,5 +118,6 @@ task combined_decontamination_single {
 		File counts_out_tsv = glob("*counts.tsv")[0]
 		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
 		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
+		String sample_name = read_string("samplename.txt")
 	}
 }
