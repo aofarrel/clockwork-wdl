@@ -82,7 +82,7 @@ task reference_prepare {
 	
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.2"
 		disks: "local-disk " + finalDiskSize + " SSD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"

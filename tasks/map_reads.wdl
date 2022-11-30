@@ -69,7 +69,7 @@ task map_reads {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
 		disks: "local-disk " + finalDiskSize + " SSD"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
