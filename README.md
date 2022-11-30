@@ -27,6 +27,11 @@ All are Cromwell-formatted.
 ## Note to local Cromwell users
  My testing indicates that running the ref_prep workflow on a typical laptop setup will not be successful due to processes getting sigkilled thanks to lack of compute resources. You'll know you're having this issue because you will see "killed" and/or a return code of 137 in your Clockwork logs (you likely won't see this in Cromwell's terminal output). You may have some luck increasing Docker's resources or running more than once, but it's probably best to run these once in the cloud, download the results, and then use them as bluepeter inputs from then on (or just run the whole thing in the cloud).
 
+## Why is the Docker image an "unofficial" mirror?
+  https://github.com/broadinstitute/cromwell/issues/6827
+
+  It's the exact same image as the official one. I pull [the ghcr.io release](https://github.com/iqbal-lab-org/clockwork/pkgs/container/clockwork) and then retag it for Docker Hub.
+
 ## To-do list:
 [X] Investigate why Terra ran enaDataGet very quickly, no error, but cromwell failed to find any fastq.gz files  
 [X] Finish the walkthru pipeline  

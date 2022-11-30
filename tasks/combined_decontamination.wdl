@@ -1,0 +1,118 @@
+version 1.0
+
+# These tasks combine the rm_contam and map_reads steps into one WDL task.
+# This can save money on most backends.
+
+# tarball_metadata_tsv and tarball_ref_fasta_and_index are the same.
+
+task combined_decontamination_single {
+	input {
+		File        tarball_ref_fasta_and_index
+		String      ref_fasta_filename
+		Array[File] reads_files
+		Boolean     unsorted_sam = false
+		Int?        threads
+
+		String filename_metadata_tsv = "remove_contam_metadata.tsv"
+
+		String? counts_out # needs to end in counts.tsv
+		String? no_match_out_1
+		String? no_match_out_2
+		String? contam_out_1
+		String? contam_out_2
+		String? done_file
+
+		# runtime attributes
+		Int addldisk = 100
+		Int cpu = 8
+		Int memory = 16
+		Int preempt = 2
+	}
+
+	# calculate stuff for the map_reads call
+	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
+	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
+	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
+	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
+	String arg_threads = if defined(threads) then "--threads {threads}" else ""
+
+	# the metadata TSV will be zipped in tarball_ref_fasta_and_index
+	String basename_tsv = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
+	
+	# calculate the optional inputs for remove contam
+	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
+	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
+	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
+	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
+	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
+
+	# estimate disk size
+	Int finalDiskSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB")) + 5*ceil(size(reads_files)) + addldisk
+
+	command <<<
+	set -eux -o pipefail
+
+	# this should handle the scenario where sample + run is passed, or just sample
+	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
+	basename="~{read_file_basename}"
+	sample_name="${basename%%_*}"
+	outfile_stem="$sample_name"
+	outfile_sam="$sample_name.sam"
+
+	# echo important arguments
+	echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
+	echo "ref_fasta_filename" ~{ref_fasta_filename}
+	echo "basestem_reference" ~{basestem_reference}
+	echo "sample_name" $sample_name
+	echo "outfile_sam" $outfile_sam
+	echo "arg_ref_fasta" ~{arg_ref_fasta}
+	
+	# we need to mv it to the workdir, then untar, or else the ref index won't be found
+	mv ~{tarball_ref_fasta_and_index} .
+	tar -xvf ~{basestem_reference}.tar
+
+	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
+
+	ls -lhaR
+
+	# calculate the last three positional arguments of the rm_contam task
+	if [[ ! "~{counts_out}" = "" ]]
+	then
+		arg_counts_out="~{counts_out}"
+	else
+		arg_counts_out="$outfile_stem.decontam.counts.tsv"
+	fi
+
+	arg_reads_out1="$outfile_stem.decontam_1.fq.gz"
+	arg_reads_out2="$outfile_stem.decontam_2.fq.gz"
+
+	# debug - this might not always be needed
+	#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+	samtools sort -n $outfile_sam > sorted_by_read_name_$outfile_stem.sam
+
+	clockwork remove_contam \
+		~{basename_tsv} \
+		sorted_by_read_name_$outfile_stem.sam \
+		$arg_counts_out \
+		$arg_reads_out1 \
+		$arg_reads_out2 \
+		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+
+	ls -lhaR
+	>>>
+
+	runtime {
+		cpu: cpu
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		disks: "local-disk " + finalDiskSize + " SSD"
+		memory: "${memory} GB"
+		preemptible: "${preempt}"
+	}
+
+	output {
+		File mapped_reads = glob("*.sam")[0]
+		File counts_out_tsv = glob("*counts.tsv")[0]
+		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
+		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
+	}
+}
