@@ -83,7 +83,7 @@ task combined_decontamination_single {
 
 	echo "Reads mapped to decontamination reference."
 	echo "*********************************************************************"
-	if [[ ! "~{verbose}" = "true" ]]
+	if [[ "~{verbose}" = "true" ]]
 	then
 		ls -lhaR
 	fi
@@ -114,7 +114,7 @@ task combined_decontamination_single {
 
 	echo "Decontamination completed."
 	echo "*********************************************************************"
-	if [[ ! "~{verbose}" = "true" ]]
+	if [[ "~{verbose}" = "true" ]]
 	then
 		ls -lhaR
 	fi
