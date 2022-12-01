@@ -28,7 +28,7 @@ task download_tb_reference_files {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
 		disks: "local-disk " + disk + " SSD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"

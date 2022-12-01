@@ -94,7 +94,7 @@ task variant_call_one_sample_simple {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
 		disks: "local-disk " + finalDiskSize + " SSD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
@@ -202,7 +202,7 @@ task variant_call_one_sample_verbose {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
 		disks: "local-disk " + finalDiskSize + " SSD"
 		maxRetries: "${retries}"
 		memory: "${memory} GB"

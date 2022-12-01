@@ -58,7 +58,7 @@ task gvcf_from_minos_and_samtools {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest"
+		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
 		disks: "local-disk " + finalDiskSize + " HDD"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"

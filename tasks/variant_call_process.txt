@@ -1,6 +1,6 @@
 If you wish to run the variant calling pipeline without clockwork using inputs from previous WDL runs, this will provide an approximation:
 
-docker run -v /[whatever local folder is called]/call-variant_call_one_sample/:/vc/ -it --entrypoint=/bin/bash ashedpotatoes/iqbal-unofficial-clockwork-mirror:latest
+docker run -v /[whatever local folder is called]/call-variant_call_one_sample/:/vc/ -it --entrypoint=/bin/bash ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3
 
 mkdir var_call_unnamed
 
