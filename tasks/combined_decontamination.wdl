@@ -48,7 +48,9 @@ task combined_decontamination_single {
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 
 	# estimate disk size
-	Int finalDiskSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB")) + 5*ceil(size(reads_files)) + addldisk
+	Int refSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB"))
+	Int readsSize = 5*ceil(size(reads_files, "GB"))
+	Int finalDiskSize = refSize + readsSize + addldisk
 
 	command <<<
 	set -eux -o pipefail
@@ -118,6 +120,6 @@ task combined_decontamination_single {
 		File counts_out_tsv = glob("*counts.tsv")[0]
 		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
 		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
-		String sample_name = read_string("samplename.txt")
+		String sample_name = read_string("sample_name.txt")
 	}
 }
