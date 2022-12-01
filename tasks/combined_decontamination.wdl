@@ -15,18 +15,20 @@ task combined_decontamination_single {
 
 		String filename_metadata_tsv = "remove_contam_metadata.tsv"
 
-		String? counts_out # needs to end in counts.tsv
+		String? counts_out # MUST end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
 
+		Boolean verbose = true
+
 		# runtime attributes
 		Int addldisk = 100
-		Int cpu = 8
-		Int memory = 16
-		Int preempt = 2
+		Int cpu = 16
+		Int memory = 32
+		Int preempt = 1
 	}
 
 	# calculate stuff for the map_reads call
@@ -59,27 +61,33 @@ task combined_decontamination_single {
 	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
-	#outfile_stem="$sample_name"
 	outfile_sam="$sample_name.sam"
+	echo $sample_name > sample_name.txt # needed to pass sample_name to variant call task
 
-	# echo important arguments
-	echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
-	echo "ref_fasta_filename" ~{ref_fasta_filename}
-	echo "basestem_reference" ~{basestem_reference}
-	echo "sample_name" $sample_name
-	echo "outfile_sam" $outfile_sam
-	echo "arg_ref_fasta" ~{arg_ref_fasta}
-
-	# echo sample name to file so we can pass it into variant caller
-	echo $sample_name > samplename.txt
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
+		echo "ref_fasta_filename" ~{ref_fasta_filename}
+		echo "basestem_reference" ~{basestem_reference}
+		echo "sample_name" $sample_name
+		echo "outfile_sam" $outfile_sam
+		echo "arg_ref_fasta" ~{arg_ref_fasta}
+	fi
 	
-	# we need to mv it to the workdir, then untar, or else the ref index won't be found
+	
+	# we need to mv ref to the workdir, then untar, or else the ref index won't be found
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
 	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
 
-	ls -lhaR
+	echo "Reads mapped to decontamination reference."
+	echo "*********************************************************************"
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		ls -lhaR
+	fi
+	echo "*********************************************************************"
 
 	# calculate the last three positional arguments of the rm_contam task
 	if [[ ! "~{counts_out}" = "" ]]
@@ -104,7 +112,13 @@ task combined_decontamination_single {
 		$arg_reads_out2 \
 		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
-	ls -lhaR
+	echo "Decontamination completed."
+	echo "*********************************************************************"
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		ls -lhaR
+	fi
+	echo "*********************************************************************"
 	>>>
 
 	runtime {
