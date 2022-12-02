@@ -166,7 +166,7 @@ task combined_decontamination_multiple {
 	}
 
 	# calculate stuff for the map_reads call
-	String sample_name = sub(basename(tarballs_of_read_files), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
+	String sample_name = sub(basename(tarballs_of_read_files[0]), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
