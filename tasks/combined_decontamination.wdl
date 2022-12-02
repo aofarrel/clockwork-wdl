@@ -220,7 +220,7 @@ task combined_decontamination_multiple {
 		outfile_sam="$sample_name.sam"
 
 		# map the reads
-		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam $read_files
+		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ${read_files[*]}
 		
 		if [[ "~{verbose}" = "true" ]]
 		then
