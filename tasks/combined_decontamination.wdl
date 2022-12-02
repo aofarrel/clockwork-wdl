@@ -209,7 +209,10 @@ task combined_decontamination_multiple {
 		mv $BALL .
 		basename_ball=$(basename $BALL)
 		tar -xvf $basename_ball
-		read_files=$(find *.fastq)
+
+		# the docker image uses bash v5 so we can use readarray to make an array easily
+		declare -a read_files
+		readarray -t read_files < <(find *.fastq)
 
 		# determine sample name
 		basename=$(basename ${read_files[1]})
