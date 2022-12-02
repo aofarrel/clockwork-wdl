@@ -204,15 +204,17 @@ task combined_decontamination_multiple {
 
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
-		# determine sample name
-		basename=$(basename $BALL)
-		sample_name="${basename%%_*}"
-		outfile_sam="$sample_name.sam"
 
 		# mv read files into workdir and untar them
 		mv $BALL .
-		tar -xvf $BALL
+		basename_ball=$(basename $BALL)
+		tar -xvf $basename_ball
 		read_files=$(find *.fastq)
+
+		# determine sample name
+		basename=$(basename ${read_files[1]})
+		sample_name="${basename%%_*}"
+		outfile_sam="$sample_name.sam"
 
 		# map the reads
 		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam $read_files
