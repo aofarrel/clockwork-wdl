@@ -69,8 +69,8 @@ task combined_decontamination_single {
 		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
 		echo "ref_fasta_filename" ~{ref_fasta_filename}
 		echo "basestem_reference" ~{basestem_reference}
-		echo "sample_name" $sample_name
-		echo "outfile_sam" $outfile_sam
+		echo "sample_name $sample_name"
+		echo "outfile_sam $outfile_sam"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
 	fi
 	
@@ -130,7 +130,7 @@ task combined_decontamination_single {
 	}
 
 	output {
-		File mapped_reads = glob("*.sam")[0]
+		File mapped_to_decontam = glob("*.sam")[0]
 		File counts_out_tsv = glob("*counts.tsv")[0]
 		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
 		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
@@ -142,12 +142,13 @@ task combined_decontamination_multiple {
 	input {
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
-		Array[File] tallball_reads_files # each tarball is one set of reads files
+		Array[File] tarballs_of_read_files # each tarball is one set of reads files
 		Boolean     unsorted_sam = false
 		Int?        threads
 
 		String filename_metadata_tsv = "remove_contam_metadata.tsv"
 
+		# dashes are forbidden in the filenames you choose
 		String? counts_out # MUST end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
@@ -165,7 +166,7 @@ task combined_decontamination_multiple {
 	}
 
 	# calculate stuff for the map_reads call
-	String sample_name = sub(basename(tallball_reads_files), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
+	String sample_name = sub(basename(tarballs_of_read_files), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -184,7 +185,7 @@ task combined_decontamination_multiple {
 
 	# estimate disk size
 	Int refSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB"))
-	Int readsSize = 5*ceil(size(reads_files, "GB"))
+	Int readsSize = 5*ceil(size(tarballs_of_read_files, "GB"))
 	Int finalDiskSize = refSize + readsSize + addldisk
 
 	command <<<
@@ -198,58 +199,70 @@ task combined_decontamination_multiple {
 		echo "ref_fasta_filename" ~{ref_fasta_filename}
 		echo "basestem_reference" ~{basestem_reference}
 		echo "sample_name" ~{sample_name}
-		echo "outfile_sam" $outfile_sam
+		echo "outfile_sam $outfile_sam"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
 	fi
 	
-	
-	# move tarballs to workdir and untar
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
-	mv ~{tallball_reads_files} .
-	tar -xvf ~{basestem_reference}.tar
 
+	for BALL in ~{sep=' ' tarballs_of_read_files}
+	do
+		# determine sample name
+		basename=$(basename $BALL)
+		sample_name="${basename%%_*}"
+		outfile_sam="$sample_name.sam"
 
-	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} ~{sample_name} ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
+		# mv read files into workdir and untar them
+		mv $BALL .
+		tar -xvf $BALL
+		read_files=$(find *.fastq)
 
-	echo "Reads mapped to decontamination reference."
-	echo "*********************************************************************"
-	if [[ "~{verbose}" = "true" ]]
-	then
-		ls -lhaR
-	fi
-	echo "*********************************************************************"
+		# map the reads
+		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam $read_files
+		
+		if [[ "~{verbose}" = "true" ]]
+		then
+			echo "Mapped to decontamination reference."
+			ls -lhaR
+		fi
 
-	# calculate the last three positional arguments of the rm_contam task
-	if [[ ! "~{counts_out}" = "" ]]
-	then
-		arg_counts_out="~{counts_out}"
-	else
-		arg_counts_out="~{sample_name}.decontam.counts.tsv"
-	fi
+		# calculate the last three positional arguments of the rm_contam task
+		if [[ ! "~{counts_out}" = "" ]]
+		then
+			arg_counts_out="~{counts_out}"
+		else
+			arg_counts_out="$sample_name.decontam.counts.tsv"
+		fi
+		arg_reads_out1="$sample_name.decontam_1.fq.gz"
+		arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
-	arg_reads_out1="~{sample_name}.decontam_1.fq.gz"
-	arg_reads_out2="~{sample_name}.decontam_2.fq.gz"
+		# debug - this might not always be needed
+		#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+		samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
-	# debug - this might not always be needed
-	#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
-	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
+		# remove contam
+		clockwork remove_contam \
+			~{arg_metadata_tsv} \
+			sorted_by_read_name_$sample_name.sam \
+			$arg_counts_out \
+			$arg_reads_out1 \
+			$arg_reads_out2 \
+			~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
-	clockwork remove_contam \
-		~{arg_metadata_tsv} \
-		sorted_by_read_name_$sample_name.sam \
-		$arg_counts_out \
-		$arg_reads_out1 \
-		$arg_reads_out2 \
-		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+		# tar outputs because Cromwell still can't handle nested arrays nor structs properly
+		mkdir $sample_name
+		#mv "*.sam" /$sample_name
+		#mv "*counts.tsv" /$sample_name
+		mv "*decontam*.fq.gz" /$sample_name
+		tar -cf $sample_name.tar $sample_name
+	done
 
 	echo "Decontamination completed."
-	echo "*********************************************************************"
 	if [[ "~{verbose}" = "true" ]]
 	then
 		ls -lhaR
 	fi
-	echo "*********************************************************************"
 	>>>
 
 	runtime {
@@ -261,10 +274,10 @@ task combined_decontamination_multiple {
 	}
 
 	output {
-		File mapped_reads = glob("*.sam")[0]
-		File counts_out_tsv = glob("*counts.tsv")[0]
-		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
-		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
-		String sample_name = "~{sample_name}"
+		Array[File] tarballs_of_decontaminated_reads = glob("*.tar")
+
+		# to save space, these "debug" outs aren't included in the per sample tarballs
+		Array[File] mapped_to_decontam = glob("*.sam")
+		Array[File] counts = glob("*.counts.tsv")
 	}
 }
