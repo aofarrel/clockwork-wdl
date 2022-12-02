@@ -191,15 +191,11 @@ task combined_decontamination_multiple {
 	command <<<
 	set -eux -o pipefail
 
-	outfile_sam="$sample_name.sam"
-
 	if [[ ! "~{verbose}" = "true" ]]
 	then
 		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
 		echo "ref_fasta_filename" ~{ref_fasta_filename}
 		echo "basestem_reference" ~{basestem_reference}
-		echo "sample_name" ~{sample_name}
-		echo "outfile_sam $outfile_sam"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
 	fi
 	
