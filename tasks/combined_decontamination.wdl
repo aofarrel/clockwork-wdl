@@ -255,8 +255,10 @@ task combined_decontamination_multiple {
 		mkdir $sample_name
 		#mv "*.sam" /$sample_name
 		#mv "*counts.tsv" /$sample_name
-		mv "*decontam*.fq.gz" /$sample_name
+		mv $arg_reads_out1 ./$sample_name
+		mv $arg_reads_out2 ./$sample_name
 		tar -cf $sample_name.tar $sample_name
+		rm -rf ./$sample_name
 	done
 
 	echo "Decontamination completed."
