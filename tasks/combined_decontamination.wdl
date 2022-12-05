@@ -259,6 +259,7 @@ task combined_decontamination_multiple {
 		mv $arg_reads_out2 ./$sample_name
 		tar -cf $sample_name.tar $sample_name
 		rm -rf ./$sample_name
+		rm ${read_files[*]} # if this isn't done, the next iteration will grab the wrong reads
 	done
 
 	echo "Decontamination completed."
