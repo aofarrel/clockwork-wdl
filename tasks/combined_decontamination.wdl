@@ -162,7 +162,7 @@ task combined_decontamination_multiple {
 		Int addldisk = 100
 		Int cpu = 16
 		Int memory = 32
-		Int preempt = 1
+		Int preempt = 0
 	}
 
 	# calculate stuff for the map_reads call
