@@ -220,7 +220,7 @@ task combined_decontamination_multiple {
 		outfile_sam="$sample_name.sam"
 
 		# map the reads
-		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ${read_files[*]}
+		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
 		
 		if [[ "~{verbose}" = "true" ]]
 		then
@@ -240,12 +240,12 @@ task combined_decontamination_multiple {
 
 		# debug - this might not always be needed
 		#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
-		samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
+		samtools sort -n "$outfile_sam" > "sorted_by_read_name_$sample_name.sam"
 
 		# remove contam
 		clockwork remove_contam \
 			~{arg_metadata_tsv} \
-			sorted_by_read_name_$sample_name.sam \
+			"sorted_by_read_name_$sample_name.sam" \
 			$arg_counts_out \
 			$arg_reads_out1 \
 			$arg_reads_out2 \
@@ -259,7 +259,7 @@ task combined_decontamination_multiple {
 		mv $arg_reads_out2 ./$sample_name
 		tar -cf $sample_name.tar $sample_name
 		rm -rf ./$sample_name
-		rm ${read_files[*]} # if this isn't done, the next iteration will grab the wrong reads
+		rm "${read_files[@]}" # if this isn't done, the next iteration will grab the wrong reads
 	done
 	rm ~{basestem_reference}.tar
 
