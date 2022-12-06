@@ -174,17 +174,16 @@ task variant_call_one_sample_verbose {
 	ls -lha
 	
 	# get sample name and reads files
-	read_files=$(find . -name "*.fq.gz")
-	read_files_array=( $read_files )
+	sample_name="$(basename ~{tarball_of_reads_files} .tar)"
+	declare -a read_files_array
+	readarray -t read_files_array < <(find ./"$sample_name" -name "*.fq.gz")
 	one_read_file=$(echo "${read_files_array[0]}")
-	basename="$(basename $one_read_file)"
-	sample_name="${basename%%_*}"
 	arg_outdir="var_call_$sample_name"
 
 	if clockwork variant_call_one_sample \
 		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} $arg_outdir \
-		$read_files; then echo "Task completed successfully (probably)"
+		${read_files_array[@]}; then echo "Task completed successfully (probably)"
 	else
 		echo "Caught an error."
 		touch $sample_name
