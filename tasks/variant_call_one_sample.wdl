@@ -170,9 +170,11 @@ task variant_call_one_sample_verbose {
 			mv $READFILE .
 		done
 	fi
+
+	ls -lha
 	
 	# get sample name and reads files
-	read_files=$(find *.fq.gz)
+	read_files=$(find . -name "*.fq.gz")
 	read_files_array=( $read_files )
 	one_read_file=$(echo "${read_files_array[0]}")
 	basename="$(basename $one_read_file)"
