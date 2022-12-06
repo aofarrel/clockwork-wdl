@@ -160,7 +160,7 @@ task variant_call_one_sample_verbose {
 	if [[ ! "~{tarball_of_reads_files}" = "" ]]
 	then
 		mv ~{tarball_of_reads_files} .
-		tar -xvf *.tar # if another tar is in the workdir this will fail
+		tar -xvf ./*.tar # if another tar is in the workdir this will fail
 	fi
 	if [[ ! "~{sep=" " reads_files}" = "" ]]
 	then
@@ -172,12 +172,11 @@ task variant_call_one_sample_verbose {
 	fi
 	
 	# get sample name and reads files
-	read_files=$(find *.fastq)
+	read_files=$(find ./*.fastq)
 	read_files_array=( $read_files )
-	one_read_file=$(echo "${stuffs[0]}"
+	one_read_file=$(echo "${read_files_array[0]}")
 	basename="$(basename $one_read_file)"
 	sample_name="${basename%%_*}"
-	outfile_sam="$sample_name.sam"
 	arg_outdir="var_call_$sample_name"
 
 	if clockwork variant_call_one_sample \
@@ -189,12 +188,12 @@ task variant_call_one_sample_verbose {
 		touch $sample_name
 	fi
 	
-	mv var_call_$sample_name/final.vcf ./$sample_name_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./$sample_name_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./$sample_name_samtools.vcf
+	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
+	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
+	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./$sample_name_to_~{basestem_ref_dir}.bam
+	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
 	ls -lhaR > workdir.txt
@@ -205,10 +204,10 @@ task variant_call_one_sample_verbose {
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		echo "Read 1 is $(find var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
+		echo "Read 2 is $(find var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
 		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		echo "Decompressed read 2 is $(find var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
