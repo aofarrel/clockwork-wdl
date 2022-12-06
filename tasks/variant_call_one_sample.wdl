@@ -146,8 +146,8 @@ task variant_call_one_sample_verbose {
 
 	parameter_meta {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
-		reads_files: "*MUST define either this OR tarball_of_reads_files, not both. Must have extension .fastq* List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
-		tarball_of_reads_files: "*MUST define either this OR reads_files, not both. Files within must have extension .fastq* Same as reads_files but in a tar archive. Must be tar, not tar.gz"
+		reads_files: "*MUST define either this OR tarball_of_reads_files, not both. Must have extension .fq.gz -- List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
+		tarball_of_reads_files: "*MUST define either this OR reads_files, not both. Files within must have extension .fq.gz -- Same as reads_files but in a tar archive. Must be tar, not tar.gz"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
 		debug: "Debug mode: do not clean up any files"
@@ -164,7 +164,7 @@ task variant_call_one_sample_verbose {
 	fi
 	if [[ ! "~{sep=" " reads_files}" = "" ]]
 	then
-		# this should ensure find *.fastq works as expected
+		# this should ensure find *.fq.gz works as expected
 		for READFILE in ~{sep=' ' reads_files}
 		do
 			mv $READFILE .
@@ -172,7 +172,7 @@ task variant_call_one_sample_verbose {
 	fi
 	
 	# get sample name and reads files
-	read_files=$(find ./*.fastq)
+	read_files=$(find *.fq.gz)
 	read_files_array=( $read_files )
 	one_read_file=$(echo "${read_files_array[0]}")
 	basename="$(basename $one_read_file)"
@@ -204,10 +204,10 @@ task variant_call_one_sample_verbose {
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(find var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(find var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
+		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
 		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-		echo "Decompressed read 2 is $(find var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
