@@ -199,7 +199,6 @@ task variant_call_one_sample_verbose {
 	# debugging stuff
 	ls -lhaR > workdir.txt
 	tar -c var_call_$sample_name/ > $sample_name.tar
-	head -22 var_call_~$sample_name/cortex/cortex.log | tail -1 > $CORTEX_WARNING
 	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
