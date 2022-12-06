@@ -261,6 +261,7 @@ task combined_decontamination_multiple {
 		rm -rf ./$sample_name
 		rm ${read_files[*]} # if this isn't done, the next iteration will grab the wrong reads
 	done
+	rm ~{basestem_reference}.tar
 
 	echo "Decontamination completed."
 	if [[ "~{verbose}" = "true" ]]
