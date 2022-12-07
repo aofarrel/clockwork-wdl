@@ -116,7 +116,7 @@ task variant_call_one_sample_verbose {
 		File? tarball_of_reads_files
 
 		# optional args
-		#String? sample_name --> generated from inputs
+		String? sample_name # only used in warning_file
 		#String? outdir  --> generated from inputs
 		Int? mem_height
 		Boolean force    = false
@@ -145,8 +145,10 @@ task variant_call_one_sample_verbose {
 	String arg_force = if(force) then "--force" else ""
 
 	# just needed for the output since glob doesn't work with optionals, 
-	# should be equivalent to $sample_name
-	String basename_reads_tarball = basename(tarball_of_reads_files, ".tar")
+	# should be equivalent to $sample_name when running on a tarball
+	# unfortunately as you cant deference arrays via indeces in WDL, it
+	# seems we cannot set some equivalent of reads_files[0] as a fallback
+	String warning_file = basename(select_first([tarball_of_reads_files, sample_name, "fallback"]), ".tar")
 
 	parameter_meta {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
@@ -215,7 +217,7 @@ task variant_call_one_sample_verbose {
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
-		echo "More data please!" > ~{basename_reads_tarball}.warning
+		echo "More data please!" > ~{warning_file}.warning
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
@@ -237,6 +239,6 @@ task variant_call_one_sample_verbose {
 		File vcf_cortex = glob("*_cortex.vcf")[0]
 		File vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
-		File? debug_error = "~{basename_reads_tarball}.warning" # only exists if we error out
+		File? debug_error = "~{warning_file}.warning" # only exists if we error out
 	}
 }
