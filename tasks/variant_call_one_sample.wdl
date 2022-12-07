@@ -144,6 +144,10 @@ task variant_call_one_sample_verbose {
 	String arg_keep_bam = if(keep_bam) then "--keep_bam" else ""
 	String arg_force = if(force) then "--force" else ""
 
+	# just needed for the output since glob doesn't work with optionals, 
+	# should be equivalent to $sample_name
+	String basename_reads_tarball = basename(tarball_of_reads_files, ".tar")
+
 	parameter_meta {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
 		reads_files: "*MUST define either this OR tarball_of_reads_files, not both. Must have extension .fq.gz -- List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
@@ -211,7 +215,7 @@ task variant_call_one_sample_verbose {
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
-		echo "More data please!" > $sample_name.warning
+		echo "More data please!" > ~{basename_reads_tarball}.warning
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
@@ -233,6 +237,6 @@ task variant_call_one_sample_verbose {
 		File vcf_cortex = glob("*_cortex.vcf")[0]
 		File vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
-		File? debug_error = glob("*.warning")[0] # only exists if we error out
+		File? debug_error = "~{basename_reads_tarball}.warning" # only exists if we error out
 	}
 }
