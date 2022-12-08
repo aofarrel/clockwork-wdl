@@ -221,10 +221,10 @@ task combined_decontamination_multiple {
 
 		# map the reads
 		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
-		
+		echo "Mapped $sample_name to decontamination reference."
+
 		if [[ "~{verbose}" = "true" ]]
 		then
-			echo "Mapped to decontamination reference."
 			ls -lhaR
 		fi
 
@@ -260,6 +260,8 @@ task combined_decontamination_multiple {
 		tar -cf $sample_name.tar $sample_name
 		rm -rf ./$sample_name
 		rm "${read_files[@]}" # if this isn't done, the next iteration will grab the wrong reads
+
+		echo "Decontaminated $sample_name successfully."
 	done
 	rm ~{basestem_reference}.tar
 
