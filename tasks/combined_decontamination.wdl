@@ -202,6 +202,19 @@ task combined_decontamination_multiple {
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
+	# check for duplicates, part 1
+	# We could use uniq -u to create an allowlist of acceptable
+	# samples, but we still have to deal with tarballs in input
+	# directories.
+	touch list_of_samples.txt
+	for BALL in ~{sep=' ' tarballs_of_read_files}
+	do
+		basename_ball=$(basename $BALL)
+		sample_name="${basename%%_*}"
+		$sample_name >> list_of_samples.txt
+	done
+	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
+
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
 
@@ -215,9 +228,18 @@ task combined_decontamination_multiple {
 		readarray -t read_files < <(find *.fastq)
 
 		# determine sample name
-		basename=$(basename ${read_files[1]})
+		basename=$(basename $basename_ball)
 		sample_name="${basename%%_*}"
 		outfile_sam="$sample_name.sam"
+
+		# check for duplicates, part 2
+		# TODO: This will cause a duplicated sample to always get skipped, ie, it won't even
+		# get a first time. Ideally we still want to deal with once (and only once)
+		if grep -q "$sample_name" dupe_samples.txt
+		then
+			# skip this sample, go onto the next
+			continue
+		fi
 
 		# map the reads
 		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
@@ -238,11 +260,10 @@ task combined_decontamination_multiple {
 		arg_reads_out1="$sample_name.decontam_1.fq.gz"
 		arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
-		# debug - this might not always be needed
-		#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+		# https://github.com/iqbal-lab-org/clockwork/issues/77
 		samtools sort -n "$outfile_sam" > "sorted_by_read_name_$sample_name.sam"
 
-		# remove contam
+		# r/e the index file warning: https://github.com/mhammell-laboratory/TEtranscripts/issues/99
 		clockwork remove_contam \
 			~{arg_metadata_tsv} \
 			"sorted_by_read_name_$sample_name.sam" \
@@ -260,6 +281,7 @@ task combined_decontamination_multiple {
 		tar -cf $sample_name.tar $sample_name
 		rm -rf ./$sample_name
 		rm "${read_files[@]}" # if this isn't done, the next iteration will grab the wrong reads
+		echo "Decontaminated $sample_name successfully."
 	done
 	rm ~{basestem_reference}.tar
 
@@ -284,5 +306,7 @@ task combined_decontamination_multiple {
 		# to save space, these "debug" outs aren't included in the per sample tarballs
 		Array[File] mapped_to_decontam = glob("*.sam")
 		Array[File] counts = glob("*.counts.tsv")
+		File duplicated_input_files = "dupe_files.txt"
+		File duplicated_input_samples = "dupe_samples.txt"
 	}
 }

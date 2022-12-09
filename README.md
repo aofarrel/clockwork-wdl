@@ -1,5 +1,5 @@
 # clockwork-wdl
- An in-progress WDLization of [clockwork](https://github.com/iqbal-lab-org/clockwork), focusing on functions used by [this walkthrough](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only). Supports (and sometimes requires) tarball inputs -- please make sure to read the inputs section.
+ A partial WDLization of [clockwork](https://github.com/iqbal-lab-org/clockwork), focusing on functions used by [this walkthrough](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only). Supports (and sometimes requires) tarball inputs -- please make sure to read the inputs section.
 
  To allow for quicker runs, several workflows have "bluepeter" options. Named after the TV show coining the term "here's one I made earlier," these are files you can insert when running a workflow more than once in order to avoid downloading the same set of files over and over again.
 
