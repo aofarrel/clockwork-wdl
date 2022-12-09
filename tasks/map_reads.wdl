@@ -33,7 +33,7 @@ task map_reads {
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
-	String arg_threads = if defined(threads) then "--threads {threads}" else ""
+	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
 
 	# estimate disk size
 	Int finalDiskSize = ceil(size(reads_files, "GB")) + 2*ceil(size(tarball_ref_fasta_and_index, "GB")) + addldisk
