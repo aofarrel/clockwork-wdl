@@ -166,7 +166,6 @@ task combined_decontamination_multiple {
 	}
 
 	# calculate stuff for the map_reads call
-	String sample_name = sub(basename(tarballs_of_read_files[0]), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -210,7 +209,7 @@ task combined_decontamination_multiple {
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
 		basename_ball=$(basename $BALL)
-		sample_name="${basename%%_*}"
+		sample_name="${basename_ball%%_*}"
 		$sample_name >> list_of_samples.txt
 	done
 	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
@@ -221,14 +220,14 @@ task combined_decontamination_multiple {
 		# mv read files into workdir and untar them
 		mv $BALL .
 		basename_ball=$(basename $BALL)
-		tar -xvf $basename_ball
+		tar -xvf "$basename_ball"
 
 		# the docker image uses bash v5 so we can use readarray to make an array easily
 		declare -a read_files
-		readarray -t read_files < <(find *.fastq)
+		readarray -t read_files < <(find ./*.fastq)
 
 		# determine sample name
-		basename=$(basename $basename_ball)
+		basename=$(basename "$basename_ball")
 		sample_name="${basename%%_*}"
 		outfile_sam="$sample_name.sam"
 
@@ -267,9 +266,9 @@ task combined_decontamination_multiple {
 		clockwork remove_contam \
 			~{arg_metadata_tsv} \
 			"sorted_by_read_name_$sample_name.sam" \
-			$arg_counts_out \
-			$arg_reads_out1 \
-			$arg_reads_out2 \
+			"$arg_counts_out" \
+			"$arg_reads_out1" \
+			"$arg_reads_out2" \
 			~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
 		# tar outputs because Cromwell still can't handle nested arrays nor structs properly
