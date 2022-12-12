@@ -217,30 +217,27 @@ task combined_decontamination_multiple {
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
 
-		# mv read files into workdir and untar them
-		mv $BALL .
-		basename_ball=$(basename $BALL)
-		tar -xvf "$basename_ball"
-
-		# the docker image uses bash v5 so we can use readarray to make an array easily
-		declare -a read_files
-		readarray -t read_files < <(find ./*.fastq)
-
-		# determine sample name
-		basename=$(basename "$basename_ball")
-		sample_name="${basename%%_*}"
-		outfile_sam="$sample_name.sam"
-
 		# check for duplicates, part 2
 		# TODO: This will cause a duplicated sample to always get skipped, ie, it won't even
 		# get a first time. Ideally we still want to deal with once (and only once)
+		basename_ball=$(basename $BALL)
+		sample_name="${basename_ball%%_*}"
 		if grep -q "$sample_name" dupe_samples.txt
 		then
 			# skip this sample, go onto the next
 			continue
 		fi
 
+		# mv read files into workdir and untar them
+		mv $BALL .
+		tar -xvf "$basename_ball"
+
+		# the docker image uses bash v5 so we can use readarray to make an array easily
+		declare -a read_files
+		readarray -t read_files < <(find ./*.fastq)
+
 		# map the reads
+		outfile_sam="$sample_name.sam"
 		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
 		echo "Mapped $sample_name to decontamination reference."
 
