@@ -220,7 +220,7 @@ task combined_decontamination_multiple {
 		# check for duplicates, part 2
 		# TODO: This will cause a duplicated sample to always get skipped, ie, it won't even
 		# get a first time. Ideally we still want to deal with once (and only once)
-		basename_ball=$(basename $BALL)
+		basename_ball=$(basename $BALL .tar)
 		sample_name="${basename_ball%%_*}"
 		if grep -q "$sample_name" dupe_samples.txt
 		then
