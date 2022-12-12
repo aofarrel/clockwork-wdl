@@ -210,7 +210,7 @@ task combined_decontamination_multiple {
 	do
 		basename_ball=$(basename $BALL)
 		sample_name="${basename_ball%%_*}"
-		$sample_name >> list_of_samples.txt
+		echo "$sample_name\n" >> list_of_samples.txt
 	done
 	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
 
