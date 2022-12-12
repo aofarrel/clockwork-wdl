@@ -230,7 +230,7 @@ task combined_decontamination_multiple {
 
 		# mv read files into workdir and untar them
 		mv $BALL .
-		tar -xvf "$basename_ball"
+		tar -xvf $basename_ball.tar
 
 		# the docker image uses bash v5 so we can use readarray to make an array easily
 		declare -a read_files
