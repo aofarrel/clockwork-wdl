@@ -205,15 +205,17 @@ task combined_decontamination_multiple {
 	# We could use uniq -u to create an allowlist of acceptable
 	# samples, but we still have to deal with tarballs in input
 	# directories.
+	echo "Listing out samples..."
 	touch list_of_samples.txt
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
-		basename_ball=$(basename $BALL)
+		basename_ball=$(basename $BALL .tar)
 		sample_name="${basename_ball%%_*}"
 		echo "$sample_name\n" >> list_of_samples.txt
 	done
 	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
 
+	echo "Now iterating..."
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
 
@@ -225,6 +227,7 @@ task combined_decontamination_multiple {
 		if grep -q "$sample_name" dupe_samples.txt
 		then
 			# skip this sample, go onto the next
+			echo "$sample_name appears to be a duplicate and will be skipped."
 			continue
 		fi
 
