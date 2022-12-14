@@ -14,7 +14,6 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
-		String? outdir
 		Int? mem_height
 		Boolean force    = false
 		Boolean debug    = false
@@ -37,7 +36,6 @@ task variant_call_one_sample_simple {
 	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
 	
 	# generate command line arguments
-	String arg_outdir = "var_call_" + select_first([outdir, "unnamed"])
 	String arg_debug = if(debug) then "--debug" else ""
 	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
 	String arg_keep_bam = if(keep_bam) then "--keep_bam" else ""
@@ -45,7 +43,6 @@ task variant_call_one_sample_simple {
 
 	parameter_meta {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
-		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
@@ -66,7 +63,7 @@ task variant_call_one_sample_simple {
 
 	clockwork variant_call_one_sample \
 		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} ~{arg_outdir} \
+		~{basestem_ref_dir} var_call_$sample_name \
 		~{sep=" " reads_files}
 	mv var_call_$sample_name/final.vcf ./$sample_name_final.vcf
 	mv var_call_$sample_name/cortex.vcf ./$sample_name_cortex.vcf
@@ -119,7 +116,6 @@ task variant_call_one_sample_verbose {
 
 		# optional args
 		String? sample_name # only used in warning_file
-		#String? outdir  --> generated from inputs
 		Int? mem_height
 		Boolean force    = false
 		Boolean debug    = true
