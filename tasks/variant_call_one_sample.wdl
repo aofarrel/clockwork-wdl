@@ -6,7 +6,8 @@ version 1.0
 
 # There are two versions of this task. You likely want variant_call_one_sample_simple. However, if
 # you want more information about failures and/or want to fail variant calling without failing the
-# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_verbose
+# whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_verbose.
+# variant_call_one_sample_verbose can also handle tarballed read files.
 
 task variant_call_one_sample_simple {
 	input {
@@ -52,13 +53,11 @@ task variant_call_one_sample_simple {
 	command <<<
 	mv ~{ref_dir} .
 	tar -xvf ~{basestem_ref_dir}.tar
-	apt-get install -y tree
-	tree > tree.txt
 
 	for READFILE in ~{sep=' ' reads_files} 
 	do
 		basename=$(basename $READFILE .fq.gz)
-		sample_name="${basename%%_*}"
+		sample_name="${basename%%.*}"
 	done
 
 	clockwork variant_call_one_sample \
@@ -101,10 +100,10 @@ task variant_call_one_sample_simple {
 	}
 
 	output {
-		File mapped_to_ref = "$sample_name_to_~{basestem_ref_dir}.bam"
-		File vcf_final_call_set = "$sample_name_final.vcf"
-		File vcf_cortex = "$sample_name_cortex.vcf"
-		File vcf_samtools = "$sample_name_samtools.vcf"
+		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
+		File vcf_final_call_set = glob("*_final.vcf")[0]
+		File vcf_cortex = glob("*_cortex.vcf")[0]
+		File vcf_samtools = glob("*_samtools.vcf")[0]
 	}
 }
 
@@ -171,12 +170,10 @@ task variant_call_one_sample_verbose {
 		# this should ensure find *.fq.gz works as expected
 		for READFILE in ~{sep=' ' reads_files}
 		do
-			sample_name="$(basename $READFILE .fq.gz)"
+			sample_name="$(basename $READFILE decontam.fq.gz)"
 			mv $READFILE .
 		done
 	fi
-
-	ls -lha
 	
 	# get sample name and reads files
 	declare -a read_files_array
@@ -234,8 +231,8 @@ task variant_call_one_sample_verbose {
 	output {
 		File? mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
 		File? vcf_final_call_set = glob("*_final.vcf")[0]
-		File vcf_cortex = glob("*_cortex.vcf")[0]
-		File vcf_samtools = glob("*_samtools.vcf")[0]
+		File? vcf_cortex = glob("*_cortex.vcf")[0]
+		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
 		File? debug_error = "~{warning_file}.warning" # only exists if we error out
 	}
