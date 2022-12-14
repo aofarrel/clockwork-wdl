@@ -98,8 +98,6 @@ task variant_call_one_sample_simple {
 		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
-		echo "***********"
-		echo "More data please!" > ~{warning_file}.warning
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
@@ -125,7 +123,6 @@ task variant_call_one_sample_simple {
 		File debugtree1 = "tree1.txt"
 		File debugtree2 = "tree2.txt"
 		File debugtree3 = "tree3.txt"
-		File? debug_error = "~{warning_file}.warning" # only exists if we error out
 	}
 }
 
@@ -234,6 +231,7 @@ task variant_call_one_sample_verbose {
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
+		echo "More data please!" > "~{warning_file}".warning
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
@@ -255,5 +253,6 @@ task variant_call_one_sample_verbose {
 		File? vcf_cortex = glob("*_cortex.vcf")[0]
 		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
+		File? debug_error = "~{warning_file}.warning" # only exists if we error out, cannot glob otherwise
 	}
 }
