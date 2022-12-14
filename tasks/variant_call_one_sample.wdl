@@ -59,28 +59,31 @@ task variant_call_one_sample_simple {
 		basename=$(basename $READFILE .fq.gz)
 		sample_name="${basename%%.*}"
 	done
-
 	echo $sample_name
-	apt-get install -y tree
+	arg_outdir="var_call_$sample_name"
 
+	apt-get install -y tree
 	tree > tree1.txt
 
-	clockwork variant_call_one_sample \
+	if clockwork variant_call_one_sample \
 		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} var_call_$sample_name \
-		~{sep=" " reads_files}
+		~{basestem_ref_dir} $arg_outdir \
+		~{sep=" " reads_files} then echo "Task completed successfully (probably)"	
+	else	
+		echo "Caught an error."	
+		touch $sample_name	
+	fi
 	
 	tree > tree2.txt
-	workdir=$(pwd)
 
-	echo "mv var_call_$sample_name/final.vcf $workdir/$sample_name_final.vcf"
+	echo "mv var_call_$sample_name/final.vcf $workdir/$sample_name.vcf"
 
-	mv -v var_call_$sample_name/final.vcf $workdir/$sample_name_final.vcf
-	mv -v var_call_$sample_name/cortex.vcf $workdir/$sample_name_cortex.vcf
-	mv -v var_call_$sample_name/samtools.vcf $workdir/$sample_name_samtools.vcf
+	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
+	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
+	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv -v var_call_$sample_name/map.bam $workdir/$sample_name_to_~{basestem_ref_dir}.bam
+	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
 	head -22 var_call_$sample_name/cortex/cortex.log | tail -1 > $CORTEX_WARNING
@@ -96,6 +99,8 @@ task variant_call_one_sample_simple {
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
+		echo "More data please!" > ~{warning_file}.warning
+		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
 	fi
@@ -120,6 +125,7 @@ task variant_call_one_sample_simple {
 		File debugtree1 = "tree1.txt"
 		File debugtree2 = "tree2.txt"
 		File debugtree3 = "tree3.txt"
+		File? debug_error = "~{warning_file}.warning" # only exists if we error out
 	}
 }
 
