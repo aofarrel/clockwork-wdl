@@ -71,13 +71,16 @@ task variant_call_one_sample_simple {
 		~{sep=" " reads_files}
 	
 	tree > tree2.txt
+	workdir=$(pwd)
 
-	mv var_call_$sample_name/final.vcf ./$sample_name_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./$sample_name_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./$sample_name_samtools.vcf
+	echo "mv var_call_$sample_name/final.vcf $workdir/$sample_name_final.vcf"
+
+	mv -v var_call_$sample_name/final.vcf $workdir/$sample_name_final.vcf
+	mv -v var_call_$sample_name/cortex.vcf $workdir/$sample_name_cortex.vcf
+	mv -v var_call_$sample_name/samtools.vcf $workdir/$sample_name_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./$sample_name_to_~{basestem_ref_dir}.bam
+	mv -v var_call_$sample_name/map.bam $workdir/$sample_name_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
 	head -22 var_call_$sample_name/cortex/cortex.log | tail -1 > $CORTEX_WARNING
