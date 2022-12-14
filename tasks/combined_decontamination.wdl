@@ -305,7 +305,7 @@ task combined_decontamination_multiple {
 		# to save space, these "debug" outs aren't included in the per sample tarballs
 		Array[File] mapped_to_decontam = glob("*.sam")
 		Array[File] counts = glob("*.counts.tsv")
-		File duplicated_input_files = "dupe_files.txt"
-		File duplicated_input_samples = "dupe_samples.txt"
+		File? duplicated_input_files = "dupe_files.txt"
+		File? duplicated_input_samples = "dupe_samples.txt"
 	}
 }
