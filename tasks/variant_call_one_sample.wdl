@@ -46,7 +46,6 @@ task variant_call_one_sample_simple {
 	parameter_meta {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
 		outdir: "Output directory (must not exist, will be created). Will default to var_call_{sample_name} or var_call_unnamed if not provided."
-		sample_name: "Name of the sample"
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
