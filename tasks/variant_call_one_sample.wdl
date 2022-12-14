@@ -60,10 +60,18 @@ task variant_call_one_sample_simple {
 		sample_name="${basename%%.*}"
 	done
 
+	echo $sample_name
+	apt-get install -y tree
+
+	tree > tree1.txt
+
 	clockwork variant_call_one_sample \
 		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} var_call_$sample_name \
 		~{sep=" " reads_files}
+	
+	tree > tree2.txt
+
 	mv var_call_$sample_name/final.vcf ./$sample_name_final.vcf
 	mv var_call_$sample_name/cortex.vcf ./$sample_name_cortex.vcf
 	mv var_call_$sample_name/samtools.vcf ./$sample_name_samtools.vcf
@@ -88,6 +96,8 @@ task variant_call_one_sample_simple {
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
 	fi
+
+	tree > tree3.txt
 	>>>
 
 	runtime {
@@ -104,6 +114,9 @@ task variant_call_one_sample_simple {
 		File vcf_final_call_set = glob("*_final.vcf")[0]
 		File vcf_cortex = glob("*_cortex.vcf")[0]
 		File vcf_samtools = glob("*_samtools.vcf")[0]
+		File debugtree1 = "tree1.txt"
+		File debugtree2 = "tree2.txt"
+		File debugtree3 = "tree3.txt"
 	}
 }
 
