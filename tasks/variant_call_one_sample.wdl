@@ -53,6 +53,7 @@ task variant_call_one_sample_simple {
 	command <<<
 	mv ~{ref_dir} .
 	tar -xvf ~{basestem_ref_dir}.tar
+	rm ~{basestem_ref_dir}.tar # just to save disk space
 
 	for READFILE in ~{sep=' ' reads_files} 
 	do
@@ -177,7 +178,9 @@ task variant_call_one_sample_verbose {
 	
 	command <<<
 	mv ~{ref_dir} .
+	tar -xvf ~{basestem_ref_dir}.tar
 	rm ~{basestem_ref_dir}.tar # needs to be deleted to prevent next bit breaking
+
 	if [[ ! "~{tarball_of_reads_files}" = "" ]]
 	then
 		mv ~{tarball_of_reads_files} .
