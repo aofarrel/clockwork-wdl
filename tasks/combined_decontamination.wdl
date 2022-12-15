@@ -166,7 +166,6 @@ task combined_decontamination_multiple {
 	}
 
 	# calculate stuff for the map_reads call
-	String sample_name = sub(basename(tarballs_of_read_files[0]), "\.tar(?!.{5,})", "") # used to calculate sample name + outfile_sam
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -202,24 +201,46 @@ task combined_decontamination_multiple {
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
+	# check for duplicates, part 1
+	# We could use uniq -u to create an allowlist of acceptable
+	# samples, but we still have to deal with tarballs in input
+	# directories.
+	echo "Listing out samples..."
+	touch list_of_samples.txt
+	for BALL in ~{sep=' ' tarballs_of_read_files}
+	do
+		basename_ball=$(basename $BALL .tar)
+		sample_name="${basename_ball%%_*}"
+		echo "$sample_name\n" >> list_of_samples.txt
+	done
+	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
+
+	echo "Now iterating..."
 	for BALL in ~{sep=' ' tarballs_of_read_files}
 	do
 
+		# check for duplicates, part 2
+		# TODO: This will cause a duplicated sample to always get skipped, ie, it won't even
+		# get a first time. Ideally we still want to deal with once (and only once)
+		basename_ball=$(basename $BALL .tar)
+		sample_name="${basename_ball%%_*}"
+		if grep -q "$sample_name" dupe_samples.txt
+		then
+			# skip this sample, go onto the next
+			echo "$sample_name appears to be a duplicate and will be skipped."
+			continue
+		fi
+
 		# mv read files into workdir and untar them
 		mv $BALL .
-		basename_ball=$(basename $BALL)
-		tar -xvf $basename_ball
+		tar -xvf $basename_ball.tar
 
 		# the docker image uses bash v5 so we can use readarray to make an array easily
 		declare -a read_files
-		readarray -t read_files < <(find *.fastq)
-
-		# determine sample name
-		basename=$(basename ${read_files[1]})
-		sample_name="${basename%%_*}"
-		outfile_sam="$sample_name.sam"
+		readarray -t read_files < <(find ./*.fastq)
 
 		# map the reads
+		outfile_sam="$sample_name.sam"
 		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
 		echo "Mapped $sample_name to decontamination reference."
 
@@ -238,17 +259,16 @@ task combined_decontamination_multiple {
 		arg_reads_out1="$sample_name.decontam_1.fq.gz"
 		arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
-		# debug - this might not always be needed
-		#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+		# https://github.com/iqbal-lab-org/clockwork/issues/77
 		samtools sort -n "$outfile_sam" > "sorted_by_read_name_$sample_name.sam"
 
-		# remove contam
+		# r/e the index file warning: https://github.com/mhammell-laboratory/TEtranscripts/issues/99
 		clockwork remove_contam \
 			~{arg_metadata_tsv} \
 			"sorted_by_read_name_$sample_name.sam" \
-			$arg_counts_out \
-			$arg_reads_out1 \
-			$arg_reads_out2 \
+			"$arg_counts_out" \
+			"$arg_reads_out1" \
+			"$arg_reads_out2" \
 			~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
 		# tar outputs because Cromwell still can't handle nested arrays nor structs properly
@@ -260,7 +280,6 @@ task combined_decontamination_multiple {
 		tar -cf $sample_name.tar $sample_name
 		rm -rf ./$sample_name
 		rm "${read_files[@]}" # if this isn't done, the next iteration will grab the wrong reads
-
 		echo "Decontaminated $sample_name successfully."
 	done
 	rm ~{basestem_reference}.tar
@@ -286,5 +305,7 @@ task combined_decontamination_multiple {
 		# to save space, these "debug" outs aren't included in the per sample tarballs
 		Array[File] mapped_to_decontam = glob("*.sam")
 		Array[File] counts = glob("*.counts.tsv")
+		File? duplicated_input_files = "dupe_files.txt"
+		File? duplicated_input_samples = "dupe_samples.txt"
 	}
 }
