@@ -26,8 +26,8 @@ task combined_decontamination_single {
 
 		# runtime attributes
 		Int addldisk = 100
-		Int cpu = 16
-		Int memory = 32
+		Int cpu = 8
+		Int memory = 16
 		Int preempt = 1
 	}
 
