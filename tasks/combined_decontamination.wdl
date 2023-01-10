@@ -15,7 +15,7 @@ task combined_decontamination_single {
 		String      filename_metadata_tsv = "remove_contam_metadata.tsv"
 
 		# bonus options
-		Int         subsample_cutoff = 450 # subsample if fastq > this value in MB
+		Int         subsample_cutoff = -1 # subsample if fastq > this value in MB
 		Int         subsample_seed = 1965
 		Int?        threads
 		Boolean     unsorted_sam = false # it's recommend to keep this false
@@ -90,18 +90,20 @@ task combined_decontamination_single {
 	fi
 
 	# downsample, if necessary
-	for inputfq in "${READS_FILES[@]}"
-	do
-		size_inputfq=$(du -m "$inputfq")
-		if (( size_inputfq > ~{subsample_cutoff} ))
-		then
-			seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
-			rm "$inputfq"
-			mv temp.fq "$inputfq"
-			echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
-		fi
-	done
-	
+	if [[ "~{subsample_cutoff}" != "-1" ]]
+	then
+		for inputfq in "${READS_FILES[@]}"
+		do
+			size_inputfq=$(du -m "$inputfq")
+			if (( size_inputfq > ~{subsample_cutoff} ))
+			then
+				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
+				rm "$inputfq"
+				mv temp.fq "$inputfq"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+			fi
+		done
+	fi
 	
 	# we need to mv ref to the workdir, then untar, or else the ref index won't be found
 	mv ~{tarball_ref_fasta_and_index} .
