@@ -86,15 +86,15 @@ task combined_decontamination_single {
 	fi
 
 	# downsample, if necessary
-	for inputfq in ${sizes_of_inputfqs[@]}
+	for inputfq in "${READS_FILES[@]}"
 	do
-  		size_of_inputfq=$(du -m $inputfq)
-		if (( size_of_inputfq > ~{subsample_cutoff} ))
+		size_inputfq=$(du -m "$inputfq")
+		if (( size_inputfq > ~{subsample_cutoff} ))
 		then
-			seqtk sample -s~{subsample_seed} $inputfq 1000000 > temp.fq
-			rm $inputfq
-			mv temp.fq $inputfq
-			echo "WARNING: downsampled $inputfq (was $somefastqsize MB)"
+			seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
+			rm "$inputfq"
+			mv temp.fq "$inputfq"
+			echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
 		fi
 	done
 	
