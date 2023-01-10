@@ -62,12 +62,17 @@ task combined_decontamination_single {
 	command <<<
 	set -eux -o pipefail
 
+	# set up variables
 	# this should handle the scenario where sample + run is passed, or just sample
-	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
+	# eg, ERS457530_ERR551697_1.fastq or ERS457530_1.fastq
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
 	outfile_sam="$sample_name.sam"
 	echo $sample_name > sample_name.txt # needed to pass sample_name to variant call task
+	READS_FILES=("~{sep='" "' reads_files}")
+	# READS_FILES is our shell variable equivalent of WDL reads_files
+	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
+	# the less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
 
 	if [[ ! "~{verbose}" = "true" ]]
 	then
@@ -77,7 +82,21 @@ task combined_decontamination_single {
 		echo "sample_name $sample_name"
 		echo "outfile_sam $outfile_sam"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
+
 	fi
+
+	# downsample, if necessary
+	for inputfq in ${sizes_of_inputfqs[@]}
+	do
+  		size_of_inputfq=$(du -m $inputfq)
+		if (( size_of_inputfq > ~{subsample_cutoff} ))
+		then
+			seqtk sample -s~{subsample_seed} $inputfq 1000000 > temp.fq
+			rm $inputfq
+			mv temp.fq $inputfq
+			echo "WARNING: downsampled $inputfq (was $somefastqsize MB)"
+		fi
+	done
 	
 	
 	# we need to mv ref to the workdir, then untar, or else the ref index won't be found
