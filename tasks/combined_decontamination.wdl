@@ -63,16 +63,20 @@ task combined_decontamination_single {
 	set -eux -o pipefail
 
 	# set up variables
-	# this should handle the scenario where sample + run is passed, or just sample
-	# eg, ERS457530_ERR551697_1.fastq or ERS457530_1.fastq
+	#
+	# The name of the sample is needed for this task, and also for variant calling.
+	# basename+sample_name+outfile_sam should be able to handle:
+	# * If sample + run is in filename (ex: ERS457530_ERR551697_1.fastq)
+	# * If just sample is in filename  (ex: ERS457530_1.fastq)
+	#
+	# READS_FILES is our shell variable equivalent of WDL reads_files.
+	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
+	# The less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
 	outfile_sam="$sample_name.sam"
-	echo $sample_name > sample_name.txt # needed to pass sample_name to variant call task
+	echo $sample_name > sample_name.txt
 	READS_FILES=("~{sep='" "' reads_files}")
-	# READS_FILES is our shell variable equivalent of WDL reads_files
-	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
-	# the less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
 
 	if [[ ! "~{verbose}" = "true" ]]
 	then
@@ -103,6 +107,7 @@ task combined_decontamination_single {
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
+	# map reads for decontamination
 	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
 
 	echo "Reads mapped to decontamination reference."
@@ -124,8 +129,7 @@ task combined_decontamination_single {
 	arg_reads_out1="$sample_name.decontam_1.fq.gz"
 	arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
-	# debug - this might not always be needed
-	#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
 	clockwork remove_contam \
