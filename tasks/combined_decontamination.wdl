@@ -1,28 +1,33 @@
 version 1.0
 
 # These tasks combine the rm_contam and map_reads steps into one WDL task.
-# This can save money on most backends.
-
-# tarball_metadata_tsv and tarball_ref_fasta_and_index are the same.
+# This can save money on some backends.
 
 task combined_decontamination_single {
+	# This is the task you probably should be using. It works on one sample.
+	# If you're working on multiple samples, scatter upon this task.
 	input {
+
+		# the important stuff
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
 		Array[File] reads_files
-		Boolean     unsorted_sam = false
+		String      filename_metadata_tsv = "remove_contam_metadata.tsv"
+
+		# bonus options
+		Int         subsample_cutoff = 450 # subsample if fastq > this value in MB
+		Int         subsample_seed = 1965
 		Int?        threads
+		Boolean     unsorted_sam = false # it's recommend to keep this false
+		Boolean     verbose = true
 
-		String filename_metadata_tsv = "remove_contam_metadata.tsv"
-
-		String? counts_out # MUST end in counts.tsv
+		# rename outs
+		String? counts_out     # must end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
-
-		Boolean verbose = true
 
 		# runtime attributes
 		Int addldisk = 100
@@ -139,6 +144,9 @@ task combined_decontamination_single {
 }
 
 task combined_decontamination_multiple {
+	# This task should be considered deprecated. It's usually more expensive than 
+	# decontaminating via a scattered task and it's more complicated. It also doesn't
+	# support downsampling.
 	input {
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
