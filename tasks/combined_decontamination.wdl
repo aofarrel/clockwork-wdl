@@ -94,8 +94,8 @@ task combined_decontamination_single {
 	then
 		for inputfq in "${READS_FILES[@]}"
 		do
-			size_inputfq=$(du -m "$inputfq")
-			if (( size_inputfq > ~{subsample_cutoff} ))
+			size_inputfq=$(du -m "$inputfq" | cut -f1)
+			if (( $size_inputfq > ~{subsample_cutoff} ))  # shellcheck dislikes, but without $, size_inputfq is unbound
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
 				rm "$inputfq"
