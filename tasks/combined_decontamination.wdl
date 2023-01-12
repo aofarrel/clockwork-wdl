@@ -91,6 +91,12 @@ task combined_decontamination_single {
 	fi
 
 	# downsample, if necessary
+	#
+	# Downsampling relies on deleting inputs and then putting a new file
+	# where the the old input was. This works on Terra, but there is a
+	# chance this gets iffy on other backends.
+	# If you've issues with miniwdl, --copy-input-files might help
+
 	if [[ "~{subsample_cutoff}" != "-1" ]]
 	then
 		for inputfq in "${READS_FILES[@]}"
