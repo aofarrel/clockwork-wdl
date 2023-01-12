@@ -72,6 +72,7 @@ task combined_decontamination_single {
 	# READS_FILES is our shell variable equivalent of WDL reads_files.
 	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
 	# The less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
+
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
 	outfile_sam="$sample_name.sam"
@@ -95,7 +96,9 @@ task combined_decontamination_single {
 		for inputfq in "${READS_FILES[@]}"
 		do
 			size_inputfq=$(du -m "$inputfq" | cut -f1)
-			if (( $size_inputfq > ~{subsample_cutoff} ))  # shellcheck dislikes, but without $, size_inputfq is unbound
+			# shellcheck disable=SC2004
+			# just trust me on this one
+			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
 				rm "$inputfq"
@@ -110,7 +113,13 @@ task combined_decontamination_single {
 	tar -xvf ~{basestem_reference}.tar
 
 	# map reads for decontamination
-	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
+	clockwork map_reads \
+		~{arg_unsorted_sam} \
+		~{arg_threads} \
+		$sample_name \
+		~{arg_ref_fasta} \
+		$outfile_sam \
+		~{sep=" " reads_files}
 
 	echo "Reads mapped to decontamination reference."
 	echo "*********************************************************************"
@@ -140,7 +149,9 @@ task combined_decontamination_single {
 		$arg_counts_out \
 		$arg_reads_out1 \
 		$arg_reads_out2 \
-		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+		~{arg_no_match_out_1} ~{arg_no_match_out_2} \
+		~{arg_contam_out_1} ~{arg_contam_out_2} \
+		~{arg_done_file}
 
 	echo "Decontamination completed."
 	echo "*********************************************************************"
