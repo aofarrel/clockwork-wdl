@@ -1,28 +1,33 @@
 version 1.0
 
 # These tasks combine the rm_contam and map_reads steps into one WDL task.
-# This can save money on most backends.
-
-# tarball_metadata_tsv and tarball_ref_fasta_and_index are the same.
+# This can save money on some backends.
 
 task combined_decontamination_single {
+	# This is the task you probably should be using. It works on one sample.
+	# If you're working on multiple samples, scatter upon this task.
 	input {
+
+		# the important stuff
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
 		Array[File] reads_files
-		Boolean     unsorted_sam = false
+		String      filename_metadata_tsv = "remove_contam_metadata.tsv"
+
+		# bonus options
+		Int         subsample_cutoff = -1 # subsample if fastq > this value in MB
+		Int         subsample_seed = 1965
 		Int?        threads
+		Boolean     unsorted_sam = false # it's recommend to keep this false
+		Boolean     verbose = true
 
-		String filename_metadata_tsv = "remove_contam_metadata.tsv"
-
-		String? counts_out # MUST end in counts.tsv
+		# rename outs
+		String? counts_out     # must end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
 		String? contam_out_2
 		String? done_file
-
-		Boolean verbose = true
 
 		# runtime attributes
 		Int addldisk = 100
@@ -57,12 +62,22 @@ task combined_decontamination_single {
 	command <<<
 	set -eux -o pipefail
 
-	# this should handle the scenario where sample + run is passed, or just sample
-	# eg, ERS457530_ERR551697_1.fastq and ERS457530_1.fastq
+	# set up variables
+	#
+	# The name of the sample is needed for this task, and also for variant calling.
+	# basename+sample_name+outfile_sam should be able to handle:
+	# * If sample + run is in filename (ex: ERS457530_ERR551697_1.fastq)
+	# * If just sample is in filename  (ex: ERS457530_1.fastq)
+	#
+	# READS_FILES is our shell variable equivalent of WDL reads_files.
+	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
+	# The less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
+
 	basename="~{read_file_basename}"
 	sample_name="${basename%%_*}"
 	outfile_sam="$sample_name.sam"
-	echo $sample_name > sample_name.txt # needed to pass sample_name to variant call task
+	echo $sample_name > sample_name.txt
+	READS_FILES=("~{sep='" "' reads_files}")
 
 	if [[ ! "~{verbose}" = "true" ]]
 	then
@@ -72,14 +87,45 @@ task combined_decontamination_single {
 		echo "sample_name $sample_name"
 		echo "outfile_sam $outfile_sam"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
+
 	fi
-	
+
+	# downsample, if necessary
+	#
+	# Downsampling relies on deleting inputs and then putting a new file
+	# where the the old input was. This works on Terra, but there is a
+	# chance this gets iffy on other backends.
+	# If you've issues with miniwdl, --copy-input-files might help
+
+	if [[ "~{subsample_cutoff}" != "-1" ]]
+	then
+		for inputfq in "${READS_FILES[@]}"
+		do
+			size_inputfq=$(du -m "$inputfq" | cut -f1)
+			# shellcheck disable=SC2004
+			# just trust me on this one
+			if (( $size_inputfq > ~{subsample_cutoff} ))
+			then
+				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
+				rm "$inputfq"
+				mv temp.fq "$inputfq"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+			fi
+		done
+	fi
 	
 	# we need to mv ref to the workdir, then untar, or else the ref index won't be found
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
-	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam ~{sep=" " reads_files}
+	# map reads for decontamination
+	clockwork map_reads \
+		~{arg_unsorted_sam} \
+		~{arg_threads} \
+		$sample_name \
+		~{arg_ref_fasta} \
+		$outfile_sam \
+		~{sep=" " reads_files}
 
 	echo "Reads mapped to decontamination reference."
 	echo "*********************************************************************"
@@ -100,8 +146,7 @@ task combined_decontamination_single {
 	arg_reads_out1="$sample_name.decontam_1.fq.gz"
 	arg_reads_out2="$sample_name.decontam_2.fq.gz"
 
-	# debug - this might not always be needed
-	#samtools index $outfile_sam # TODO: check if no index file warning persists while testing sorted sam --> it does
+	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
 	clockwork remove_contam \
@@ -110,7 +155,9 @@ task combined_decontamination_single {
 		$arg_counts_out \
 		$arg_reads_out1 \
 		$arg_reads_out2 \
-		~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
+		~{arg_no_match_out_1} ~{arg_no_match_out_2} \
+		~{arg_contam_out_1} ~{arg_contam_out_2} \
+		~{arg_done_file}
 
 	echo "Decontamination completed."
 	echo "*********************************************************************"
@@ -139,6 +186,9 @@ task combined_decontamination_single {
 }
 
 task combined_decontamination_multiple {
+	# This task should be considered deprecated. It's usually more expensive than 
+	# decontaminating via a scattered task and it's more complicated. It also doesn't
+	# support downsampling.
 	input {
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
