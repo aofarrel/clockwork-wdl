@@ -3,7 +3,7 @@ version 1.0
 # ONLY USE FOR ONE SAMPLE AT A TIME
 # (or scatter and change reads_files to nested array)
 
-import "../tasks/variant_call_one_sample_simple.wdl"
+import "../tasks/variant_call_one_sample.wdl"
 
 workflow DebugVarCall {
 	input {

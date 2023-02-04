@@ -1,5 +1,5 @@
 version 1.0
-import "./tasks/ref_prep.wdl"
+import "../tasks/ref_prep.wdl"
 
 workflow Clockworkref_prepGeneric {
 	input {
@@ -8,7 +8,7 @@ workflow Clockworkref_prepGeneric {
 
 	call ref_prep.reference_prepare {
 		input:
-			ref_file = fasta_file
+			fasta_file = fasta_file
 	}
 
 	meta {
