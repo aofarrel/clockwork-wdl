@@ -74,7 +74,6 @@ workflow ClockworkWalkthrough {
 
 		call clockwork_varcalloneTask.variant_call_one_sample_simple {
 			input:
-				sample_name = sam_file,
 				ref_dir = ClockworkRefPrepTB.tar_indexd_H37Rv_ref,
 				reads_files = [remove_contamination.decontaminated_fastq_1, remove_contamination.decontaminated_fastq_2]
 
