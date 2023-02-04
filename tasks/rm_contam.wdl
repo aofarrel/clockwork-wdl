@@ -9,7 +9,7 @@ task remove_contam {
 
 		# [supported] ...or you can pass in the zipped prepared reference plus the name of the TSV file
 		File?   tarball_metadata_tsv
-		String? filename_metadata_tsv = "remove_contam_metadata.tsv"
+		String filename_metadata_tsv = "remove_contam_metadata.tsv"
 
 		# these three are required in the original pipeline, but we can calculate them ourselves
 		String? counts_out
