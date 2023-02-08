@@ -261,7 +261,7 @@ task combined_decontamination_multiple {
 	do
 		basename_ball=$(basename $BALL .tar)
 		sample_name="${basename_ball%%_*}"
-		echo "$sample_name\n" >> list_of_samples.txt
+		printf "%s\n" "$sample_name" >> list_of_samples.txt
 	done
 	sort list_of_samples.txt | uniq -d >> dupe_samples.txt
 
@@ -283,7 +283,7 @@ task combined_decontamination_multiple {
 
 		# mv read files into workdir and untar them
 		mv $BALL .
-		tar -xvf $basename_ball.tar
+		tar -xvf "$basename_ball.tar"
 
 		# the docker image uses bash v5 so we can use readarray to make an array easily
 		declare -a read_files
@@ -291,7 +291,7 @@ task combined_decontamination_multiple {
 
 		# map the reads
 		outfile_sam="$sample_name.sam"
-		clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile_sam "${read_files[@]}"
+		clockwork map_reads "~{arg_unsorted_sam}" ~{arg_threads} "$sample_name" ~{arg_ref_fasta} "$outfile_sam" "${read_files[@]}"
 		echo "Mapped $sample_name to decontamination reference."
 
 		if [[ "~{verbose}" = "true" ]]
@@ -322,13 +322,13 @@ task combined_decontamination_multiple {
 			~{arg_no_match_out_1} ~{arg_no_match_out_2} ~{arg_contam_out_1} ~{arg_contam_out_2} ~{arg_done_file}
 
 		# tar outputs because Cromwell still can't handle nested arrays nor structs properly
-		mkdir $sample_name
+		mkdir "$sample_name"
 		#mv "*.sam" /$sample_name
 		#mv "*counts.tsv" /$sample_name
-		mv $arg_reads_out1 ./$sample_name
-		mv $arg_reads_out2 ./$sample_name
-		tar -cf $sample_name.tar $sample_name
-		rm -rf ./$sample_name
+		mv "$arg_reads_out1" "./$sample_name"
+		mv "$arg_reads_out2" "./$sample_name"
+		tar -cf "$sample_name.tar" "$sample_name"
+		rm -rf "./${sample_name:?}"
 		rm "${read_files[@]}" # if this isn't done, the next iteration will grab the wrong reads
 		echo "Decontaminated $sample_name successfully."
 	done
