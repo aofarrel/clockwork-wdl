@@ -119,7 +119,7 @@ task combined_decontamination_single {
 	tar -xvf ~{basestem_reference}.tar
 
 	# map reads for decontamination
-	clockwork map_reads \
+	timeout -v --kill-after=45m 20m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
 		$sample_name \
@@ -149,7 +149,7 @@ task combined_decontamination_single {
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
-	clockwork remove_contam \
+	timeout -v --kill-after=45m 20m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_$sample_name.sam \
 		$arg_counts_out \
