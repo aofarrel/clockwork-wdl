@@ -194,7 +194,7 @@ task combined_decontamination_single {
 	# everything worked! let's delete the not-decontaminated fastqs we don't need
 	for inputfq in "${READS_FILES[@]}"
 	do
-		rm inputfq
+		rm "$inputfq"
 	done
 
 	echo "Decontamination completed."
