@@ -217,7 +217,7 @@ task combined_decontamination_single {
 		File? decontaminated_fastq_2 = reads_out_base + ".decontam_2.fq.gz"
 		File? check_this_samples_fastqs = reads_out_base + "this_is_a_bad_sign"
 		File? check_this_fastq_1 = reads_files[0]
-		File? check_this_fastq_2 = reads_files[1]
+		#File? check_this_fastq_2 = reads_files[1]
 	}
 }
 
