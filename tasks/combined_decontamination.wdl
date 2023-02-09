@@ -39,6 +39,7 @@ task combined_decontamination_single {
 
 	# calculate stuff for the map_reads call
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
+	String reads_out_base = sub(read_file_basename, "_\d", "")
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -140,7 +141,7 @@ task combined_decontamination_single {
 			# no output, but don't break the whole pipeline
 			echo "clockwork map_reads killed."
 			echo "Consider checking $sample_name's fastq files."
-			touch "~{read_file_basename}.this_is_a_bad_sign"
+			touch "~{reads_out_base}.this_is_a_bad_sign"
 			exit 0
 		fi
 	fi
@@ -153,11 +154,11 @@ task combined_decontamination_single {
 	then
 		arg_counts_out="~{counts_out}"
 	else
-		arg_counts_out="~{read_file_basename}.decontam.counts.tsv"
+		arg_counts_out="~{reads_out_base}.decontam.counts.tsv"
 	fi
 
-	arg_reads_out1="~{read_file_basename}.decontam_1.fq.gz"
-	arg_reads_out2="~{read_file_basename}.decontam_2.fq.gz"
+	arg_reads_out1="~{reads_out_base}.decontam_1.fq.gz"
+	arg_reads_out2="~{reads_out_base}.decontam_2.fq.gz"
 
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
@@ -204,11 +205,11 @@ task combined_decontamination_single {
 
 	output {
 		#File? mapped_to_decontam = glob("*.sam")[0]
-		File? counts_out_tsv = read_file_basename + "decontam.counts.tsv"
+		File? counts_out_tsv = reads_out_base + "decontam.counts.tsv"
 		String? sample_name = read_string("sample_name.txt")
-		File? decontaminated_fastq_1 = read_file_basename + "decontam_1.fq.gz"
-		File? decontaminated_fastq_2 = read_file_basename + "*decontam_2.fq.gz"
-		File? check_this_samples_fastqs = read_file_basename + "this_is_a_bad_sign"
+		File? decontaminated_fastq_1 = reads_out_base + "decontam_1.fq.gz"
+		File? decontaminated_fastq_2 = reads_out_base + "*decontam_2.fq.gz"
+		File? check_this_samples_fastqs = reads_out_base + "this_is_a_bad_sign"
 	}
 }
 
