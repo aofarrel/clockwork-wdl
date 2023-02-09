@@ -143,7 +143,7 @@ task combined_decontamination_single {
 	exit=$?
 	if [[ $exit = 124 ]]
 	then
-		echo "ERROR -- clockwork map_reads timed out."
+		echo "ERROR -- clockwork map_reads timed out"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -151,9 +151,31 @@ task combined_decontamination_single {
 		else
 			exit 0
 		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Reads successfully mapped to decontamination reference" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork map_reads returned $exit for unknwon reasons"
+		set -eux -o pipefail
+		exit 1
 	fi
-
-	echo "Reads mapped to decontamination reference."
+	
+	echo "************ removing contamination *****************"
 
 	# calculate the last three positional arguments of the rm_contam task
 	if [[ ! "~{counts_out}" = "" ]]
@@ -183,7 +205,7 @@ task combined_decontamination_single {
 	exit=$?
 	if [[ $exit = 124 ]]
 	then
-		echo "ERROR -- clockwork remove_contam timed out."
+		echo "ERROR -- clockwork remove_contam timed out"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -191,8 +213,30 @@ task combined_decontamination_single {
 		else
 			exit 0
 		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Reads successfully decontaminated" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork remove_contam returned $exit for unknwon reasons"
+		set -eux -o pipefail
+		exit 1
 	fi
-
+	
 	# everything worked! let's delete the not-decontaminated fastqs we don't need
 	for inputfq in "${READS_FILES[@]}"
 	do
