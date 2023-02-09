@@ -102,10 +102,6 @@ task combined_decontamination_single {
 	# ex: READS_FILES=("ERS457530_ERR551697_1.fastq" "ERS457530_ERR551697_2.fastq")
 	# The less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
 
-	basename="~{read_file_basename}"
-	#sample_name="${basename%%_*}"
-	#outfile_sam="$sample_name.sam"
-	echo $sample_name > sample_name.txt
 	READS_FILES=("~{sep='" "' reads_files}")
 
 	if [[ ! "~{verbose}" = "true" ]]
@@ -113,8 +109,8 @@ task combined_decontamination_single {
 		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
 		echo "ref_fasta_filename" ~{ref_fasta_filename}
 		echo "basestem_reference" ~{basestem_reference}
-		echo "sample_name $sample_name"
-		echo "outfile_sam $outfile_sam"
+		echo "sample_name ~{sample_name}"
+		echo "outfile_sam ~{outfile_sam}"
 		echo "arg_ref_fasta" ~{arg_ref_fasta}
 
 	fi
@@ -153,7 +149,7 @@ task combined_decontamination_single {
 		~{arg_threads} \
 		~{sample_name} \
 		~{arg_ref_fasta} \
-		$outfile_sam \
+		~{outfile_sam} \
 		~{sep=" " reads_files}
 	
 	# if we timed out, do stuff
@@ -169,7 +165,7 @@ task combined_decontamination_single {
 			# no output, but don't break the whole pipeline
 			echo "clockwork map_reads killed."
 			echo "Consider checking ~{sample_name}'s fastq files."
-			touch "~{read_file_basename3}.this_is_a_bad_sign"
+			touch "~{sample_name}.this_is_a_bad_sign"
 			exit 0
 		fi
 	fi
@@ -182,14 +178,14 @@ task combined_decontamination_single {
 	then
 		arg_counts_out="~{counts_out}"
 	else
-		arg_counts_out="~{read_file_basename3}.decontam.counts.tsv"
+		arg_counts_out="~{sample_name}.decontam.counts.tsv"
 	fi
 
-	arg_reads_out1="~{read_file_basename3}.decontam_1.fq.gz"
-	arg_reads_out2="~{read_file_basename3}.decontam_2.fq.gz"
+	arg_reads_out1="~{sample_name}.decontam_1.fq.gz"
+	arg_reads_out2="~{sample_name}.decontam_2.fq.gz"
 
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
-	samtools sort -n $outfile_sam > sorted_by_read_name_~{sample_name}.sam
+	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
 
 	timeout -v ~{timeout_minutes}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
@@ -214,7 +210,7 @@ task combined_decontamination_single {
 			# no output, but don't break the whole pipeline
 			echo "clockwork remove_contam killed."
 			echo "Consider checking ~{sample_name}'s fastq files."
-			touch "~{read_file_basename}.this_is_a_bad_sign"
+			touch "~{sample_name}.this_is_a_bad_sign"
 			exit 0
 		fi
 	fi
@@ -239,11 +235,10 @@ task combined_decontamination_single {
 
 	output {
 		#File? mapped_to_decontam = glob("*.sam")[0]
-		File? counts_out_tsv = read_file_basename3 + ".decontam.counts.tsv"
-		String sample_name = read_string("sample_name.txt")
-		File? decontaminated_fastq_1 = read_file_basename3 + ".decontam_1.fq.gz"
-		File? decontaminated_fastq_2 = read_file_basename3 + ".decontam_2.fq.gz"
-		File? check_this_samples_fastqs = read_file_basename3 + "this_is_a_bad_sign"
+		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
+		File? decontaminated_fastq_1 = sample_name + ".decontam_1.fq.gz"
+		File? decontaminated_fastq_2 = sample_name + ".decontam_2.fq.gz"
+		File? check_this_samples_fastqs = sample_name + "this_is_a_bad_sign"
 		File? check_this_fastq_1 = reads_files[0]
 		#File? check_this_fastq_2 = reads_files[1]
 	}
