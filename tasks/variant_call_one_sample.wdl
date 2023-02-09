@@ -70,7 +70,11 @@ task variant_call_one_sample_simple {
 	fi
 
 	if clockwork variant_call_one_sample \
-		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
+		--sample_name $sample_name \
+		~{arg_debug} \
+		~{arg_mem_height} \
+		~{arg_keep_bam} \
+		~{arg_force} \
 		~{basestem_ref_dir} $arg_outdir \
 		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"	
 	else	
