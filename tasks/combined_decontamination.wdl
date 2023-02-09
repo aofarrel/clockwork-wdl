@@ -39,7 +39,7 @@ task combined_decontamination_single {
 
 	# calculate stuff for the map_reads call
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String reads_out_base = sub(read_file_basename, "_\d", "")
+	String reads_out_base = sub(read_file_basename, "_\d.fastq", "")
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
@@ -211,10 +211,10 @@ task combined_decontamination_single {
 
 	output {
 		#File? mapped_to_decontam = glob("*.sam")[0]
-		File? counts_out_tsv = reads_out_base + "decontam.counts.tsv"
+		File? counts_out_tsv = reads_out_base + ".decontam.counts.tsv"
 		String sample_name = read_string("sample_name.txt")
-		File? decontaminated_fastq_1 = reads_out_base + "decontam_1.fq.gz"
-		File? decontaminated_fastq_2 = reads_out_base + "*decontam_2.fq.gz"
+		File? decontaminated_fastq_1 = reads_out_base + ".decontam_1.fq.gz"
+		File? decontaminated_fastq_2 = reads_out_base + ".decontam_2.fq.gz"
 		File? check_this_samples_fastqs = reads_out_base + "this_is_a_bad_sign"
 		File? check_this_fastq_1 = reads_files[0]
 		File? check_this_fastq_2 = reads_files[1]
