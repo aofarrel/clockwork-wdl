@@ -140,7 +140,7 @@ task combined_decontamination_single {
 			# no output, but don't break the whole pipeline
 			echo "clockwork map_reads killed."
 			echo "Consider checking $sample_name's fastq files."
-			touch "$sample_name.this_is_a_bad_sign"
+			touch "~{read_file_basename}.this_is_a_bad_sign"
 			exit 0
 		fi
 	fi
@@ -153,11 +153,11 @@ task combined_decontamination_single {
 	then
 		arg_counts_out="~{counts_out}"
 	else
-		arg_counts_out="$sample_name.decontam.counts.tsv"
+		arg_counts_out="~{read_file_basename}.decontam.counts.tsv"
 	fi
 
-	arg_reads_out1="$sample_name.decontam_1.fq.gz"
-	arg_reads_out2="$sample_name.decontam_2.fq.gz"
+	arg_reads_out1="~{read_file_basename}.decontam_1.fq.gz"
+	arg_reads_out2="~{read_file_basename}.decontam_2.fq.gz"
 
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
@@ -185,7 +185,7 @@ task combined_decontamination_single {
 			# no output, but don't break the whole pipeline
 			echo "clockwork remove_contam killed."
 			echo "Consider checking $sample_name's fastq files."
-			touch "$sample_name.this_is_a_bad_sign"
+			touch "~{read_file_basename}.this_is_a_bad_sign"
 			exit 0
 		fi
 	fi
@@ -203,12 +203,12 @@ task combined_decontamination_single {
 	}
 
 	output {
-		File? mapped_to_decontam = glob("*.sam")[0]
-		File? counts_out_tsv = glob("*counts.tsv")[0]
+		#File? mapped_to_decontam = glob("*.sam")[0]
+		File? counts_out_tsv = read_file_basename + "decontam.counts.tsv"
 		String? sample_name = read_string("sample_name.txt")
-		File? decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
-		File? decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
-		File? check_this_samples_fastqs = glob("*.this_is_a_bad_sign")[0]
+		File? decontaminated_fastq_1 = read_file_basename + "decontam_1.fq.gz"
+		File? decontaminated_fastq_2 = read_file_basename + "*decontam_2.fq.gz"
+		File? check_this_samples_fastqs = read_file_basename + "this_is_a_bad_sign"
 	}
 }
 
