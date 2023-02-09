@@ -15,6 +15,7 @@ task combined_decontamination_single {
 		String      filename_metadata_tsv = "remove_contam_metadata.tsv"
 
 		# bonus options
+		Boolean     fail_on_timeout = false
 		Int         subsample_cutoff = -1 # subsample if fastq > this value in MB
 		Int         subsample_seed = 1965
 		Int?        threads
@@ -60,7 +61,6 @@ task combined_decontamination_single {
 	Int finalDiskSize = refSize + readsSize + addldisk
 
 	command <<<
-	set -eux -o pipefail
 
 	# set up variables
 	#
@@ -119,20 +119,33 @@ task combined_decontamination_single {
 	tar -xvf ~{basestem_reference}.tar
 
 	# map reads for decontamination
-	timeout -v --kill-after=45m 20m clockwork map_reads \
+	timeout -v 20m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
 		$sample_name \
 		~{arg_ref_fasta} \
 		$outfile_sam \
 		~{sep=" " reads_files}
+	
+	# if we timed out, do stuff
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- task timed out."
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			# no output, but don't break the whole pipeline
+			echo "clockwork map_reads killed."
+			echo "Consider checking $sample_name's fastq files."
+			touch "$sample_name.this_is_a_bad_sign"
+			exit 0
+		fi
+	fi
 
 	echo "Reads mapped to decontamination reference."
-	echo "*********************************************************************"
-	if [[ "~{verbose}" = "true" ]]
-	then
-		ls -lhaR
-	fi
 	echo "*********************************************************************"
 
 	# calculate the last three positional arguments of the rm_contam task
@@ -149,7 +162,7 @@ task combined_decontamination_single {
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
-	timeout -v --kill-after=45m 20m clockwork remove_contam \
+	timeout -v 20m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_$sample_name.sam \
 		$arg_counts_out \
@@ -159,12 +172,25 @@ task combined_decontamination_single {
 		~{arg_contam_out_1} ~{arg_contam_out_2} \
 		~{arg_done_file}
 
-	echo "Decontamination completed."
-	echo "*********************************************************************"
-	if [[ "~{verbose}" = "true" ]]
+	# if we timed out, do stuff
+	exit=$?
+	if [[ $exit = 124 ]]
 	then
-		ls -lhaR
+		echo "ERROR -- task timed out."
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			# no output, but don't break the whole pipeline
+			echo "clockwork remove_contam killed."
+			echo "Consider checking $sample_name's fastq files."
+			touch "$sample_name.this_is_a_bad_sign"
+			exit 0
+		fi
 	fi
+
+	echo "Decontamination completed."
 	echo "*********************************************************************"
 	>>>
 
@@ -177,18 +203,19 @@ task combined_decontamination_single {
 	}
 
 	output {
-		File mapped_to_decontam = glob("*.sam")[0]
-		File counts_out_tsv = glob("*counts.tsv")[0]
-		File decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
-		File decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
-		String sample_name = read_string("sample_name.txt")
+		File? mapped_to_decontam = glob("*.sam")[0]
+		File? counts_out_tsv = glob("*counts.tsv")[0]
+		String? sample_name = read_string("sample_name.txt")
+		File? decontaminated_fastq_1 = glob("*decontam_1.fq.gz")[0]
+		File? decontaminated_fastq_2 = glob("*decontam_2.fq.gz")[0]
+		File? check_this_samples_fastqs = glob("*.this_is_a_bad_sign")[0]
 	}
 }
 
 task combined_decontamination_multiple {
 	# This task should be considered deprecated. It's usually more expensive than 
 	# decontaminating via a scattered task and it's more complicated. It also doesn't
-	# support downsampling.
+	# support downsampling, nor timing out.
 	input {
 		File        tarball_ref_fasta_and_index
 		String      ref_fasta_filename
