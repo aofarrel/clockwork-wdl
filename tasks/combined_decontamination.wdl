@@ -52,13 +52,6 @@ task combined_decontamination_single {
 		unsorted_sam: "It's best to leave this as false"
 		verbose: "Increase amount of stuff sent to stdout"
 	}
-
-	# calculate stuff for the map_reads call
-	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
-	
-	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
-	
-
 	# We need to derive the sample name from our inputs because sample name is a
 	# required input for clockwork map_reads. This needs to be to handle inputs
 	# like sample+run+num (ERS457530_ERR551697_1.fastq) or inputs like
@@ -72,32 +65,26 @@ task combined_decontamination_single {
 	# having nothing at index 0 is okay if that output is an optional file.
 	# So, we instead need to know output filenames before the command block
 	# executes.
-	#
-	# sub() seems to handle regex a little differently than I'd expect (could be a
-	# skill issue on my part, but it doesn't match what I see in regexr), so I'm
-	# going to do this in stages.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String read_file_basename2 = sub(read_file_basename, "_.*", "")
-	String read_file_basename3 = sub(read_file_basename2, ".fastq", "")
-	String read_file_basename4 = sub(read_file_basename3, ".fastq", "")
+	String sample_name = sub(read_file_basename, "_.*", "")
+	String outfile_sam = sample_name + ".sam"
 
-
-	# This region handles optional arguments
-	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
-	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
-
-	# the metadata TSV will be zipped in tarball_ref_fasta_and_index
+	# This region handles the metadata TSV and ref fasta within in the tarball
 	String basename_tsv = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
 	String arg_metadata_tsv = "~{basename_tsv}/~{filename_metadata_tsv}"
-	
-	# calculate the optional inputs for remove contam
-	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
-	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
+	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
+	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
+
+	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
 	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
+	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
+	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
+	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
+	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 
-	# estimate disk size
+	# Estimate disk size
 	Int refSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB"))
 	Int readsSize = 5*ceil(size(reads_files, "GB"))
 	Int finalDiskSize = refSize + readsSize + addldisk
@@ -116,8 +103,8 @@ task combined_decontamination_single {
 	# The less we rely on bash arrays, the better, so READS_FILES is only used for downsampling
 
 	basename="~{read_file_basename}"
-	sample_name="${basename%%_*}"
-	outfile_sam="$sample_name.sam"
+	#sample_name="${basename%%_*}"
+	#outfile_sam="$sample_name.sam"
 	echo $sample_name > sample_name.txt
 	READS_FILES=("~{sep='" "' reads_files}")
 
@@ -164,7 +151,7 @@ task combined_decontamination_single {
 	timeout -v ~{timeout_minutes}m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
-		$sample_name \
+		~{sample_name} \
 		~{arg_ref_fasta} \
 		$outfile_sam \
 		~{sep=" " reads_files}
@@ -181,7 +168,7 @@ task combined_decontamination_single {
 		else
 			# no output, but don't break the whole pipeline
 			echo "clockwork map_reads killed."
-			echo "Consider checking $sample_name's fastq files."
+			echo "Consider checking ~{sample_name}'s fastq files."
 			touch "~{read_file_basename3}.this_is_a_bad_sign"
 			exit 0
 		fi
@@ -202,11 +189,11 @@ task combined_decontamination_single {
 	arg_reads_out2="~{read_file_basename3}.decontam_2.fq.gz"
 
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
-	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
+	samtools sort -n $outfile_sam > sorted_by_read_name_~{sample_name}.sam
 
 	timeout -v ~{timeout_minutes}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
-		sorted_by_read_name_$sample_name.sam \
+		sorted_by_read_name_~{sample_name}.sam \
 		$arg_counts_out \
 		$arg_reads_out1 \
 		$arg_reads_out2 \
@@ -226,7 +213,7 @@ task combined_decontamination_single {
 		else
 			# no output, but don't break the whole pipeline
 			echo "clockwork remove_contam killed."
-			echo "Consider checking $sample_name's fastq files."
+			echo "Consider checking ~{sample_name}'s fastq files."
 			touch "~{read_file_basename}.this_is_a_bad_sign"
 			exit 0
 		fi
