@@ -16,10 +16,11 @@ task combined_decontamination_single {
 
 		# bonus options
 		Boolean     fail_on_timeout = false
-		Int         subsample_cutoff = -1 # subsample if fastq > this value in MB
+		Int         subsample_cutoff = -1
 		Int         subsample_seed = 1965
 		Int?        threads
-		Boolean     unsorted_sam = false # it's recommend to keep this false
+		Int         timeout_minutes = 20
+		Boolean     unsorted_sam = false
 		Boolean     verbose = true
 
 		# rename outs
@@ -37,14 +38,31 @@ task combined_decontamination_single {
 		Int preempt = 1
 	}
 
+	parameter_meta {
+		tarball_ref_fasta_and_index: "Tarball of decontamination ref and its index"
+		ref_fasta_filename: "Name of the decontamination ref within tarball_ref_fasta_and_index"
+		reads_files: "FASTQs to decontaminate"
+		filename_metadata_tsv: "Name of the metadata tsv within tarball_ref_fasta_and_index"
+		
+		fail_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
+		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
+		threads: "Attempt to use these many threads when mapping reads"
+		timeout_minutes: "If mapping reads or decontamination takes longer than this number of minutes, stop processing this sample"
+		unsorted_sam: "It's best to leave this as false"
+		verbose: "Increase amount of stuff sent to stdout"
+	}
+
 	# calculate stuff for the map_reads call
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String read_file_basename2 = sub(read_file_basename, "_\d", "")
-	String read_file_basename3 = sub(read_file_basename2, ".fastq", "")
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
 	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
 	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
+
+	# calculate file output names, because we cannot safely glob
+	String read_file_basename2 = sub(read_file_basename, "_\d", "")
+	String read_file_basename3 = sub(read_file_basename2, ".fastq", "")
 
 	# the metadata TSV will be zipped in tarball_ref_fasta_and_index
 	String basename_tsv = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
@@ -121,7 +139,7 @@ task combined_decontamination_single {
 	tar -xvf ~{basestem_reference}.tar
 
 	# map reads for decontamination
-	timeout -v 20m clockwork map_reads \
+	timeout -v ~{timeout_minutes}m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
 		$sample_name \
@@ -164,7 +182,7 @@ task combined_decontamination_single {
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	samtools sort -n $outfile_sam > sorted_by_read_name_$sample_name.sam
 
-	timeout -v 20m clockwork remove_contam \
+	timeout -v ~{timeout_minutes}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_$sample_name.sam \
 		$arg_counts_out \
