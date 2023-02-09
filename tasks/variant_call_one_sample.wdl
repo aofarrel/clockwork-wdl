@@ -47,7 +47,7 @@ task variant_call_one_sample_simple {
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
-		debug: "Debug mode: do not clean up any files"
+		debug: "Debug mode: do not clean up any files and be verbose"
 	}
 	
 	command <<<
@@ -60,11 +60,14 @@ task variant_call_one_sample_simple {
 		basename=$(basename $READFILE .fq.gz)
 		sample_name="${basename%%.*}"
 	done
-	echo $sample_name
+	echo "$sample_name"
 	arg_outdir="var_call_$sample_name"
 
-	apt-get install -y tree
-	tree > tree1.txt
+	if [[ "~{debug}" = "true" ]]
+	then
+		apt-get install -y tree
+		tree > tree1.txt
+	fi
 
 	if clockwork variant_call_one_sample \
 		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
@@ -75,9 +78,11 @@ task variant_call_one_sample_simple {
 		touch $sample_name	
 	fi
 	
-	tree > tree2.txt
-
-	echo "mv var_call_$sample_name/final.vcf $workdir/$sample_name.vcf"
+	if [[ "~{debug}" = "true" ]]
+	then
+		tree > tree2.txt
+		echo "mv'ing VCFs from var_call_$sample_name/*.vcf to ./$sample_name_*.vcf"
+	fi
 
 	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
 	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
@@ -92,7 +97,9 @@ task variant_call_one_sample_simple {
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
-		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
+		echo "This sample threw a warning during cortex's clean binaries step."
+		echo "This likely means it's too small for variant calling."
+		echo "Expect this task to have errored at minos adjudicate."
 		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
 		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
 		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
@@ -101,10 +108,13 @@ task variant_call_one_sample_simple {
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		exit 0
 	else
-		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
+		echo "This sample likely didn't throw a warning during cortex's clean binaries step."
 	fi
 
-	tree > tree3.txt
+	if [[ "~{debug}" = "true" ]]
+	then
+		tree > tree3.txt
+	fi
 	>>>
 
 	runtime {
@@ -119,11 +129,11 @@ task variant_call_one_sample_simple {
 	output {
 		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
 		File vcf_final_call_set = glob("*_final.vcf")[0]
-		File vcf_cortex = glob("*_cortex.vcf")[0]
-		File vcf_samtools = glob("*_samtools.vcf")[0]
-		File debugtree1 = "tree1.txt"
-		File debugtree2 = "tree2.txt"
-		File debugtree3 = "tree3.txt"
+		#File vcf_cortex = glob("*_cortex.vcf")[0]
+		#File vcf_samtools = glob("*_samtools.vcf")[0]
+		File? debugtree1 = "tree1.txt"
+		File? debugtree2 = "tree2.txt"
+		File? debugtree3 = "tree3.txt"
 	}
 }
 
