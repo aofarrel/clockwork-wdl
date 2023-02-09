@@ -54,15 +54,37 @@ task combined_decontamination_single {
 	}
 
 	# calculate stuff for the map_reads call
-	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
 	String basestem_reference = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")  # TODO: double check the regex
-	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
+	
 	String arg_ref_fasta = "~{basestem_reference}/~{ref_fasta_filename}"
-	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
+	
 
-	# calculate file output names, because we cannot safely glob
-	String read_file_basename2 = sub(read_file_basename, "_\d", "")
+	# We need to derive the sample name from our inputs because sample name is a
+	# required input for clockwork map_reads. This needs to be to handle inputs
+	# like sample+run+num (ERS457530_ERR551697_1.fastq) or inputs like
+	# sample+num (ERS457530_1.fastq). In both cases, we want to convert to just
+	# sample name (ERS457530). 
+	#
+	# We are doing this here, instead of within the command block, because our
+	# output is optional (because that allows us to handle samples timing out
+	# without breaking the entire pipeline). Optional WDL outputs do not work
+	# correctly when you use glob()[0] because Cromwell doesn't realize an array
+	# having nothing at index 0 is okay if that output is an optional file.
+	# So, we instead need to know output filenames before the command block
+	# executes.
+	#
+	# sub() seems to handle regex a little differently than I'd expect (could be a
+	# skill issue on my part, but it doesn't match what I see in regexr), so I'm
+	# going to do this in stages.
+	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
+	String read_file_basename2 = sub(read_file_basename, "_.*", "")
 	String read_file_basename3 = sub(read_file_basename2, ".fastq", "")
+	String read_file_basename4 = sub(read_file_basename3, ".fastq", "")
+
+
+	# This region handles optional arguments
+	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
+	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
 
 	# the metadata TSV will be zipped in tarball_ref_fasta_and_index
 	String basename_tsv = sub(basename(tarball_ref_fasta_and_index), "\.tar(?!.{5,})", "")
