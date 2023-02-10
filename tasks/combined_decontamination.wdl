@@ -19,7 +19,8 @@ task combined_decontamination_single {
 		Int         subsample_cutoff = -1
 		Int         subsample_seed = 1965
 		Int?        threads
-		Int         timeout_minutes = 20
+		Int         timeout_map_reads = 120
+		Int         timeout_decontam  = 120
 		Boolean     unsorted_sam = false
 		Boolean     verbose = true
 
@@ -48,7 +49,8 @@ task combined_decontamination_single {
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
-		timeout_minutes: "If mapping reads or decontamination takes longer than this number of minutes, stop processing this sample"
+		timeout_decontam: "If decontamination takes longer than this number of minutes, stop processing this sample"
+		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
 		verbose: "Increase amount of stuff sent to stdout"
 	}
@@ -133,7 +135,7 @@ task combined_decontamination_single {
 	tar -xvf ~{basestem_reference}.tar
 
 	# map reads for decontamination
-	timeout -v ~{timeout_minutes}m clockwork map_reads \
+	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
 		~{sample_name} \
@@ -193,7 +195,7 @@ task combined_decontamination_single {
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
 
 	# r/e the index file warning: https://github.com/mhammell-laboratory/TEtranscripts/issues/99
-	timeout -v ~{timeout_minutes}m clockwork remove_contam \
+	timeout -v ~{timeout_decontam}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_~{sample_name}.sam \
 		$arg_counts_out \
