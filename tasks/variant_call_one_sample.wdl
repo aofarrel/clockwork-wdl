@@ -70,46 +70,45 @@ task variant_call_one_sample_simple {
 	fi
 
 	if clockwork variant_call_one_sample \
-		--sample_name $sample_name \
+		--sample_name "$sample_name" \
 		~{arg_debug} \
 		~{arg_mem_height} \
 		~{arg_keep_bam} \
 		~{arg_force} \
-		~{basestem_ref_dir} $arg_outdir \
+		~{basestem_ref_dir} "$arg_outdir" \
 		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"	
 	else	
 		echo "Caught an error."	
-		touch $sample_name	
+		touch "$sample_name"
 	fi
 	
 	if [[ "~{debug}" = "true" ]]
 	then
 		tree > tree2.txt
-		echo "mv'ing VCFs from var_call_$sample_name/*.vcf to ./$sample_name_*.vcf"
+		echo mving VCFs from var_call_"$sample_name"/*.vcf to ./"$sample_name"*.vcf
 	fi
 
-	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
+	mv var_call_"$sample_name"/final.vcf ./"$sample_name"_final.vcf
+	mv var_call_"$sample_name"/cortex.vcf ./"$sample_name"_cortex.vcf
+	mv var_call_"$sample_name"/samtools.vcf ./"$sample_name"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
+	mv var_call_"$sample_name"/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
-	head -22 var_call_$sample_name/cortex/cortex.log | tail -1 > $CORTEX_WARNING
-	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
+	CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step."
 		echo "This likely means it's too small for variant calling."
 		echo "Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
+		echo Read 1 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
+		echo Read 2 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		gunzip -dk "var_call_$sample_name/trimmed_reads.0.2.fq.gz"
 		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+		head -50 "var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step."
@@ -214,28 +213,28 @@ task variant_call_one_sample_verbose {
 	# get sample name and reads files
 	declare -a read_files_array
 	readarray -t read_files_array < <(find ./"$sample_name" -name "*.fq.gz")
-	one_read_file=$(echo "${read_files_array[0]}")
+	#one_read_file=$(echo "${read_files_array[0]}")
 	arg_outdir="var_call_$sample_name"
 
 	if clockwork variant_call_one_sample \
-		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} $arg_outdir \
+		--sample_name "$sample_name" ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
+		~{basestem_ref_dir} "$arg_outdir" \
 		${read_files_array[@]}; then echo "Task completed successfully (probably)"
 	else
 		echo "Caught an error."
-		touch $sample_name
+		touch "$sample_name"
 	fi
 	
-	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
+	mv var_call_"$sample_name"/final.vcf ./"$sample_name"_final.vcf
+	mv var_call_"$sample_name"/cortex.vcf ./"$sample_name"_cortex.vcf
+	mv var_call_"$sample_name"/samtools.vcf ./"$sample_name"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
+	mv var_call_"$sample_name"/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
 	ls -lhaR > workdir.txt
-	tar -c var_call_$sample_name/ > $sample_name.tar
+	tar -c "var_call_$sample_name/" > "$sample_name.tar"
 	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
