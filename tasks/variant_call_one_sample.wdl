@@ -127,7 +127,7 @@ task variant_call_one_sample_simple {
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
-	
+	}
 
 	output {
 		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
