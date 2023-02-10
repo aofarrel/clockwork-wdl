@@ -34,7 +34,7 @@ task variant_call_one_sample_simple {
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
-	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
+	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
@@ -103,10 +103,12 @@ task variant_call_one_sample_simple {
 		echo "This sample threw a warning during cortex's clean binaries step."
 		echo "This likely means it's too small for variant calling."
 		echo "Expect this task to have errored at minos adjudicate."
-		echo Read 1 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo Read 2 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		gunzip -dk "var_call_$sample_name/trimmed_reads.0.2.fq.gz"
-		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		size_of_read1=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
+		echo "Read 1 is $size_of_read1"
+		#echo Read 2 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		#gunzip -dk "var_call_$sample_name/trimmed_reads.0.2.fq.gz"
+		#size_of_decompressed_read_2=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.2.fq | awk '{print $5}')
+		#echo "Decompressed read 2 is $size_of_decompressed_read_2"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 "var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
 		exit 0
@@ -235,15 +237,16 @@ task variant_call_one_sample_verbose {
 	# debugging stuff
 	ls -lhaR > workdir.txt
 	tar -c "var_call_$sample_name/" > "$sample_name.tar"
-	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
+	CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		size_of_read1=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
+		echo "Read 1 is $size_of_read1"
+		#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
+		#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
 		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
