@@ -15,9 +15,11 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
+		Boolean debug           = false
+		Boolean fail_on_timeout = false
+		Boolean force           = false
 		Int? mem_height
-		Boolean force    = false
-		Boolean debug    = false
+		Int timeout = 120
 
 		# Runtime attributes
 		Int addldisk = 250
@@ -34,7 +36,10 @@ task variant_call_one_sample_simple {
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
-	String basestem_ref_dir = sub(basename(select_first([ref_dir, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
+	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
+
+	# we need to be able set the outputs name from an input name to use optional outs
+	String sample_name = basename(reads_files[0], ".fq.gz")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
@@ -47,7 +52,7 @@ task variant_call_one_sample_simple {
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
 		force: "Overwrite outdir if it already exists"
-		debug: "Debug mode: do not clean up any files"
+		debug: "Debug mode: do not clean up any files and be verbose"
 	}
 	
 	command <<<
@@ -55,56 +60,97 @@ task variant_call_one_sample_simple {
 	tar -xvf ~{basestem_ref_dir}.tar
 	rm ~{basestem_ref_dir}.tar # just to save disk space
 
-	for READFILE in ~{sep=' ' reads_files} 
-	do
-		basename=$(basename $READFILE .fq.gz)
-		sample_name="${basename%%.*}"
-	done
-	echo $sample_name
-	arg_outdir="var_call_$sample_name"
+	echo "~{sample_name}"
+	arg_outdir="var_call_~{sample_name}"
 
-	apt-get install -y tree
-	tree > tree1.txt
+	if [[ "~{debug}" = "true" ]]
+	then
+		apt-get install -y tree
+		tree > tree1.txt
+	fi
 
-	if clockwork variant_call_one_sample \
-		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} $arg_outdir \
-		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"	
-	else	
-		echo "Caught an error."	
-		touch $sample_name	
+	timeout -v ~{timeout}m clockwork variant_call_one_sample \
+	--sample_name "~{sample_name}" \
+	~{arg_debug} \
+	~{arg_mem_height} \
+	~{arg_keep_bam} \
+	~{arg_force} \
+	~{basestem_ref_dir} "$arg_outdir" \
+	~{sep=" " reads_files}
+	
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample timed out"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Successfully called variants" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknwon reasons"
+		set -eux -o pipefail
+		exit 1
 	fi
 	
-	tree > tree2.txt
+	if [[ "~{debug}" = "true" ]]
+	then
+		tree > tree2.txt
+		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
+	fi
 
-	echo "mv var_call_$sample_name/final.vcf $workdir/$sample_name.vcf"
-
-	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
+	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
+	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
+	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
+	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
-	head -22 var_call_$sample_name/cortex/cortex.log | tail -1 > $CORTEX_WARNING
-	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
+	CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
-		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		echo "This sample threw a warning during cortex's clean binaries step."
+		echo "This likely means it's too small for variant calling."
+		echo "Expect this task to have errored at minos adjudicate."
+		size_of_read1=$(ls -lh var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
+		echo "Read 1 is $size_of_read1"
+		#echo Read 2 is "$(ls -lh var_call_~{sample_name}/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		#gunzip -dk "var_call_~{sample_name}/trimmed_reads.0.2.fq.gz"
+		#size_of_decompressed_read_2=$(ls -lh var_call_"~{sample_name}"/trimmed_reads.0.2.fq | awk '{print $5}')
+		#echo "Decompressed read 2 is $size_of_decompressed_read_2"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+		head -50 "var_call_~{sample_name}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
 		exit 0
 	else
-		echo "This sample likely didn't throw a warning during cortex's clean binaries step. If this task errors out, open an issue on GitHub so the dev can see what's going on!"
+		echo "This sample likely didn't throw a warning during cortex's clean binaries step."
 	fi
 
-	tree > tree3.txt
+	if [[ "~{debug}" = "true" ]]
+	then
+		tree > tree3.txt
+	fi
 	>>>
 
 	runtime {
@@ -118,12 +164,12 @@ task variant_call_one_sample_simple {
 
 	output {
 		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
-		File vcf_final_call_set = glob("*_final.vcf")[0]
-		File vcf_cortex = glob("*_cortex.vcf")[0]
-		File vcf_samtools = glob("*_samtools.vcf")[0]
-		File debugtree1 = "tree1.txt"
-		File debugtree2 = "tree2.txt"
-		File debugtree3 = "tree3.txt"
+		File? vcf_final_call_set = sample_name+".vcf"
+		#File vcf_cortex = glob("*_cortex.vcf")[0]
+		#File vcf_samtools = glob("*_samtools.vcf")[0]
+		File? debugtree1 = "tree1.txt"
+		File? debugtree2 = "tree2.txt"
+		File? debugtree3 = "tree3.txt"
 	}
 }
 
@@ -200,39 +246,40 @@ task variant_call_one_sample_verbose {
 	# get sample name and reads files
 	declare -a read_files_array
 	readarray -t read_files_array < <(find ./"$sample_name" -name "*.fq.gz")
-	one_read_file=$(echo "${read_files_array[0]}")
+	#one_read_file=$(echo "${read_files_array[0]}")
 	arg_outdir="var_call_$sample_name"
 
 	if clockwork variant_call_one_sample \
-		--sample_name $sample_name ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
-		~{basestem_ref_dir} $arg_outdir \
+		--sample_name "$sample_name" ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
+		~{basestem_ref_dir} "$arg_outdir" \
 		${read_files_array[@]}; then echo "Task completed successfully (probably)"
 	else
 		echo "Caught an error."
-		touch $sample_name
+		touch "$sample_name"
 	fi
 	
-	mv var_call_$sample_name/final.vcf ./"$sample_name"_final.vcf
-	mv var_call_$sample_name/cortex.vcf ./"$sample_name"_cortex.vcf
-	mv var_call_$sample_name/samtools.vcf ./"$sample_name"_samtools.vcf
+	mv var_call_"$sample_name"/final.vcf ./"$sample_name"_final.vcf
+	mv var_call_"$sample_name"/cortex.vcf ./"$sample_name"_cortex.vcf
+	mv var_call_"$sample_name"/samtools.vcf ./"$sample_name"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_$sample_name/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
+	mv var_call_"$sample_name"/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
 	ls -lhaR > workdir.txt
-	tar -c var_call_$sample_name/ > $sample_name.tar
-	CORTEX_WARNING=$(head -22 var_call_$sample_name/cortex/cortex.log | tail -1)
+	tar -c "var_call_$sample_name/" > "$sample_name.tar"
+	CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling. Expect this task to have errored at minos adjudicate."
-		echo "Read 1 is $(ls -lh var_call_$sample_name/trimmed_reads.0.1.fq.gz | awk '{print $5}')"
-		echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-		echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+		size_of_read1=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
+		echo "Read 1 is $size_of_read1"
+		#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
+		#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+		head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
 		echo "More data please!" > "~{warning_file}".warning
 		exit 0
@@ -257,5 +304,6 @@ task variant_call_one_sample_verbose {
 		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
 		File? debug_error = "~{warning_file}.warning" # only exists if we error out, cannot glob otherwise
+		# TODO: above comment implies that you can glob on nonexistent files sometimes -- is this true?
 	}
 }
