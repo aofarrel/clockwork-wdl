@@ -15,9 +15,11 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
+		Boolean debug           = false
+		Boolean fail_on_timeout = false
+		Boolean force           = false
 		Int? mem_height
-		Boolean force    = false
-		Boolean debug    = false
+		Int timeout = 120
 
 		# Runtime attributes
 		Int addldisk = 250
@@ -67,17 +69,48 @@ task variant_call_one_sample_simple {
 		tree > tree1.txt
 	fi
 
-	if clockwork variant_call_one_sample \
-		--sample_name "~{sample_name}" \
-		~{arg_debug} \
-		~{arg_mem_height} \
-		~{arg_keep_bam} \
-		~{arg_force} \
-		~{basestem_ref_dir} "$arg_outdir" \
-		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"	
-	else	
-		echo "Caught an error."	
-		touch "~{sample_name}"
+	timeout -v ~{timeout}m clockwork variant_call_one_sample \
+	--sample_name "~{sample_name}" \
+	~{arg_debug} \
+	~{arg_mem_height} \
+	~{arg_keep_bam} \
+	~{arg_force} \
+	~{basestem_ref_dir} "$arg_outdir" \
+	~{sep=" " reads_files}
+	
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample timed out"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
+		if [[ "~{fail_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Successfully called variants" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknwon reasons"
+		set -eux -o pipefail
+		exit 1
 	fi
 	
 	if [[ "~{debug}" = "true" ]]
@@ -271,5 +304,6 @@ task variant_call_one_sample_verbose {
 		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
 		File? debug_error = "~{warning_file}.warning" # only exists if we error out, cannot glob otherwise
+		# TODO: above comment implies that you can glob on nonexistent files sometimes -- is this true?
 	}
 }
