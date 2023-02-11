@@ -35,6 +35,9 @@ task variant_call_one_sample_simple {
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 
 	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
+
+	# we need to be able set the outputs name from an input name to use optional outs
+	String sample_name = basename(reads_files[0], ".fq.gz")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
@@ -55,13 +58,8 @@ task variant_call_one_sample_simple {
 	tar -xvf ~{basestem_ref_dir}.tar
 	rm ~{basestem_ref_dir}.tar # just to save disk space
 
-	for READFILE in ~{sep=' ' reads_files} 
-	do
-		basename=$(basename $READFILE .fq.gz)
-		sample_name="${basename%%.*}"
-	done
-	echo "$sample_name"
-	arg_outdir="var_call_$sample_name"
+	echo "~{sample_name}"
+	arg_outdir="var_call_~{sample_name}"
 
 	if [[ "~{debug}" = "true" ]]
 	then
@@ -70,7 +68,7 @@ task variant_call_one_sample_simple {
 	fi
 
 	if clockwork variant_call_one_sample \
-		--sample_name "$sample_name" \
+		--sample_name "~{sample_name}" \
 		~{arg_debug} \
 		~{arg_mem_height} \
 		~{arg_keep_bam} \
@@ -79,38 +77,38 @@ task variant_call_one_sample_simple {
 		~{sep=" " reads_files}; then echo "Task completed successfully (probably)"	
 	else	
 		echo "Caught an error."	
-		touch "$sample_name"
+		touch "~{sample_name}"
 	fi
 	
 	if [[ "~{debug}" = "true" ]]
 	then
 		tree > tree2.txt
-		echo mving VCFs from var_call_"$sample_name"/*.vcf to ./"$sample_name"*.vcf
+		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
 	fi
 
-	mv var_call_"$sample_name"/final.vcf ./"$sample_name"_final.vcf
-	mv var_call_"$sample_name"/cortex.vcf ./"$sample_name"_cortex.vcf
-	mv var_call_"$sample_name"/samtools.vcf ./"$sample_name"_samtools.vcf
+	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
+	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
+	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
 	# rename the bam file to the basestem
-	mv var_call_"$sample_name"/map.bam ./"$sample_name"_to_~{basestem_ref_dir}.bam
+	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
-	CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
+	CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
 	if [[ $CORTEX_WARNING == WARNING* ]] ;
 	then
 		echo "***********"
 		echo "This sample threw a warning during cortex's clean binaries step."
 		echo "This likely means it's too small for variant calling."
 		echo "Expect this task to have errored at minos adjudicate."
-		size_of_read1=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
+		size_of_read1=$(ls -lh var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz | awk '{print $5}')
 		echo "Read 1 is $size_of_read1"
-		#echo Read 2 is "$(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		#gunzip -dk "var_call_$sample_name/trimmed_reads.0.2.fq.gz"
-		#size_of_decompressed_read_2=$(ls -lh var_call_"$sample_name"/trimmed_reads.0.2.fq | awk '{print $5}')
+		#echo Read 2 is "$(ls -lh var_call_~{sample_name}/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+		#gunzip -dk "var_call_~{sample_name}/trimmed_reads.0.2.fq.gz"
+		#size_of_decompressed_read_2=$(ls -lh var_call_"~{sample_name}"/trimmed_reads.0.2.fq | awk '{print $5}')
 		#echo "Decompressed read 2 is $size_of_decompressed_read_2"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 "var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
+		head -50 "var_call_~{sample_name}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
 		exit 0
 	else
 		echo "This sample likely didn't throw a warning during cortex's clean binaries step."
@@ -133,7 +131,7 @@ task variant_call_one_sample_simple {
 
 	output {
 		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
-		File vcf_final_call_set = glob("*_final.vcf")[0]
+		File? vcf_final_call_set = sample_name+".vcf"
 		#File vcf_cortex = glob("*_cortex.vcf")[0]
 		#File vcf_samtools = glob("*_samtools.vcf")[0]
 		File? debugtree1 = "tree1.txt"
@@ -248,7 +246,7 @@ task variant_call_one_sample_verbose {
 		#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
 		#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 var_call_$sample_name/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+		head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 		echo "***********"
 		echo "More data please!" > "~{warning_file}".warning
 		exit 0
