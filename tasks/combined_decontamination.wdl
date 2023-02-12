@@ -134,6 +134,16 @@ task combined_decontamination_single {
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
+	# this keeps track of outputs to fastqc
+	# this will be deleted if we decontam successfully
+	# we use copies of the inputs because this is easier
+	# than trying to glob, and because deleting inputs
+	# is wonky on some backends (understandably!)
+	for inputfq in "${READS_FILES[@]}"
+	do
+		cp "$inputfq" "~{read_file_basename}_wonky.fastq"
+	done
+
 	# map reads for decontamination
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
@@ -148,10 +158,6 @@ task combined_decontamination_single {
 		echo "ERROR -- clockwork map_reads timed out"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
-			for inputfq in "${READS_FILES[@]}"
-			do
-				cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-			done
 			set -eux -o pipefail
 			exit 1
 		else
@@ -162,10 +168,6 @@ task combined_decontamination_single {
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
-			for inputfq in "${READS_FILES[@]}"
-			do
-				cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-			done
 			set -eux -o pipefail
 			exit 1
 		else
@@ -177,18 +179,10 @@ task combined_decontamination_single {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
-		for inputfq in "${READS_FILES[@]}"
-		do
-			cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-		done
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork map_reads returned $exit for unknown reasons"
-		for inputfq in "${READS_FILES[@]}"
-		do
-			cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-		done
 		set -eux -o pipefail
 		exit 1
 	fi
@@ -226,10 +220,6 @@ task combined_decontamination_single {
 		echo "ERROR -- clockwork remove_contam timed out"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
-			for inputfq in "${READS_FILES[@]}"
-			do
-				cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-			done
 			set -eux -o pipefail
 			exit 1
 		else
@@ -240,10 +230,6 @@ task combined_decontamination_single {
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
 		if [[ "~{fail_on_timeout}" = "true" ]]
 		then
-			for inputfq in "${READS_FILES[@]}"
-			do
-				cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-			done
 			set -eux -o pipefail
 			exit 1
 		else
@@ -255,21 +241,15 @@ task combined_decontamination_single {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
-		for inputfq in "${READS_FILES[@]}"
-		do
-			cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-		done
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork remove_contam returned $exit for unknown reasons"
-		for inputfq in "${READS_FILES[@]}"
-		do
-			cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-		done
 		set -eux -o pipefail
 		exit 1
 	fi
+
+	rm "~{read_file_basename}_wonky.fastq"
 
 	echo "Decontamination completed."
 
