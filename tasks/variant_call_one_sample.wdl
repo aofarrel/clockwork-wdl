@@ -39,7 +39,7 @@ task variant_call_one_sample_simple {
 	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
 
 	# we need to be able set the outputs name from an input name to use optional outs
-	String sample_name = basename(reads_files[0], ".fq.gz")
+	String sample_name = basename(reads_files[0], "decontam.fq.gz")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""

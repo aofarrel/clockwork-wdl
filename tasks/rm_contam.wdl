@@ -33,8 +33,8 @@ task remove_contam {
 	# calculate the last three positional arguments based on input sam/bam file's basename stem ("basestem")
 	String intermed_basestem_bamin = sub(basename(bam_in), "\.bam(?!.{5,})|\.sam(?!.{5,})", "")  # TODO: double check the regex
 	String arg_counts_out = if(defined(counts_out)) then "~{counts_out}" else "~{intermed_basestem_bamin}.decontam.counts.tsv"
-	String arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}.decontam_1.fq.gz"
-	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}.decontam_2.fq.gz"
+	String arg_reads_out1 = if(defined(reads_out_1)) then "~{reads_out_1}" else "~{intermed_basestem_bamin}_1.decontam.fq.gz"
+	String arg_reads_out2 = if(defined(reads_out_2)) then "~{reads_out_2}" else "~{intermed_basestem_bamin}_2.decontam.fq.gz"
 
 	# the metadata TSV will be either be passed in directly, or will be zipped in tarball_metadata_tsv
 	String basename_tsv = sub(basename(select_first([tarball_metadata_tsv, metadata_tsv])), "\.tar(?!.{5,})", "") # TODO: double check the regex
