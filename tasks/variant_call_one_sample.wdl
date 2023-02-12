@@ -42,7 +42,7 @@ task variant_call_one_sample_simple {
 	# WDL's sub()'s regex seems a little odd ("_\d\.decontam\.fq\.gz" doesn't work)
 	# so we're going to do this in stages
 	String basename_reads = basename(reads_files[0], ".decontam.fq.gz")
-	String sample_name = sub(basename_reads, "_\d", "")
+	String sample_name = sub(basename_reads, "_1", "")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
