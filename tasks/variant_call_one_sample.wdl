@@ -39,8 +39,10 @@ task variant_call_one_sample_simple {
 	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
 
 	# we need to be able set the outputs name from an input name to use optional outs
-	String basename_reads = basename(reads_files[0])
-	String sample_name = sub(basename_reads, "_\d\.decontam\.fq\.gz", "")
+	# WDL's sub()'s regex seems a little odd ("_\d\.decontam\.fq\.gz" doesn't work)
+	# so we're going to do this in stages
+	String basename_reads = basename(reads_files[0], ".decontam.fq.gz")
+	String sample_name = sub(basename_reads, "_\d", "")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
