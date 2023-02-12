@@ -187,8 +187,8 @@ task combined_decontamination_single {
 		arg_counts_out="~{sample_name}.decontam.counts.tsv"
 	fi
 
-	arg_reads_out1="~{sample_name}.decontam_1.fq.gz"
-	arg_reads_out2="~{sample_name}.decontam_2.fq.gz"
+	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
+	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
 	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
 	# see https://github.com/iqbal-lab-org/clockwork/issues/77
