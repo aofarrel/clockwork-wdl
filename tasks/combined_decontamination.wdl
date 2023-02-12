@@ -240,13 +240,11 @@ task combined_decontamination_single {
 	fi
 	
 	# everything worked! let's delete the not-decontaminated fastqs we don't need
-	for inputfq in "${READS_FILES[@]}"
-	do
-		echo "$inputfq"
-		rm "$inputfq"
-	done
+	rm ~{sep=" " reads_files}
 
 	echo "Decontamination completed."
+
+	ls -lha
 	>>>
 
 	runtime {
@@ -260,8 +258,8 @@ task combined_decontamination_single {
 	output {
 		#File? mapped_to_decontam = glob("*.sam")[0]
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
-		File? decontaminated_fastq_1 = sample_name + ".decontam_1.fq.gz"
-		File? decontaminated_fastq_2 = sample_name + ".decontam_2.fq.gz"
+		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
+		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq_1 = reads_files[0] # only exists if we timed out
 	}
 }
