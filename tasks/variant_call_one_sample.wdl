@@ -15,9 +15,8 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
-		Boolean debug           = false
-		Boolean fail_on_timeout = false
-		Boolean force           = false
+		Boolean debug            = false
+		Boolean crash_on_timeout = false
 		Int? mem_height
 		Int timeout = 120
 
@@ -31,6 +30,10 @@ task variant_call_one_sample_simple {
 	# forcing this to be true so we can make mapped_to_ref output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
+
+	# this is a clockwork option that overwrites outdir if it already exists
+	# this is essentially meaningless in WDL, where everything happens in a VM
+	Boolean force = false
 
 	# estimate disk size required
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
@@ -54,7 +57,6 @@ task variant_call_one_sample_simple {
 		ref_dir: "tarball directory of reference files, made by clockwork reference_prepare"
 		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
 		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
-		force: "Overwrite outdir if it already exists"
 		debug: "Debug mode: do not clean up any files and be verbose"
 	}
 	
@@ -85,7 +87,7 @@ task variant_call_one_sample_simple {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample timed out"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
@@ -95,7 +97,7 @@ task variant_call_one_sample_simple {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1

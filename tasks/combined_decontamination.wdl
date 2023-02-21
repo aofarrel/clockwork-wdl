@@ -15,7 +15,7 @@ task combined_decontamination_single {
 		String      filename_metadata_tsv = "remove_contam_metadata.tsv"
 
 		# bonus options
-		Boolean     fail_on_timeout = false
+		Boolean     crash_on_timeout = false
 		Int         subsample_cutoff = -1
 		Int         subsample_seed = 1965
 		Int?        threads
@@ -45,7 +45,7 @@ task combined_decontamination_single {
 		reads_files: "FASTQs to decontaminate"
 		filename_metadata_tsv: "Name of the metadata tsv within tarball_ref_fasta_and_index"
 		
-		fail_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
@@ -156,7 +156,7 @@ task combined_decontamination_single {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork map_reads timed out"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
@@ -166,7 +166,7 @@ task combined_decontamination_single {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
@@ -218,7 +218,7 @@ task combined_decontamination_single {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork remove_contam timed out"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
@@ -228,7 +228,7 @@ task combined_decontamination_single {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
-		if [[ "~{fail_on_timeout}" = "true" ]]
+		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
