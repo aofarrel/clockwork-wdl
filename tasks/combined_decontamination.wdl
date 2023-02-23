@@ -143,7 +143,7 @@ task combined_decontamination_single {
 	# is wonky on some backends (understandably!)
 	for inputfq in "${READS_FILES[@]}"
 	do
-		cp "$inputfq" "~{read_file_basename}_wonky.fastq"
+		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
 	done
 
 	# map reads for decontamination
@@ -251,7 +251,7 @@ task combined_decontamination_single {
 		exit 1
 	fi
 
-	rm "~{read_file_basename}_wonky.fastq"
+	rm "~{read_file_basename}_dcntmfail.fastq"
 
 	echo "Decontamination completed."
 
@@ -271,7 +271,7 @@ task combined_decontamination_single {
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
-		File? check_this_fastq = read_file_basename + "_wonky.fastq"
+		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
 	}
 }
 

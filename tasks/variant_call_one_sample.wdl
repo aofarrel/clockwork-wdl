@@ -15,7 +15,7 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
-		Boolean debug            = false
+		Boolean debug            = true
 		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
 		Int? mem_height
@@ -73,19 +73,12 @@ task variant_call_one_sample_simple {
 
 	if [[ "~{debug}" = "true" ]]
 	then
-		apt-get install -y tree
-		tree > tree1.txt
+		ls -R * > contents_1.txt
+		for inputfq in "${READS_FILES[@]}"
+		do
+			cp "$inputfq" "~{sample_name}_wonky.fastq"
+		done
 	fi
-
-	# this keeps track of outputs to fastqc
-	# this will be deleted if we var call successfully
-	# we use copies of the inputs because this is easier
-	# than trying to glob, and because deleting inputs
-	# is wonky on some backends (understandably!)
-	for inputfq in "${READS_FILES[@]}"
-	do
-		cp "$inputfq" "~{read_file_basename}_wonky.fastq"
-	done
 
 	timeout -v ~{timeout}m clockwork variant_call_one_sample \
 	--sample_name "~{sample_name}" \
@@ -185,9 +178,9 @@ task variant_call_one_sample_simple {
 		File? vcf_final_call_set = sample_name+".vcf"
 		#File vcf_cortex = glob("*_cortex.vcf")[0]
 		#File vcf_samtools = glob("*_samtools.vcf")[0]
-		File? debugtree1 = "tree1.txt"
-		File? debugtree2 = "tree2.txt"
-		File? debugtree3 = "tree3.txt"
+		File? workdir1 = "contents_1.txt"
+		File? workdir2 = "contents_2.txt"
+		File? workdir3 = "contents_3.txt"
 	}
 }
 
