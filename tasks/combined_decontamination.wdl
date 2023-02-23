@@ -37,6 +37,7 @@ task combined_decontamination_single {
 		Int cpu = 8
 		Int memory = 16
 		Int preempt = 1
+		Boolean ssd = true
 	}
 
 	parameter_meta {
@@ -90,6 +91,7 @@ task combined_decontamination_single {
 	Int refSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB"))
 	Int readsSize = 5*ceil(size(reads_files, "GB"))
 	Int finalDiskSize = refSize + readsSize + addldisk
+	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
 
@@ -259,7 +261,7 @@ task combined_decontamination_single {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
-		disks: "local-disk " + finalDiskSize + " SSD"
+		disks: "local-disk " + finalDiskSize + diskType
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
 	}

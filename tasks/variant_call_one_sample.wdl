@@ -21,11 +21,12 @@ task variant_call_one_sample_simple {
 		Int timeout = 120
 
 		# Runtime attributes
-		Int addldisk = 250
+		Int addldisk = 100
 		Int cpu      = 16
 		Int retries  = 1
 		Int memory   = 32
 		Int preempt  = 1
+		Boolean ssd  = true
 	}
 	# forcing this to be true so we can make mapped_to_ref output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
@@ -35,15 +36,16 @@ task variant_call_one_sample_simple {
 	# this is essentially meaningless in WDL, where everything happens in a VM
 	Boolean force = false
 
-	# estimate disk size required
+	# estimate disk size required and see what kind of disk we're using
 	Int size_in = ceil(size(reads_files, "GB")) + addldisk
 	Int finalDiskSize = ceil(2*size_in + addldisk)
+	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	String basestem_ref_dir = sub(basename(ref_dir), "\.tar(?!.{5,})", "")
 
 	# we need to be able set the outputs name from an input name to use optional outs
 	# WDL's sub()'s regex seems a little odd ("_\d\.decontam\.fq\.gz" doesn't work)
-	# so we're going to do this in stages
+	# so we're going to do this in the most simply way possible
 	String basename_reads = basename(reads_files[0], ".decontam.fq.gz")
 	String sample_name = sub(basename_reads, "_1", "")
 	
@@ -161,7 +163,7 @@ task variant_call_one_sample_simple {
 	runtime {
 		cpu: cpu
 		docker: "ashedpotatoes/iqbal-unofficial-clockwork-mirror:v0.11.3"
-		disks: "local-disk " + finalDiskSize + " SSD"
+		disks: "local-disk " + finalDiskSize + diskType
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
