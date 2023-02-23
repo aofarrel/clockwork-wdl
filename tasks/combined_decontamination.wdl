@@ -35,9 +35,9 @@ task combined_decontamination_single {
 		# runtime attributes
 		Int addldisk = 100
 		Int cpu = 8
-		Boolean hdd_not_ssd = false
 		Int memory = 16
 		Int preempt = 1
+		Boolean ssd = true
 	}
 
 	parameter_meta {
@@ -91,7 +91,7 @@ task combined_decontamination_single {
 	Int refSize = 2*ceil(size(tarball_ref_fasta_and_index, "GB"))
 	Int readsSize = 5*ceil(size(reads_files, "GB"))
 	Int finalDiskSize = refSize + readsSize + addldisk
-	String diskType = if((hdd_not_ssd)) then " HDD" else " SSD"
+	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
 
