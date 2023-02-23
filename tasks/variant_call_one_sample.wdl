@@ -116,12 +116,22 @@ task variant_call_one_sample_simple {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
-		set -eux -o pipefail
-		exit 1
+		if [[ "~{crash_on_error}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
 	else
 		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
-		set -eux -o pipefail
-		exit 1
+		if [[ "~{crash_on_error}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
 	fi
 	
 	if [[ "~{debug}" = "true" ]]
@@ -134,7 +144,7 @@ task variant_call_one_sample_simple {
 	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
 	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
-	# rename the bam file to the basestem
+	# rename the bam file
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_~{basestem_ref_dir}.bam
 
 	# debugging stuff
