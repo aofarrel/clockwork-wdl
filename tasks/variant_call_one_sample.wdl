@@ -15,7 +15,7 @@ task variant_call_one_sample_simple {
 		Array[File] reads_files
 
 		# optional args
-		Boolean debug            = true
+		Boolean debug            = false
 		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
 		Int? mem_height
@@ -73,7 +73,7 @@ task variant_call_one_sample_simple {
 
 	if [[ "~{debug}" = "true" ]]
 	then
-		ls -R * > contents_1.txt
+		ls -R ./* > contents_1.txt
 		for inputfq in "${READS_FILES[@]}"
 		do
 			cp "$inputfq" "~{sample_name}_varclfail.fastq"
@@ -136,7 +136,7 @@ task variant_call_one_sample_simple {
 	
 	if [[ "~{debug}" = "true" ]]
 	then
-		ls -R * > contents_2.txt
+		ls -R ./* > contents_2.txt
 		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
 	fi
 
@@ -147,33 +147,12 @@ task variant_call_one_sample_simple {
 	# rename the bam file
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_~{basestem_ref_dir}.bam
 
-	# debugging stuff
-	CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
-	if [[ $CORTEX_WARNING == WARNING* ]] ;
-	then
-		echo "***********"
-		echo "This sample threw a warning during cortex's clean binaries step."
-		echo "This likely means it's too small for variant calling."
-		echo "Expect this task to have errored at minos adjudicate."
-		size_of_read1=$(stat -c %s var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz)
-		echo "Read 1 is $size_of_read1 bytes"
-		#echo Read 2 is "$(ls -lh var_call_~{sample_name}/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-		#gunzip -dk "var_call_~{sample_name}/trimmed_reads.0.2.fq.gz"
-		#size_of_decompressed_read_2=$(ls -lh var_call_"~{sample_name}"/trimmed_reads.0.2.fq | awk '{print $5}')
-		#echo "Decompressed read 2 is $size_of_decompressed_read_2"
-		echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-		head -50 "var_call_~{sample_name}/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf"
-		exit 0
-	else
-		echo "This sample likely didn't throw a warning during cortex's clean binaries step."
-	fi
-
 	if [[ "~{debug}" = "true" ]]
 	then
-		ls -R * > contents_3.txt
+		ls -R ./* > contents_3.txt
+		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		rm "~{sample_name}_varclfail.fastq"
 	fi
-
-	rm "~{read_file_basename}_varclfail.fastq"
 
 	echo "Variant calling completed."
 	>>>
@@ -188,14 +167,17 @@ task variant_call_one_sample_simple {
 	}
 
 	output {
-		File mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
+		# the outputs you care about
+		File? mapped_to_ref = sample_name+"_to_"+basestem_ref_dir+".bam"
 		File? vcf_final_call_set = sample_name+".vcf"
-		#File vcf_cortex = glob("*_cortex.vcf")[0]
-		#File vcf_samtools = glob("*_samtools.vcf")[0]
+
+		# debugging stuff
 		File? bad_fastq = sample_name+"_varclfail.fastq"
-		File? workdir1 = "contents_1.txt"
-		File? workdir2 = "contents_2.txt"
-		File? workdir3 = "contents_3.txt"
+		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
+		File? ls1 = "contents_1.txt"
+		File? ls2 = "contents_2.txt"
+		File? ls3 = "contents_3.txt"
+		File? workdir_tarball = sample_name+".tar"
 	}
 }
 
@@ -278,7 +260,7 @@ task variant_call_one_sample_verbose {
 	if clockwork variant_call_one_sample \
 		--sample_name "$sample_name" ~{arg_debug} ~{arg_mem_height} ~{arg_keep_bam} ~{arg_force} \
 		~{basestem_ref_dir} "$arg_outdir" \
-		${read_files_array[@]}; then echo "Task completed successfully (probably)"
+		"${read_files_array[@]}"; then echo "Task completed successfully (probably)"
 	else
 		echo "Caught an error."
 		touch "$sample_name"
