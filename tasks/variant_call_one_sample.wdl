@@ -16,6 +16,7 @@ task variant_call_one_sample_simple {
 
 		# optional args
 		Boolean debug            = false
+		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
 		Int? mem_height
 		Int timeout = 120
@@ -76,6 +77,16 @@ task variant_call_one_sample_simple {
 		tree > tree1.txt
 	fi
 
+	# this keeps track of outputs to fastqc
+	# this will be deleted if we var call successfully
+	# we use copies of the inputs because this is easier
+	# than trying to glob, and because deleting inputs
+	# is wonky on some backends (understandably!)
+	for inputfq in "${READS_FILES[@]}"
+	do
+		cp "$inputfq" "~{read_file_basename}_wonky.fastq"
+	done
+
 	timeout -v ~{timeout}m clockwork variant_call_one_sample \
 	--sample_name "~{sample_name}" \
 	~{arg_debug} \
@@ -115,7 +126,7 @@ task variant_call_one_sample_simple {
 		set -eux -o pipefail
 		exit 1
 	else
-		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknwon reasons"
+		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
 		set -eux -o pipefail
 		exit 1
 	fi
