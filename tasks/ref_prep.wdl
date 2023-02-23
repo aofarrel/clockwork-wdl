@@ -53,9 +53,9 @@ task reference_prepare {
 	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
 	String is_there_any_tsv = select_first([contam_tsv_in_reference_folder, contam_tsv, "false"])
 	String basestem_reference = sub(basename(select_first([reference_folder, "bogus fallback value"])), "\.tar(?!.{5,})", "") # TODO: double check the regex
-	String? intermed_tsv1 = if defined(contam_tsv_in_reference_folder) then "~{basestem_reference}/~{contam_tsv_in_reference_folder}" else ""
-	String? intermed_tsv2 = if defined(contam_tsv) then "~{contam_tsv}" else ""
-	String? arg_tsv       = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
+	String intermed_tsv1 = if defined(contam_tsv_in_reference_folder) then "~{basestem_reference}/~{contam_tsv_in_reference_folder}" else ""
+	String intermed_tsv2 = if defined(contam_tsv) then "~{contam_tsv}" else ""
+	String arg_tsv       = if is_there_any_tsv == "false" then "" else "--contam_tsv ~{intermed_tsv1}~{intermed_tsv2}"
 	
 	# calculate the remaining arguments
 	String arg_ref               = if defined(fasta_file) then "~{fasta_file}" else "~{basestem_reference}/~{reference_fa_string}"
