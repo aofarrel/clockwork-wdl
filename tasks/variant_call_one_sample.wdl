@@ -76,7 +76,7 @@ task variant_call_one_sample_simple {
 		ls -R * > contents_1.txt
 		for inputfq in "${READS_FILES[@]}"
 		do
-			cp "$inputfq" "~{sample_name}_wonky.fastq"
+			cp "$inputfq" "~{sample_name}_varclfail.fastq"
 		done
 	fi
 
@@ -126,7 +126,7 @@ task variant_call_one_sample_simple {
 	
 	if [[ "~{debug}" = "true" ]]
 	then
-		tree > tree2.txt
+		ls -R * > contents_2.txt
 		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
 	fi
 
@@ -160,8 +160,12 @@ task variant_call_one_sample_simple {
 
 	if [[ "~{debug}" = "true" ]]
 	then
-		tree > tree3.txt
+		ls -R * > contents_3.txt
 	fi
+
+	rm "~{read_file_basename}_varclfail.fastq"
+
+	echo "Variant calling completed."
 	>>>
 
 	runtime {
@@ -178,6 +182,7 @@ task variant_call_one_sample_simple {
 		File? vcf_final_call_set = sample_name+".vcf"
 		#File vcf_cortex = glob("*_cortex.vcf")[0]
 		#File vcf_samtools = glob("*_samtools.vcf")[0]
+		File? bad_fastq = sample_name+"_varclfail.fastq"
 		File? workdir1 = "contents_1.txt"
 		File? workdir2 = "contents_2.txt"
 		File? workdir3 = "contents_3.txt"
