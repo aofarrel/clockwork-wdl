@@ -93,6 +93,10 @@ task variant_call_one_sample_simple {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample timed out"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -103,6 +107,10 @@ task variant_call_one_sample_simple {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -116,6 +124,10 @@ task variant_call_one_sample_simple {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
 		if [[ "~{crash_on_error}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -125,6 +137,10 @@ task variant_call_one_sample_simple {
 		fi
 	else
 		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
 		if [[ "~{crash_on_error}" = "true" ]]
 		then
 			set -eux -o pipefail
