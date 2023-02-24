@@ -74,6 +74,7 @@ task variant_call_one_sample_simple {
 	if [[ "~{debug}" = "true" ]]
 	then
 		ls -R ./* > contents_1.txt
+		READS_FILES=("~{sep='" "' reads_files}")
 		for inputfq in "${READS_FILES[@]}"
 		do
 			cp "$inputfq" "~{sample_name}_varclfail.fastq"
