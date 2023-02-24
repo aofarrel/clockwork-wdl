@@ -189,7 +189,7 @@ task variant_call_one_sample_simple {
 		File? vcf_final_call_set = sample_name+".vcf"
 
 		# debugging stuff
-		File? check_this_fastq = sample_name+"_varclfail.fastq"
+		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
 		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
 		File? ls1 = "contents_1.txt"
 		File? ls2 = "contents_2.txt"
