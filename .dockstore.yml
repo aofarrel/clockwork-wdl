@@ -27,3 +27,8 @@ workflows:
     name: clockwork_tuberculosis_example
     authors:
       - orcid: 0000-0003-4896-1858
+  - subclass: WDL
+    primaryDescriptorPath: /workflows/decontaminate_one_sample.wdl
+    name: Decontam_And_Combine_One_Samples_Fastqs
+    authors:
+      - orcid: 0000-0003-4896-1858
