@@ -26,7 +26,8 @@ workflow Decontam_And_Combine_One_Samples_Fastqs {
             crash_on_timeout = crash_on_timeout,
             subsample_cutoff = subsample_cutoff,
             timeout_map_reads = timeout_map_reads,
-            timeout_decontam = timeout_decontam
+            timeout_decontam = timeout_decontam,
+            unsorted_sam = true
     }
 
     output {
