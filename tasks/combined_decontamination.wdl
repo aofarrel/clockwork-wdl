@@ -95,7 +95,18 @@ task combined_decontamination_single {
 
 	command <<<
 
-	READS_FILES=("~{sep='" "' reads_files}")
+	
+	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
+
+	# make sure reads are paired correctly
+	# map_reads requires that fastqs are arranged like this:
+	# (SRR1_1.fq, SRR1_2.fq, SRR2_1.fq, SRR2_2.fq)
+	# If you had SRR1_2.fq and SRR2_1.fq swapped, you would get an error in fqcount
+	# assuming SRR1 and SRR2 had different read lengths because it would think
+	# SRR1_1 and SRR2_1 were paired.
+	# Interestingly, this was never an issue when downloading reads via SRANWRP, but
+	# to better support direct input of reads, this sort of hack is necessary.
+	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
 
 	if [[ ! "~{verbose}" = "true" ]]
 	then
@@ -145,6 +156,8 @@ task combined_decontamination_single {
 	do
 		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
 	done
+
+	
 
 	# map reads for decontamination
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
