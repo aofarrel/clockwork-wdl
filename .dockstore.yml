@@ -22,7 +22,7 @@ workflows:
       - /workflows/walkthru-miniwdl.json
       - /workflows/walkthru-skip-nothing.json
       - /workflows/walkthru-skip-refdl-terra.json
-      - /workflows/walkthru-skip-refdl-and-ena.json
+      - /workflows/walkthru-skip-refprep-and-ena.json
       - /workflows/walkthru-skip-refprep.json
     name: clockwork_tuberculosis_example
     authors:
