@@ -13,12 +13,14 @@
  * variant_call_one_sample: implementation of `clockwork variant_call_one_sample`
 
  **Workflows**
- * wf-ref_prep-generic: runs a generic ref_prep workflow
- * wf-ref_prep-TB: runs a tuberculosis-specific ref_prep workflow [based on this](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes)
+ * decontaminate_one_sample: decontaminates and combines a single sample's fastqs
+ * gvcf_after_walkthru: converts the output of walkthru (see below) to a gvcf
+ * ref_prep-generic: runs a generic ref_prep workflow
+ * ref_prep-TB: runs a tuberculosis-specific ref_prep workflow [based on this](https://github.com/iqbal-lab-org/clockwork/wiki/Walkthrough-scripts-only#get-and-index-reference-genomes)
  * walkthru: goes from FASTQ input to minos' adjudicated VCF output
 
 ## Skipping steps on walkthru.wdl
-All are Cromwell-formatted.
+All JSONs are Cromwell-formatted.
 * **walkthru-skip-nothing.json**: Skip nothing
 * **walkthru-skip-refdl.json**: Skip dl_TB_ref, which is the first step of wf-reprep-TB; use this to test index_decontamination_ref and index_H37Rv_reference.
 * **walkthru-skip-ref_prep.json**: Skip wf-ref_prep-TB (including dl_TB_ref); use this to test enaDataGet and (eventually) map_reads
