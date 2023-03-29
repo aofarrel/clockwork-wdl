@@ -94,27 +94,23 @@ task combined_decontamination_single {
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
+	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
 
-	READS_FILES=("~{sep='" "' reads_files}")
-
-	if [[ ! "~{verbose}" = "true" ]]
-	then
-		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
-		echo "ref_fasta_filename" ~{ref_fasta_filename}
-		echo "basestem_reference" ~{basestem_reference}
-		echo "sample_name ~{sample_name}"
-		echo "outfile_sam ~{outfile_sam}"
-		echo "arg_ref_fasta" ~{arg_ref_fasta}
-
-	fi
+	# make sure reads are paired correctly
+	#
+	# clockwork map_reads seems to require each pair of fqs are consecutive, such as:
+	# (SRR1_1.fq, SRR1_2.fq, SRR2_1.fq, SRR2_2.fq)
+	# If you instead had (SRR1_1.fq, SRR2_1.fq, SRR1_2.fq, SRR2_2.fq) then fqcount would
+	# fail assuming SRR1 and SRR2 have different read counts. Interestingly, this was
+	# never an issue when downloading reads via SRANWRP, but to better support direct
+	# input of reads, this sort of hack is necessary.
+	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
 
 	# downsample, if necessary
 	#
-	# Downsampling relies on deleting inputs and then putting a new file
-	# where the the old input was. This works on Terra, but there is a
-	# chance this gets iffy on other backends.
-	# If you've issues with miniwdl, --copy-input-files might help
-
+	# Downsampling relies on deleting inputs and then putting a new file where the the old
+	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
+	# If you're having issues with miniwdl, --copy-input-files might help
 	if [[ "~{subsample_cutoff}" != "-1" ]]
 	then
 		for inputfq in "${READS_FILES[@]}"
@@ -136,15 +132,30 @@ task combined_decontamination_single {
 	mv ~{tarball_ref_fasta_and_index} .
 	tar -xvf ~{basestem_reference}.tar
 
-	# this keeps track of outputs to fastqc
-	# this will be deleted if we decontam successfully
-	# we use copies of the inputs because this is easier
-	# than trying to glob, and because deleting inputs
-	# is wonky on some backends (understandably!)
+	# anticipate bad fastqs
+	#
+	# This is a hack to make sure the check_this_fastq task output is defined iff this
+	# WDL task fails. The duplicate will be deleted if we decontam successfully. We use
+	# copies of the inputs WDL gets iffy when trying to glob on optionals, and because
+	# deleting inputs is wonky on some backends (understandably!)
 	for inputfq in "${READS_FILES[@]}"
 	do
 		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
 	done
+
+	# some debug stuff
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
+		echo "ref_fasta_filename" ~{ref_fasta_filename}
+		echo "basestem_reference" ~{basestem_reference}
+		echo "sample_name ~{sample_name}"
+		echo "outfile_sam ~{outfile_sam}"
+		echo "arg_ref_fasta" ~{arg_ref_fasta}
+		echo "READS_FILES_UNSORTED" "${READS_FILES_UNSORTED[@]}"
+		echo "READS_FILES" "${READS_FILES[@]}"
+
+	fi
 
 	# map reads for decontamination
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
@@ -153,7 +164,7 @@ task combined_decontamination_single {
 		~{sample_name} \
 		~{arg_ref_fasta} \
 		~{outfile_sam} \
-		~{sep=" " reads_files}
+		"${READS_FILES[@]}"
 	exit=$?
 	if [[ $exit = 124 ]]
 	then
@@ -202,11 +213,19 @@ task combined_decontamination_single {
 	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
 	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
-	# this doesn't seem to be in the nextflow version of this pipeline, but it seems necessary
-	# see https://github.com/iqbal-lab-org/clockwork/issues/77
+	# TODO: this doesn't seem to be in the nextflow version of this pipeline, but it seems
+	# we need it in the WDL version?
+	# https://github.com/iqbal-lab-org/clockwork/issues/77
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/contam_remover.py#L170
+	#
+	# This might intereact with unsorted_sam, which seems to actually be a dupe remover
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
+	
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
 
-	# r/e the index file warning: https://github.com/mhammell-laboratory/TEtranscripts/issues/99
+	# One of remove_contam's tasks will throw a warning about index files. Ignore it.
+	# https://github.com/mhammell-laboratory/TEtranscripts/issues/99
 	timeout -v ~{timeout_decontam}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_~{sample_name}.sam \
@@ -251,11 +270,15 @@ task combined_decontamination_single {
 		exit 1
 	fi
 
+	# We passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
 
 	echo "Decontamination completed."
 
-	ls -lha
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		ls -lha
+	fi
 	>>>
 
 	runtime {
