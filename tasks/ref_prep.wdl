@@ -1,12 +1,14 @@
 version 1.0
-# reference_prepare_myco is what is used by myco. If you are trying to build off
+# reference_prepare_myco is used by myco to index both the "real" TB genome
+# and the decontamination reference genome. If you are trying to build off
 # this pipeline with some other reference genome, use reference_prepare_byob.
 #
 # Limitations: 
 # * This does not support usage of a database nor db_config_file
 # * Out is given in the form of a single tarball, as WDL does 
-#   not support outputting a directory
-#
+#   not support outputting a directory (clockwork assumes there's
+#   a reference genome folder in workdir/getting passed around,
+#   but in WDL we have to pass around a tarball instead)
 #
 # clockwork reference_prepare essentially runs these steps:
 # 1) seqtk seq -C -l 60 {ref genome} > /cromwell_root/ref_dir/ref.fa
@@ -46,16 +48,35 @@ task reference_prepare_myco {
 	Int finalDiskSize = ceil(size_in + addldisk)
 
 	# find where the reference TSV is going to be located, if it exists at all
-	# excessive usage of select_first() is required due to basename() and sub() not working on optional types, even if setting an optional variable
-	String basestem_reference = sub(basename(reference_folder), "\.tar(?!.{4,})", "") # TODO: double check the regex
-	String arg_tsv       = if defined(filename_of_contam_tsv_in_reference_folder) then "--contam_tsv ~{basestem_reference}/~{filename_of_contam_tsv_in_reference_folder}" else ""
+	String basestem_reference = sub(basename(reference_folder), "\.tar(?!.{4,})", "")
+	String arg_tsv = if defined(filename_of_contam_tsv_in_reference_folder) 
+	                 then "--contam_tsv ~{basestem_reference}/~{filename_of_contam_tsv_in_reference_folder}" 
+					 else ""
 	
 	# calculate the remaining arguments
 	String arg_ref               = "~{basestem_reference}/~{reference_fa_string}"
-	String arg_cortex_mem_height = if defined(cortex_mem_height) then "--cortex_mem_height ~{cortex_mem_height}" else ""
+	String arg_cortex_mem_height = if defined(cortex_mem_height)
+	                               then "--cortex_mem_height ~{cortex_mem_height}"
+								   else ""
 
 	command <<<
 		set -eux -o pipefail
+
+		if [[ "~{reference_fa_string}" != "remove_contam.fa.gz" && "~{reference_fa_string}" != "NC_000962.3.fa" ]]
+		then
+			echo -n 'reference_fa_string is ~{reference_fa_string} but should be either '
+			echo    '"remove_contam.fa.gz" (note the gz) or "NC_000962.3.fa" (note the lack of .gz)'
+			echo    "More information:"
+			echo -n "In the refprep-TB pipeline (and by extension, the myco pipeline), a tarball of "
+			echo -n "reference genome files is downloaded by an upstream WDL task (download_tb_reference_files). "
+			echo -n "This file is about 1.2 GB and has md5sum 0015ae88c40ad50f92b1e8a37ec697fb, and can be "
+			echo -n "used to create a decontamination reference as well as a more typical TB reference."
+			echo -n "This WDL task is specifically made with these genomes in mind. If you are trying "
+			echo -n "to modify it for a different reference genome, modify reference_prepare_byob instead. "
+			echo -n "If you are trying to use a new version of the TB reference genome and/or the upstream "
+			echo -n "download_tb_reference_files task returns a different file than before, please open a PR "
+			echo -n "or issue on GitHub!"
+		fi
 
 		cp ~{reference_folder} .
 		tar -xvf ~{basestem_reference}.tar
