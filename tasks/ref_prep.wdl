@@ -62,6 +62,9 @@ task reference_prepare_myco {
 		rm ~{basestem_reference}.tar
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv}
+		ls -lha
+		ls -lha ~{basestem_reference}
+		ls -lha ~{outdir}
 		tar -c ~{outdir}/ > ~{outdir}.tar
 
 	>>>
