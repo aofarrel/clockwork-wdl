@@ -62,9 +62,6 @@ task reference_prepare_myco {
 		rm ~{basestem_reference}.tar
 
 		clockwork reference_prepare --outdir ~{outdir} ~{arg_ref} ~{arg_cortex_mem_height} ~{arg_tsv}
-		ls -lha
-		ls -lha ~{basestem_reference}
-		ls -lha ~{outdir}
 		tar -c ~{outdir}/ > ~{outdir}.tar
 
 	>>>
@@ -78,7 +75,7 @@ task reference_prepare_myco {
 		preemptible: "${preempt}"
 	}
 	output {
-		File? H37Rv_for_later = "~{basestem_reference}/ref.fa"
+		File? H37Rv_for_later = "~{outdir}/ref.fa"
 		File? remove_contam_tsv = "remove_contam_metadata.tsv"
 		File  tar_ref_prepd = glob("*.tar")[0]
 
