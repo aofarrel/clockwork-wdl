@@ -1,6 +1,6 @@
 version 1.0
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/2.7.0/workflows/refprep-TB.wdl" as rp
-import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/decontam-workflow/tasks/combined_decontamination.wdl" as cd
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/workflows/refprep-TB.wdl" as rp
+import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/main/tasks/combined_decontamination.wdl" as cd
 
 workflow Decontam_And_Combine_One_Samples_Fastqs {
     input {
