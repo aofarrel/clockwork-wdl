@@ -6,7 +6,7 @@ workflow Clockworkref_prepGeneric {
 		File? fasta_file
 	}
 
-	call ref_prep.reference_prepare {
+	call ref_prep.reference_prepare_byob {
 		input:
 			fasta_file = fasta_file
 	}
