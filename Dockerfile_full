@@ -1,1 +1,3 @@
+# Note: The second line of this file gets edited by build_dockers.sh
 FROM ashedpotatoes/iqbal-clockwork-plus-ref-genomes-slim
+COPY references/Ref.remove_contam.tar ./ref/

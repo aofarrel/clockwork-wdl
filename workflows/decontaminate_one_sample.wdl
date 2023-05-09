@@ -1,3 +1,5 @@
+# This workflow is deprecated -- use github.com/aofarrel/decon instead 
+
 version 1.0
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/2.8.0/workflows/refprep-TB.wdl" as rp
 import "https://raw.githubusercontent.com/aofarrel/clockwork-wdl/2.8.0/tasks/combined_decontamination.wdl" as cd
