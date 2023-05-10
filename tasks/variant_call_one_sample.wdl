@@ -60,6 +60,9 @@ task variant_call_one_sample_ref_included {
 	}
 	
 	command <<<
+	pwd > debug
+	ls -lha >> debug
+	ls -lha ref/* >> debug
 	tar -xvf ref/Ref.H37Rv.tar
 
 	echo "~{sample_name}"
@@ -81,7 +84,7 @@ task variant_call_one_sample_ref_included {
 	~{arg_mem_height} \
 	~{arg_keep_bam} \
 	~{arg_force} \
-	"Ref.H37Rv.tar" "$arg_outdir" \
+	"Ref.H37Rv" "$arg_outdir" \
 	~{sep=" " reads_files}
 	
 	exit=$?
@@ -179,6 +182,7 @@ task variant_call_one_sample_ref_included {
 
 	output {
 		# the outputs you care about
+		File ugh = "debug"
 		File? mapped_to_ref = sample_name+"_to_H37Rv.bam"
 		File? vcf_final_call_set = sample_name+".vcf"
 
