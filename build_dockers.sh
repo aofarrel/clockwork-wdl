@@ -36,12 +36,13 @@ else
 fi
 
 docker build -f Dockerfile_slim .
-docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/iqbal-clockwork-plus--slim:$tag
-exit 0
+docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-slim
+docker push "ashedpotatoes/clockwork-plus:$tag-slim"
 
-docker push ashedpotatoes/iqbal-clockwork-plus-ref-genomes-slim
-
-# replace first line of full docker file with FROM ashedpotatoes/iqbal-clockwork-plus-ref-genomes-slim:$tag
-
+# I use OSX, so https://stackoverflow.com/a/62309999 and https://stackoverflow.com/a/4247319 are at play
+# (and also the slash needs to be escaped)
+base_image_line="FROM ashedpotatoes\/clockwork-plus:$tag-slim"
+sed -i '' -e "2s/.*/$base_image_line/" Dockerfile_full
 docker build -f Dockerfile_full .
-docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/iqbal-clockwork-plus--full:$tag
+docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-full
+docker push "ashedpotatoes/clockwork-plus:$tag-full"
