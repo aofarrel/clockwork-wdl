@@ -62,8 +62,9 @@ task variant_call_one_sample_ref_included {
 	command <<<
 	pwd > debug
 	ls -lha >> debug
-	ls -lha ref/* >> debug
-	tar -xvf ref/Ref.H37Rv.tar
+	ls -lha ../ >> debug
+	ls -lha ../ref/* >> debug
+	tar -xvf ../ref/Ref.H37Rv.tar
 
 	echo "~{sample_name}"
 	arg_outdir="var_call_~{sample_name}"
