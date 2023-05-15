@@ -118,9 +118,9 @@ task combined_decontamination_single_ref_included {
 		done
 	fi
 	
-	# we need to mv ref to the workdir, then untar, or else the ref index won't be found
+	# we might need to mv ref to the workdir, then untar, or else the ref index won't be found
 	#mv ref/Ref.remove_contam.tar  .
-	tar -xvf ref/Ref.remove_contam.tar
+	tar -xvf ../ref/Ref.remove_contam.tar
 
 	# anticipate bad fastqs
 	#
