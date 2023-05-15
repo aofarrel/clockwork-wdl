@@ -120,7 +120,12 @@ task combined_decontamination_single_ref_included {
 	
 	# we might need to mv ref to the workdir, then untar, or else the ref index won't be found
 	#mv ref/Ref.remove_contam.tar  .
+	pwd > debug
+	ls -lha >> debug
+	ls -lha ../ >> debug
+	ls -lha ../ref/* >> debug
 	tar -xvf ../ref/Ref.remove_contam.tar
+	exit 1
 
 	# anticipate bad fastqs
 	#
@@ -272,6 +277,7 @@ task combined_decontamination_single_ref_included {
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
+		File debug = "debug"
 	}
 }
 
