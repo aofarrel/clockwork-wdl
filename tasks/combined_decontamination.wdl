@@ -49,8 +49,8 @@ task combined_decontamination_single_ref_included {
 		verbose: "Increase amount of stuff sent to stdout"
 	}
 	# The Docker image has our reference information, so these can be hardcoded.
-	String arg_metadata_tsv = "ref/Ref.remove_contam/remove_contam_metadata.tsv"
-	String arg_ref_fasta = "ref/Ref.remove_contam/ref.fa"
+	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
+	String arg_ref_fasta = "Ref.remove_contam/ref.fa"
 
 	# We need to derive the sample name from our inputs because sample name is a
 	# required input for clockwork map_reads. This needs to be to handle inputs
