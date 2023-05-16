@@ -125,7 +125,7 @@ task combined_decontamination_single_ref_included {
 	ls -lha ../ >> debug
 	ls -lha ../ref/* >> debug
 	tar -xvf ../ref/Ref.remove_contam.tar
-	exit 1
+	ls -lha >> debug
 
 	# anticipate bad fastqs
 	#
