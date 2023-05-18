@@ -117,15 +117,11 @@ task combined_decontamination_single_ref_included {
 			fi
 		done
 	fi
-	
-	# we might need to mv ref to the workdir, then untar, or else the ref index won't be found
-	#mv ref/Ref.remove_contam.tar  .
-	pwd > debug
-	ls -lha >> debug
-	ls -lha ../ >> debug
-	ls -lha ../ref/* >> debug
+
+	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
+	# to go up one to get the ref genome. NOTE THAT OTHER WDL EXECUTORS MAY WORK DIFFERENTLY.
+	# The tar command will however place the untarred directory in the workdir.
 	tar -xvf ../ref/Ref.remove_contam.tar
-	ls -lha >> debug
 
 	# anticipate bad fastqs
 	#
