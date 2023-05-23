@@ -1,0 +1,3 @@
+FROM ghcr.io/iqbal-lab-org/clockwork:v0.11.3 
+RUN mkdir ref
+COPY references/Ref.H37Rv.tar ./ref/

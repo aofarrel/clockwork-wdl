@@ -3,6 +3,279 @@ version 1.0
 # These tasks combine the rm_contam and map_reads steps into one WDL task.
 # This can save money on some backends.
 
+task combined_decontamination_single_ref_included {
+	# This is similar to combined_decontamination_single but with the decontamination ref included
+	# in the Docker image. Note that the Docker image is a bit hefty.
+	input {
+		
+		Array[File] reads_files
+
+		# bonus options
+		Boolean     crash_on_timeout = false
+		Int         subsample_cutoff = -1
+		Int         subsample_seed = 1965
+		Int?        threads
+		Int         timeout_map_reads = 120
+		Int         timeout_decontam  = 120
+		Boolean     unsorted_sam = false
+		Boolean     verbose = true
+
+		# rename outs
+		String? counts_out     # must end in counts.tsv
+		String? no_match_out_1
+		String? no_match_out_2
+		String? contam_out_1
+		String? contam_out_2
+		String? done_file
+
+		# runtime attributes
+		Int addldisk = 100
+		Int cpu = 8
+		Int memory = 16
+		Int preempt = 1
+		Boolean ssd = true
+	}
+
+	parameter_meta {
+		reads_files: "FASTQs to decontaminate"
+		
+		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
+		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
+		threads: "Attempt to use these many threads when mapping reads"
+		timeout_decontam: "If decontamination takes longer than this number of minutes, stop processing this sample"
+		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
+		unsorted_sam: "It's best to leave this as false"
+		verbose: "Increase amount of stuff sent to stdout"
+	}
+	# The Docker image has our reference information, so these can be hardcoded.
+	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
+	String arg_ref_fasta = "Ref.remove_contam/ref.fa"
+
+	# We need to derive the sample name from our inputs because sample name is a
+	# required input for clockwork map_reads. This needs to be to handle inputs
+	# like sample+run+num (ERS457530_ERR551697_1.fastq) or inputs like
+	# sample+num (ERS457530_1.fastq). In both cases, we want to convert to just
+	# sample name (ERS457530). 
+	#
+	# We are doing this here, instead of within the command block, because our
+	# output is optional (because that allows us to handle samples timing out
+	# without breaking the entire pipeline). Optional WDL outputs do not work
+	# correctly when you use glob()[0] because Cromwell doesn't realize an array
+	# having nothing at index 0 is okay if that output is an optional file.
+	# So, we instead need to know output filenames before the command block
+	# executes.
+	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
+	String sample_name = sub(read_file_basename, "_.*", "")
+	String outfile_sam = sample_name + ".sam"
+
+	# This region handles optional arguments
+	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
+	String arg_contam_out_2 = if(!defined(contam_out_1)) then "" else "--contam_out_2 ~{contam_out_2}"
+	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
+	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
+	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
+	String arg_threads = if defined(threads) then "--threads ~{threads}" else ""
+	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
+
+	# Estimate disk size
+	Int readsSize = 5*ceil(size(reads_files, "GB"))
+	Int finalDiskSize = readsSize + addldisk
+	String diskType = if((ssd)) then " SSD" else " HDD"
+
+	command <<<
+	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
+
+	# make sure reads are paired correctly
+	#
+	# clockwork map_reads seems to require each pair of fqs are consecutive, such as:
+	# (SRR1_1.fq, SRR1_2.fq, SRR2_1.fq, SRR2_2.fq)
+	# If you instead had (SRR1_1.fq, SRR2_1.fq, SRR1_2.fq, SRR2_2.fq) then fqcount would
+	# fail assuming SRR1 and SRR2 have different read counts. Interestingly, this was
+	# never an issue when downloading reads via SRANWRP, but to better support direct
+	# input of reads, this sort of hack is necessary.
+	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
+
+	# downsample, if necessary
+	#
+	# Downsampling relies on deleting inputs and then putting a new file where the the old
+	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
+	# If you're having issues with miniwdl, --copy-input-files might help
+	if [[ "~{subsample_cutoff}" != "-1" ]]
+	then
+		for inputfq in "${READS_FILES[@]}"
+		do
+			size_inputfq=$(du -m "$inputfq" | cut -f1)
+			# shellcheck disable=SC2004
+			# just trust me on this one
+			if (( $size_inputfq > ~{subsample_cutoff} ))
+			then
+				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
+				rm "$inputfq"
+				mv temp.fq "$inputfq"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+			fi
+		done
+	fi
+
+	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
+	# to go up one to get the ref genome. NOTE THAT OTHER WDL EXECUTORS MAY WORK DIFFERENTLY.
+	# The tar command will however place the untarred directory in the workdir.
+	tar -xvf ../ref/Ref.remove_contam.tar
+
+	# anticipate bad fastqs
+	#
+	# This is a hack to make sure the check_this_fastq task output is defined iff this
+	# WDL task fails. The duplicate will be deleted if we decontam successfully. We use
+	# copies of the inputs WDL gets iffy when trying to glob on optionals, and because
+	# deleting inputs is wonky on some backends (understandably!)
+	for inputfq in "${READS_FILES[@]}"
+	do
+		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
+	done
+
+	# map reads for decontamination
+	timeout -v ~{timeout_map_reads}m clockwork map_reads \
+		~{arg_unsorted_sam} \
+		~{arg_threads} \
+		~{sample_name} \
+		~{arg_ref_fasta} \
+		~{outfile_sam} \
+		"${READS_FILES[@]}"
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- clockwork map_reads timed out"
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Reads successfully mapped to decontamination reference" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork map_reads returned $exit for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	fi
+	
+	echo "************ removing contamination *****************"
+
+	# calculate the last three positional arguments of the rm_contam task
+	if [[ ! "~{counts_out}" = "" ]]
+	then
+		arg_counts_out="~{counts_out}"
+	else
+		arg_counts_out="~{sample_name}.decontam.counts.tsv"
+	fi
+
+	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
+	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
+
+	# TODO: this doesn't seem to be in the nextflow version of this pipeline, but it seems
+	# we need it in the WDL version?
+	# https://github.com/iqbal-lab-org/clockwork/issues/77
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/contam_remover.py#L170
+	#
+	# This might intereact with unsorted_sam, which seems to actually be a dupe remover
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
+	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
+	
+	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
+
+	# One of remove_contam's tasks will throw a warning about index files. Ignore it.
+	# https://github.com/mhammell-laboratory/TEtranscripts/issues/99
+	timeout -v ~{timeout_decontam}m clockwork remove_contam \
+		~{arg_metadata_tsv} \
+		sorted_by_read_name_~{sample_name}.sam \
+		$arg_counts_out \
+		$arg_reads_out1 \
+		$arg_reads_out2 \
+		~{arg_no_match_out_1} ~{arg_no_match_out_2} \
+		~{arg_contam_out_1} ~{arg_contam_out_2} \
+		~{arg_done_file}
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- clockwork remove_contam timed out"
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Reads successfully decontaminated" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	else
+		echo "ERROR -- clockwork remove_contam returned $exit for unknown reasons"
+		set -eux -o pipefail
+		exit 1
+	fi
+
+	# We passed, so delete the output that would signal to run fastqc
+	rm "~{read_file_basename}_dcntmfail.fastq"
+
+	echo "Decontamination completed."
+
+	if [[ ! "~{verbose}" = "true" ]]
+	then
+		ls -lha
+	fi
+	>>>
+
+	runtime {
+		bootDiskSizeGb: 20
+		cpu: cpu
+		docker: "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		disks: "local-disk " + finalDiskSize + diskType
+		memory: "${memory} GB"
+		preemptible: "${preempt}"
+	}
+
+	output {
+		#File? mapped_to_decontam = glob("*.sam")[0]
+		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
+		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
+		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
+		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
+	}
+}
+
 task combined_decontamination_single {
 	# This is the task you probably should be using. It works on one sample.
 	# If you're working on multiple samples, scatter upon this task.

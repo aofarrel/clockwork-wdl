@@ -19,3 +19,10 @@ Ref.download/remove_contam.fa.gz
 Ref.download/remove_contam.tsv
 Documents/aaa_test_files/tb/terra_outs/Ref.H37Rv.zip
 Documents/aaa_test_files/tb/terra_outs/Ref.remove_contam.zip
+references/Ref.H37Rv.tar
+references/Ref.remove_contam.tar
+references/Ref.remove_contam/remove_contam_metadata.tsv
+references/Ref.remove_contam/ref.fa.minimap2_idx
+references/Ref.remove_contam/ref.fa.fai
+references/Ref.remove_contam/ref.fa
+references/Ref.remove_contam copy.tar

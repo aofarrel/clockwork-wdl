@@ -4,10 +4,200 @@ version 1.0
 # Can provide more than one run of reads from the same sample - if you do this then the reads are all
 # used together, treated as if they were all from one big run.
 
-# There are two versions of this task. You likely want variant_call_one_sample_simple. However, if
+# There are three versions of this task. You likely want variant_call_one_sample_simple. However, if
 # you want more information about failures and/or want to fail variant calling without failing the
 # whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_verbose.
 # variant_call_one_sample_verbose can also handle tarballed read files.
+
+task variant_call_one_sample_ref_included {
+	input {
+		Array[File] reads_files
+
+		# optional args
+		Boolean debug            = false
+		Boolean crash_on_error   = false
+		Boolean crash_on_timeout = false
+		Int? mem_height
+		Int timeout = 120
+
+		# Runtime attributes
+		Int addldisk = 100
+		Int cpu      = 16
+		Int retries  = 1
+		Int memory   = 32
+		Int preempt  = 1
+		Boolean ssd  = true
+	}
+	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# which will avoid awkwardness when it comes to passing that to other tasks
+	Boolean keep_bam = true
+
+	# this is a clockwork option that overwrites outdir if it already exists
+	# this is essentially meaningless in WDL, where everything happens in a VM
+	Boolean force = false
+
+	# estimate disk size required and see what kind of disk we're using
+	Int size_in = ceil(size(reads_files, "GB")) + addldisk
+	Int finalDiskSize = ceil(2*size_in + addldisk)
+	String diskType = if((ssd)) then " SSD" else " HDD"
+
+	# we need to be able set the outputs name from an input name to use optional outs
+	# WDL's sub()'s regex seems a little odd ("_\d\.decontam\.fq\.gz" doesn't work)
+	# so we're going to do this in the most simply way possible
+	String basename_reads = basename(reads_files[0], ".decontam.fq.gz")
+	String sample_name = sub(basename_reads, "_1", "")
+	
+	# generate command line arguments
+	String arg_debug = if(debug) then "--debug" else ""
+	String arg_mem_height = if(defined(mem_height)) then "--mem_height ~{mem_height}" else ""
+	String arg_keep_bam = if(keep_bam) then "--keep_bam" else ""
+	String arg_force = if(force) then "--force" else ""
+
+	parameter_meta {
+		reads_files: "List of forwards and reverse reads filenames (must provide an even number of files). For a single pair of files: reads_forward.fq reads_reverse.fq. For two pairs of files from the same sample: reads1_forward.fq reads1_reverse.fq reads2_forward.fq reads2_reverse.fq"
+		mem_height: "cortex mem_height option. Must match what was used when reference_prepare was run"
+		debug: "Debug mode: do not clean up any files and be verbose"
+	}
+	
+	command <<<
+	pwd > debug
+	ls -lha >> debug
+	ls -lha ../ >> debug
+	ls -lha ../ref/* >> debug
+	tar -xvf ../ref/Ref.H37Rv.tar
+
+	echo "~{sample_name}"
+	arg_outdir="var_call_~{sample_name}"
+
+	if [[ "~{debug}" = "true" ]]
+	then
+		ls -R ./* > contents_1.txt
+		READS_FILES=("~{sep='" "' reads_files}")
+		for inputfq in "${READS_FILES[@]}"
+		do
+			cp "$inputfq" "~{sample_name}_varclfail.fastq.gz"
+		done
+	fi
+
+	timeout -v ~{timeout}m clockwork variant_call_one_sample \
+	--sample_name "~{sample_name}" \
+	~{arg_debug} \
+	~{arg_mem_height} \
+	~{arg_keep_bam} \
+	~{arg_force} \
+	"Ref.H37Rv" "$arg_outdir" \
+	~{sep=" " reads_files}
+	
+	exit=$?
+	if [[ $exit = 124 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample timed out"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 137 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	elif [[ $exit = 0 ]]
+	then
+		echo "Successfully called variants" 
+	elif [[ $exit = 1 ]]
+	then
+		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
+		if [[ "~{crash_on_error}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	else
+		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
+		if [[ "~{debug}" = "true" ]]
+		then
+			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
+		if [[ "~{crash_on_error}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	fi
+	
+	if [[ "~{debug}" = "true" ]]
+	then
+		ls -R ./* > contents_2.txt
+		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
+	fi
+
+	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
+	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
+	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
+
+	# rename the bam file
+	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_H37Rv.bam
+
+	if [[ "~{debug}" = "true" ]]
+	then
+		ls -R ./* > contents_3.txt
+		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		rm "~{sample_name}_varclfail.fastq"
+	fi
+
+	echo "Variant calling completed."
+	>>>
+
+	runtime {
+		cpu: cpu
+		docker: "ashedpotatoes/clockwork-plus:v0.11.3.2-slim"
+		disks: "local-disk " + finalDiskSize + diskType
+		maxRetries: "${retries}"
+		memory: "${memory} GB"
+		preemptible: "${preempt}"
+	}
+
+	output {
+		# the outputs you care about
+		File ugh = "debug"
+		File? mapped_to_ref = sample_name+"_to_H37Rv.bam"
+		File? vcf_final_call_set = sample_name+".vcf"
+
+		# debugging stuff
+		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
+		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
+		File? ls1 = "contents_1.txt"
+		File? ls2 = "contents_2.txt"
+		File? ls3 = "contents_3.txt"
+		File? workdir_tarball = sample_name+".tar"
+	}
+}
+
+
 
 task variant_call_one_sample_simple {
 	input {
