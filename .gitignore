@@ -26,3 +26,7 @@ references/Ref.remove_contam/ref.fa.minimap2_idx
 references/Ref.remove_contam/ref.fa.fai
 references/Ref.remove_contam/ref.fa
 references/Ref.remove_contam copy.tar
+references/Ref.H37Rv/ref.fa
+references/Ref.H37Rv/ref.fa.fai
+references/Ref.H37Rv/ref.fa.minimap2_idx
+references/Ref.H37Rv/ref.k31.ctx
