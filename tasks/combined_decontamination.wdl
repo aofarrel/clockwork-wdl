@@ -119,9 +119,9 @@ task combined_decontamination_single_ref_included {
 	fi
 
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
-	# to go up one to get the ref genome. NOTE THAT OTHER WDL EXECUTORS MAY WORK DIFFERENTLY.
+	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
 	# The tar command will however place the untarred directory in the workdir.
-	tar -xvf ../ref/Ref.remove_contam.tar
+	tar -xvf /ref/Ref.remove_contam.tar
 
 	# anticipate bad fastqs
 	#
