@@ -252,7 +252,7 @@ task combined_decontamination_single_ref_included {
 
 	echo "Decontamination completed."
 
-	if [[ ! "~{verbose}" = "true" ]]
+	if [[ "~{verbose}" = "true" ]]
 	then
 		ls -lha > workdir.txt
 		tar -c "*/" > "~{sample_name}.tar"
