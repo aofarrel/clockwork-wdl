@@ -408,7 +408,7 @@ task variant_call_one_sample_verbose {
 	Boolean keep_bam = true
 
 	# estimate disk size required
-	Int size_in = ceil(size(select_first([reads_files, tarball_of_reads_files]), "GB"))
+	Int size_in = ceil(size(select_first([reads_files, tarball_of_reads_files]), "GB")) # !FileCoercion
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 	String basestem_ref_dir = sub((basename(ref_dir)), "\.tar(?!.{5,})", "") # TODO: clean up the regex
 	
