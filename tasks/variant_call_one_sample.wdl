@@ -163,7 +163,7 @@ task variant_call_one_sample_ref_included {
 	then
 		ls -R ./* > contents_3.txt
 		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
-		rm "~{sample_name}_varclfail.fastq"
+		rm "~{sample_name}_varclfail.fastq.gz"
 	fi
 
 	echo "Variant calling completed."
