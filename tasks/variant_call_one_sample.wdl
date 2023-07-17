@@ -14,7 +14,7 @@ task variant_call_one_sample_ref_included {
 		Array[File] reads_files
 
 		# optional args
-		Boolean debug            = false # TODO: does this need to stay true to get bais?
+		Boolean debug            = false
 		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
 		Boolean tarball_bams_and_bais = false
@@ -31,6 +31,7 @@ task variant_call_one_sample_ref_included {
 	}
 	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
+	# this seems to also allow us to hold onto bais without --debug
 	Boolean keep_bam = true
 
 	# this is a clockwork option that overwrites outdir if it already exists
