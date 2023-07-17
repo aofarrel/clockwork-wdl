@@ -14,9 +14,10 @@ task variant_call_one_sample_ref_included {
 		Array[File] reads_files
 
 		# optional args
-		Boolean debug            = false
+		Boolean debug            = false # TODO: does this need to stay true to get bais?
 		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
+		Boolean tarball_bams_and_bais = false
 		Int? mem_height
 		Int timeout = 120
 
@@ -159,6 +160,14 @@ task variant_call_one_sample_ref_included {
 	# rename the bam and bai files
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_H37Rv.bam
 	mv var_call_"~{sample_name}"/map.bam.bai ./"~{sample_name}"_to_H37Rv.bam.bai
+	
+	if [[ "~{tarball_bams_and_bais}" = "true" ]]
+	then
+		mkdir "~{sample_name}_aligned_to_H37Rv"
+		mv ./"~{sample_name}"_to_H37Rv.bam ./"~{sample_name}_aligned_to_H37Rv"/"~{sample_name}".bam
+		mv ./"~{sample_name}"_to_H37Rv.bam.bai ./"~{sample_name}_aligned_to_H37Rv"/"~{sample_name}".bam.bai
+		tar -c "~{sample_name}_aligned_to_H37Rv/" > "~{sample_name}_aligned_to_H37Rv.tar"
+	fi
 
 	if [[ "~{debug}" = "true" ]]
 	then
@@ -184,6 +193,7 @@ task variant_call_one_sample_ref_included {
 		File? bam = sample_name+"_to_H37Rv.bam"
 		File? bai = sample_name+"_to_H37Rv.bam.bai"
 		File? adjudicated_vcf = sample_name+".vcf"
+		File? bam_and_bai = sample_name+".tar"
 
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
@@ -410,7 +420,7 @@ task variant_call_one_sample_verbose {
 	Boolean keep_bam = true
 
 	# estimate disk size required
-	Int size_in = ceil(size(select_first([reads_files, tarball_of_reads_files]), "GB"))
+	Int size_in = ceil(size(select_first([reads_files, [tarball_of_reads_files]]), "GB"))
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 	String basestem_ref_dir = sub((basename(ref_dir)), "\.tar(?!.{5,})", "") # TODO: clean up the regex
 	
