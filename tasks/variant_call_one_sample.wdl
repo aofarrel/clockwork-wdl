@@ -28,7 +28,7 @@ task variant_call_one_sample_ref_included {
 		Int preempt  = 1
 		Boolean ssd  = true
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
 
@@ -156,8 +156,9 @@ task variant_call_one_sample_ref_included {
 	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
 	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
-	# rename the bam file
+	# rename the bam and bai files
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_H37Rv.bam
+	mv var_call_"~{sample_name}"/map.bam.bai ./"~{sample_name}"_to_H37Rv.bam.bai
 
 	if [[ "~{debug}" = "true" ]]
 	then
@@ -180,8 +181,9 @@ task variant_call_one_sample_ref_included {
 
 	output {
 		# the outputs you care about
-		File? mapped_to_ref = sample_name+"_to_H37Rv.bam"
-		File? vcf_final_call_set = sample_name+".vcf"
+		File? bam = sample_name+"_to_H37Rv.bam"
+		File? bai = sample_name+"_to_H37Rv.bam.bai"
+		File? adjudicated_vcf = sample_name+".vcf"
 
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
@@ -215,7 +217,7 @@ task variant_call_one_sample_simple {
 		Int preempt  = 1
 		Boolean ssd  = true
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
 
@@ -371,8 +373,8 @@ task variant_call_one_sample_simple {
 
 	output {
 		# the outputs you care about
-		File? mapped_to_ref = sample_name+"_to_"+basestem_ref_dir+".bam"
-		File? vcf_final_call_set = sample_name+".vcf"
+		File? bam = sample_name+"_to_"+basestem_ref_dir+".bam"
+		File? adjudicated_vcf = sample_name+".vcf"
 
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
@@ -403,7 +405,7 @@ task variant_call_one_sample_verbose {
 		Int memory   = 32
 		Int preempt  = 1
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
 
@@ -510,8 +512,8 @@ task variant_call_one_sample_verbose {
 	}
 
 	output {
-		File? mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
-		File? vcf_final_call_set = glob("*_final.vcf")[0]
+		File? bam = glob("*~{basestem_ref_dir}.bam")[0]
+		File? adjudicated_vcf = glob("*_final.vcf")[0]
 		File? vcf_cortex = glob("*_cortex.vcf")[0]
 		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
