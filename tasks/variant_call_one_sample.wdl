@@ -17,6 +17,7 @@ task variant_call_one_sample_ref_included {
 		Boolean debug            = false
 		Boolean crash_on_error   = false
 		Boolean crash_on_timeout = false
+		Boolean tarball_bams_and_bais = false
 		Int? mem_height
 		Int timeout = 120
 
@@ -28,8 +29,9 @@ task variant_call_one_sample_ref_included {
 		Int preempt  = 1
 		Boolean ssd  = true
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
+	# this seems to also allow us to hold onto bais without --debug
 	Boolean keep_bam = true
 
 	# this is a clockwork option that overwrites outdir if it already exists
@@ -156,8 +158,17 @@ task variant_call_one_sample_ref_included {
 	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
 	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
-	# rename the bam file
+	# rename the bam and bai files
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_H37Rv.bam
+	mv var_call_"~{sample_name}"/map.bam.bai ./"~{sample_name}"_to_H37Rv.bam.bai
+	
+	if [[ "~{tarball_bams_and_bais}" = "true" ]]
+	then
+		mkdir "~{sample_name}_aligned_to_H37Rv"
+		mv ./"~{sample_name}"_to_H37Rv.bam ./"~{sample_name}_aligned_to_H37Rv"/"~{sample_name}".bam
+		mv ./"~{sample_name}"_to_H37Rv.bam.bai ./"~{sample_name}_aligned_to_H37Rv"/"~{sample_name}".bam.bai
+		tar -c "~{sample_name}_aligned_to_H37Rv/" > "~{sample_name}_aligned_to_H37Rv.tar"
+	fi
 
 	if [[ "~{debug}" = "true" ]]
 	then
@@ -180,8 +191,10 @@ task variant_call_one_sample_ref_included {
 
 	output {
 		# the outputs you care about
-		File? mapped_to_ref = sample_name+"_to_H37Rv.bam"
-		File? vcf_final_call_set = sample_name+".vcf"
+		File? bam = sample_name+"_to_H37Rv.bam"
+		File? bai = sample_name+"_to_H37Rv.bam.bai"
+		File? adjudicated_vcf = sample_name+".vcf"
+		File? bam_and_bai = sample_name+".tar"
 
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
@@ -215,7 +228,7 @@ task variant_call_one_sample_simple {
 		Int preempt  = 1
 		Boolean ssd  = true
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
 
@@ -371,8 +384,8 @@ task variant_call_one_sample_simple {
 
 	output {
 		# the outputs you care about
-		File? mapped_to_ref = sample_name+"_to_"+basestem_ref_dir+".bam"
-		File? vcf_final_call_set = sample_name+".vcf"
+		File? bam = sample_name+"_to_"+basestem_ref_dir+".bam"
+		File? adjudicated_vcf = sample_name+".vcf"
 
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
@@ -403,12 +416,12 @@ task variant_call_one_sample_verbose {
 		Int memory   = 32
 		Int preempt  = 1
 	}
-	# forcing this to be true so we can make mapped_to_ref output non-optional,
+	# forcing this to be true so we can make bam output non-optional,
 	# which will avoid awkwardness when it comes to passing that to other tasks
 	Boolean keep_bam = true
 
 	# estimate disk size required
-	Int size_in = ceil(size(select_first([reads_files, tarball_of_reads_files]), "GB"))
+	Int size_in = ceil(size(select_first([reads_files, [tarball_of_reads_files]]), "GB"))
 	Int finalDiskSize = ceil(2*size_in + addldisk)
 	String basestem_ref_dir = sub((basename(ref_dir)), "\.tar(?!.{5,})", "") # TODO: clean up the regex
 	
@@ -510,8 +523,8 @@ task variant_call_one_sample_verbose {
 	}
 
 	output {
-		File? mapped_to_ref = glob("*~{basestem_ref_dir}.bam")[0]
-		File? vcf_final_call_set = glob("*_final.vcf")[0]
+		File? bam = glob("*~{basestem_ref_dir}.bam")[0]
+		File? adjudicated_vcf = glob("*_final.vcf")[0]
 		File? vcf_cortex = glob("*_cortex.vcf")[0]
 		File? vcf_samtools = glob("*_samtools.vcf")[0]
 		File debug_workdir = "workdir.txt"
