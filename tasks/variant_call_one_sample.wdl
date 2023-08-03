@@ -97,9 +97,11 @@ task variant_call_one_sample_ref_included {
 		fi
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "VARIANT_CALLING_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "VARIANT_CALLING_TIMEOUT" >> ERROR 
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -111,9 +113,11 @@ task variant_call_one_sample_ref_included {
 		fi
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "VARIANT_CALLING_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "VARIANT_CALLING_KILLED" >> ERROR
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -176,7 +180,8 @@ task variant_call_one_sample_ref_included {
 		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
 		rm "~{sample_name}_varclfail.fastq"
 	fi
-
+	
+	echo "PASS" >> ERROR
 	echo "Variant calling completed."
 	>>>
 
@@ -199,6 +204,7 @@ task variant_call_one_sample_ref_included {
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
 		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
+		String ERROR = read_string("ERROR")
 		File? ls1 = "contents_1.txt"
 		File? ls2 = "contents_2.txt"
 		File? ls3 = "contents_3.txt"

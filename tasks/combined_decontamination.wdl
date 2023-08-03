@@ -261,6 +261,7 @@ task combined_decontamination_single_ref_included {
 
 	# We passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
+	echo "PASS" >> ERROR
 
 	echo "Decontamination completed."
 
@@ -285,7 +286,7 @@ task combined_decontamination_single_ref_included {
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
-		String? decontam_error = read_string("ERROR")
+		String ERROR = read_string("ERROR")
 	}
 }
 
