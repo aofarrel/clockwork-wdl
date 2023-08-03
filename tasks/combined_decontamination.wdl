@@ -31,7 +31,7 @@ task combined_decontamination_single_ref_included {
 		# runtime attributes
 		Int addldisk = 100
 		Int cpu = 8
-		Int memory = 2
+		Int memory = 16
 		Int preempt = 1
 		Boolean ssd = true
 	}
@@ -117,6 +117,19 @@ task combined_decontamination_single_ref_included {
 			fi
 		done
 	fi
+	
+	# REVERT ME
+	if (( $RANDOM > 25000 ))
+	then
+		echo "DECONTAMINATION_DEBUG_ERROR" >> ERROR
+		exit 0
+	else
+		echo "PASS" >> ERROR
+		touch "~{sample_name}_1.decontam.fq.gz"
+		touch "~{sample_name}_2.decontam.fq.gz"
+		exit 0
+	fi
+
 
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
 	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
@@ -286,7 +299,7 @@ task combined_decontamination_single_ref_included {
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
-		String ERROR = read_string("ERROR")
+		String errorcode = read_string("ERROR")
 	}
 }
 

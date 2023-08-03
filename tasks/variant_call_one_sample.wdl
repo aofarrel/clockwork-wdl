@@ -62,6 +62,19 @@ task variant_call_one_sample_ref_included {
 	}
 	
 	command <<<
+
+	# REVERT ME
+	if (( $RANDOM > 16383 ))
+	then
+		echo "VARIANT_CALLING_DEBUG_ERROR" >> ERROR
+		exit 0
+	else
+		echo "PASS" >> ERROR
+		exit 0
+	fi
+	
+	
+	
 	# Untar the reference (this will put it in the workdir) 
 	tar -xvf /ref/Ref.H37Rv.tar
 
@@ -204,7 +217,7 @@ task variant_call_one_sample_ref_included {
 		# debugging stuff
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
 		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
-		String ERROR = read_string("ERROR")
+		String errorcode = read_string("ERROR")
 		File? ls1 = "contents_1.txt"
 		File? ls2 = "contents_2.txt"
 		File? ls3 = "contents_3.txt"
