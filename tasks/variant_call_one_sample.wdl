@@ -89,6 +89,8 @@ task variant_call_one_sample_ref_included {
 	~{sep=" " reads_files}
 	
 	exit=$?
+	
+	# rc 124 -- timed out
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample timed out"
@@ -105,6 +107,11 @@ task variant_call_one_sample_ref_included {
 			echo "VARIANT_CALLING_TIMEOUT" >> ERROR 
 			exit 0
 		fi
+	
+	# rc 134 -- killed
+	# you'll see a lot of this if you try to run this on a local machine on Cromwell default settings; Cromwell is
+	# not good at managing hardware resources if you're running on a local machine. This can be partially mitigated
+	# by setting your "hog factors" (cromwell.conf) to only run one concurrent task at a time.
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample was killed -- it may have run out of memory"
@@ -121,9 +128,13 @@ task variant_call_one_sample_ref_included {
 			echo "VARIANT_CALLING_KILLED" >> ERROR
 			exit 0
 		fi
+	
+	# rc 0
 	elif [[ $exit = 0 ]]
 	then
 		echo "Successfully called variants" 
+	
+	# rc 1
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
@@ -131,6 +142,29 @@ task variant_call_one_sample_ref_included {
 		then
 			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
 		fi
+		# check to see if the Cortex log has any information
+		# TODO: I don't remember if minos_adjudicate crashes due to small sample size have an rc of 1 or something else; ideally we'd only
+		# put this check in one place
+		CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
+		if [[ $CORTEX_WARNING == WARNING* ]] ;
+		then
+			echo "***********"
+			echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling, but not small enough to fail minimap2."
+			echo "Expect this task to have errored at minos adjudicate."
+			size_of_read1=$(stat -c %s var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz)
+			echo "Read 1 is $size_of_read1"
+			#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
+			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
+			head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+			echo "***********"
+			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
+		else
+			echo "This sample likely didn't throw a warning during cortex's clean binaries step. Cause of error unknown."
+			echo "VARIANT_CALLING_UNKNOWN_ERROR" >> ERROR
+		fi
+		
 		if [[ "~{crash_on_error}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -138,11 +172,36 @@ task variant_call_one_sample_ref_included {
 		else
 			exit 0
 		fi
+	
+	# rc is something mysterious 
+	# I don't know if this ever happens, but sure, let's handle it just in case
 	else
 		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
 		if [[ "~{debug}" = "true" ]]
 		then
 			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		fi
+		# check to see if the Cortex log has any information
+		# TODO: I don't remember if minos_adjudicate crashes due to small sample size have an rc of 1 or something else; ideally we'd only
+		# put this check in one place
+		CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
+		if [[ $CORTEX_WARNING == WARNING* ]] ;
+		then
+			echo "***********"
+			echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling, but not small enough to fail minimap2."
+			echo "Expect this task to have errored at minos adjudicate."
+			size_of_read1=$(stat -c %s var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz)
+			echo "Read 1 is $size_of_read1"
+			#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
+			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
+			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
+			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
+			head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+			echo "***********"
+			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
+		else
+			echo "This sample likely didn't throw a warning during cortex's clean binaries step. Cause of error unknown."
+			echo "VARIANT_CALLING_UNKNOWN_ERROR_$exit" >> ERROR
 		fi
 		if [[ "~{crash_on_error}" = "true" ]]
 		then
