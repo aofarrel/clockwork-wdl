@@ -62,18 +62,6 @@ task variant_call_one_sample_ref_included {
 	}
 	
 	command <<<
-
-	# REVERT ME
-	if (( $RANDOM > 16383 ))
-	then
-		echo "VARIANT_CALLING_DEBUG_ERROR" >> ERROR
-		exit 0
-	else
-		echo "PASS" >> ERROR
-		exit 0
-	fi
-	
-	
 	
 	# Untar the reference (this will put it in the workdir) 
 	tar -xvf /ref/Ref.H37Rv.tar

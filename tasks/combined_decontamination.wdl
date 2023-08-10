@@ -117,19 +117,6 @@ task combined_decontamination_single_ref_included {
 			fi
 		done
 	fi
-	
-	# REVERT ME
-	if (( $RANDOM > 25000 ))
-	then
-		echo "DECONTAMINATION_DEBUG_ERROR" >> ERROR
-		exit 0
-	else
-		echo "PASS" >> ERROR
-		touch "~{sample_name}_1.decontam.fq.gz"
-		touch "~{sample_name}_2.decontam.fq.gz"
-		exit 0
-	fi
-
 
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
 	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
