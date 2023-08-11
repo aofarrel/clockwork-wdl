@@ -157,7 +157,7 @@ task variant_call_one_sample_ref_included {
 			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
 			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-			head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+			head -50 var_call_"~{sample_name}"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 			echo "***********"
 			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
 		else
@@ -184,7 +184,7 @@ task variant_call_one_sample_ref_included {
 		# check to see if the Cortex log has any information
 		# TODO: I don't remember if minos_adjudicate crashes due to small sample size have an rc of 1 or something else; ideally we'd only
 		# put this check in one place
-		CORTEX_WARNING=$(head -22 var_call_"$sample_name"/cortex/cortex.log | tail -1)
+		CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
 		if [[ $CORTEX_WARNING == WARNING* ]] ;
 		then
 			echo "***********"
@@ -196,7 +196,7 @@ task variant_call_one_sample_ref_included {
 			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
 			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
 			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-			head -50 var_call_"$sample_name"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
+			head -50 var_call_"~{sample_name}"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
 			echo "***********"
 			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
 		else
