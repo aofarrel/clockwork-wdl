@@ -148,9 +148,11 @@ task combined_decontamination_single_ref_included {
 		echo "ERROR -- clockwork map_reads timed out"
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" >> ERROR
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -158,9 +160,11 @@ task combined_decontamination_single_ref_included {
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "DECONTAMINATION_MAP_READS_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "DECONTAMINATION_MAP_READS_KILLED" >> ERROR
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -169,10 +173,12 @@ task combined_decontamination_single_ref_included {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" >> ERROR # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork map_reads returned $exit for unknown reasons"
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" >> ERROR # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
@@ -218,9 +224,11 @@ task combined_decontamination_single_ref_included {
 		echo "ERROR -- clockwork remove_contam timed out"
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" >> ERROR
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -228,9 +236,11 @@ task combined_decontamination_single_ref_included {
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" >> ERROR
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -239,16 +249,19 @@ task combined_decontamination_single_ref_included {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork remove_contam returned $exit for unknown reasons"
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
 
 	# We passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
+	echo "PASS" >> ERROR
 
 	echo "Decontamination completed."
 
@@ -273,6 +286,7 @@ task combined_decontamination_single_ref_included {
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
+		String errorcode = read_string("ERROR")
 	}
 }
 
