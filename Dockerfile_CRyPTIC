@@ -1,0 +1,3 @@
+# FROM line is set by build_dockers.sh, don't edit it here
+FROM ashedpotatoes/clockwork-plus:v0.11.3.3-slim
+COPY references/Ref.remove_contam.tar ./ref/
