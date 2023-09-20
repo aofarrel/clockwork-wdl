@@ -30,6 +30,7 @@ task combined_decontamination_single_ref_included {
 
 		# runtime attributes
 		Int addldisk = 100
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.3-CRyPTIC"
 		Int cpu = 8
 		Int memory = 16
 		Int preempt = 1
@@ -40,6 +41,7 @@ task combined_decontamination_single_ref_included {
 		reads_files: "FASTQs to decontaminate"
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.3-CDC for CDC varpipe ref"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
@@ -274,7 +276,7 @@ task combined_decontamination_single_ref_included {
 	runtime {
 		bootDiskSizeGb: 20
 		cpu: cpu
-		docker: "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		docker: docker_image
 		disks: "local-disk " + finalDiskSize + diskType
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
