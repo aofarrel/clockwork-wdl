@@ -30,7 +30,7 @@ task combined_decontamination_single_ref_included {
 
 		# runtime attributes
 		Int addldisk = 100
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.3-CRyPTIC"
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
 		Int cpu = 8
 		Int memory = 16
 		Int preempt = 1
@@ -41,7 +41,7 @@ task combined_decontamination_single_ref_included {
 		reads_files: "FASTQs to decontaminate"
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
-		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.3-CDC for CDC varpipe ref"
+		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.4-CDC for CDC varpipe ref"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
@@ -123,7 +123,11 @@ task combined_decontamination_single_ref_included {
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
 	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
 	# The tar command will however place the untarred directory in the workdir.
-	tar -xvf /ref/Ref.remove_contam.tar
+	# If we are using the CDC (varpipe) version, this also prevents it from untaring to a folder
+	# named "varpipe.Ref.remove_contam"
+	mkdir Ref.remove_contam
+	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
+	
 
 	# anticipate bad fastqs
 	#

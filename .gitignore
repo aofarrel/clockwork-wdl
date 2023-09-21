@@ -34,3 +34,8 @@ references/varpipe.Ref.remove_contam.tar
 references/varpipe.Ref.remove_contam/ref.fa
 references/varpipe.Ref.remove_contam/ref.fa.fai
 references/varpipe.Ref.remove_contam/remove_contam_metadata.tsv
+references/supposedly.default.Ref.remove_contam/remove_contam_metadata.tsv
+references/supposedly.default.Ref.remove_contam/ref.fa.minimap2_idx
+references/supposedly.default.Ref.remove_contam/ref.fa.fai
+references/supposedly.default.Ref.remove_contam/ref.fa
+references/default.Ref.remove_contam.md5

@@ -1,4 +1,4 @@
 # FROM line is set by build_dockers.sh, don't edit it here
-FROM ashedpotatoes/clockwork-plus:v0.11.3.3-slim
+FROM ashedpotatoes/clockwork-plus:v0.11.3.4-slim
 COPY references/varpipe.Ref.remove_contam.tar ./ref/
 RUN mv /ref/varpipe.Ref.remove_contam.tar /ref/Ref.remove_contam.tar 
