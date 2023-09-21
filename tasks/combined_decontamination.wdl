@@ -105,6 +105,7 @@ task combined_decontamination_single_ref_included {
 	# If you're having issues with miniwdl, --copy-input-files might help
 	if [[ "~{subsample_cutoff}" != "-1" ]]
 	then
+		echo "Subsampling..."
 		for inputfq in "${READS_FILES[@]}"
 		do
 			size_inputfq=$(du -m "$inputfq" | cut -f1)
@@ -125,8 +126,15 @@ task combined_decontamination_single_ref_included {
 	# The tar command will however place the untarred directory in the workdir.
 	# If we are using the CDC (varpipe) version, this also prevents it from untaring to a folder
 	# named "varpipe.Ref.remove_contam"
+	echo "Expanding decontamination reference..."
 	mkdir Ref.remove_contam
 	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
+	
+	# debug information, useful because different WDL executors handle stuff differently
+	echo "Debug information: workdir is $(pwd)"
+	apt-get install tree -y
+	echo "Contents of ./Ref.remove_contam/:"
+	tree Ref.remove_contam/
 	
 
 	# anticipate bad fastqs
