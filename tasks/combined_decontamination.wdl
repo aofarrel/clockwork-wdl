@@ -40,7 +40,7 @@ task combined_decontamination_single_ref_included {
 		reads_files: "FASTQs to decontaminate"
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
-		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.4-CDC for CDC varpipe ref"
+		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.8-CDC for CDC varpipe ref"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
@@ -130,10 +130,8 @@ task combined_decontamination_single_ref_included {
 	
 	# debug information, useful because different WDL executors handle stuff differently
 	echo "Debug information: workdir is $(pwd)"
-	apt-get install tree -y
 	echo "Contents of ./Ref.remove_contam/:"
 	tree Ref.remove_contam/
-	
 
 	# anticipate bad fastqs
 	#
