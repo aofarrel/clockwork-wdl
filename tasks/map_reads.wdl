@@ -48,12 +48,12 @@ task map_reads {
 	outfile="$sample_name.sam"
 
 	# echo important arguments
-	echo "tarball_ref_fasta_and_index" ~{tarball_ref_fasta_and_index}
-	echo "ref_fasta_filename" ~{ref_fasta_filename}
-	echo "basestem_reference" ~{basestem_reference}
-	echo "sample_name" $sample_name
-	echo "outfile" $outfile
-	echo "arg_ref_fasta" ~{arg_ref_fasta}
+	echo "tarball_ref_fasta_and_index ~{tarball_ref_fasta_and_index}"
+	echo "ref_fasta_filename ~{ref_fasta_filename}"
+	echo "basestem_reference ~{basestem_reference}"
+	echo "sample_name $sample_name"
+	echo "outfile $outfile"
+	echo "arg_ref_fasta ~{arg_ref_fasta}"
 	
 	# we need to mv it to the workdir, then untar, or else the ref index won't be found
 	if [[ ! "~{tarball_ref_fasta_and_index}" = "" ]]
@@ -62,7 +62,7 @@ task map_reads {
 		tar -xvf ~{basestem_reference}.tar
 	fi
 
-	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} $sample_name ~{arg_ref_fasta} $outfile ~{sep=" " reads_files}
+	clockwork map_reads ~{arg_unsorted_sam} ~{arg_threads} "$sample_name" ~{arg_ref_fasta} "$outfile" ~{sep=" " reads_files}
 
 	ls -lhaR > workdir.txt
 	>>>
