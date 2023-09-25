@@ -18,7 +18,6 @@ task combined_decontamination_single_ref_included {
 		Int         timeout_map_reads = 120
 		Int         timeout_decontam  = 120
 		Boolean     unsorted_sam = false
-		Boolean     verbose = true
 
 		# rename outs
 		String? counts_out     # must end in counts.tsv
@@ -30,6 +29,7 @@ task combined_decontamination_single_ref_included {
 
 		# runtime attributes
 		Int addldisk = 100
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
 		Int cpu = 8
 		Int memory = 16
 		Int preempt = 1
@@ -40,13 +40,13 @@ task combined_decontamination_single_ref_included {
 		reads_files: "FASTQs to decontaminate"
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.8-CDC for CDC varpipe ref"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
 		timeout_decontam: "If decontamination takes longer than this number of minutes, stop processing this sample"
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
-		verbose: "Increase amount of stuff sent to stdout"
 	}
 	# The Docker image has our reference information, so these can be hardcoded.
 	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
@@ -103,6 +103,7 @@ task combined_decontamination_single_ref_included {
 	# If you're having issues with miniwdl, --copy-input-files might help
 	if [[ "~{subsample_cutoff}" != "-1" ]]
 	then
+		echo "Subsampling..."
 		for inputfq in "${READS_FILES[@]}"
 		do
 			size_inputfq=$(du -m "$inputfq" | cut -f1)
@@ -121,7 +122,16 @@ task combined_decontamination_single_ref_included {
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
 	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
 	# The tar command will however place the untarred directory in the workdir.
-	tar -xvf /ref/Ref.remove_contam.tar
+	# If we are using the CDC (varpipe) version, this also prevents it from untaring to a folder
+	# named "varpipe.Ref.remove_contam"
+	echo "Expanding decontamination reference..."
+	mkdir Ref.remove_contam
+	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
+	
+	# debug information, useful because different WDL executors handle stuff differently
+	echo "Debug information: workdir is $(pwd)"
+	echo "Contents of ./Ref.remove_contam/:"
+	tree Ref.remove_contam/
 
 	# anticipate bad fastqs
 	#
@@ -129,12 +139,16 @@ task combined_decontamination_single_ref_included {
 	# WDL task fails. The duplicate will be deleted if we decontam successfully. We use
 	# copies of the inputs WDL gets iffy when trying to glob on optionals, and because
 	# deleting inputs is wonky on some backends (understandably!)
+	echo "Preparing for bad fastqs..."
 	for inputfq in "${READS_FILES[@]}"
 	do
 		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
 	done
 
 	# map reads for decontamination
+	echo "****************"
+	echo "Mapping reads..."
+	echo "****************"
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
@@ -182,8 +196,6 @@ task combined_decontamination_single_ref_included {
 		set -eux -o pipefail
 		exit 1
 	fi
-	
-	echo "************ removing contamination *****************"
 
 	# calculate the last three positional arguments of the rm_contam task
 	if [[ ! "~{counts_out}" = "" ]]
@@ -205,8 +217,10 @@ task combined_decontamination_single_ref_included {
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
 	
+	echo "Sorting by read name..."
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
 
+	echo "Removing contamination..."
 	# One of remove_contam's tasks will throw a warning about index files. Ignore it.
 	# https://github.com/mhammell-laboratory/TEtranscripts/issues/99
 	timeout -v ~{timeout_decontam}m clockwork remove_contam \
@@ -264,17 +278,13 @@ task combined_decontamination_single_ref_included {
 	echo "PASS" >> ERROR
 
 	echo "Decontamination completed."
-
-	if [[ ! "~{verbose}" = "true" ]]
-	then
-		ls -lha
-	fi
+	ls -lha
 	>>>
 
 	runtime {
 		bootDiskSizeGb: 20
 		cpu: cpu
-		docker: "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		docker: docker_image
 		disks: "local-disk " + finalDiskSize + diskType
 		memory: "${memory} GB"
 		preemptible: "${preempt}"

@@ -8,7 +8,8 @@ workflow Clockworkref_prepGeneric {
 
 	call ref_prep.reference_prepare_byob {
 		input:
-			fasta_file = fasta_file
+			fasta_file = fasta_file,
+			outdir = "output_reference"
 	}
 
 	meta {

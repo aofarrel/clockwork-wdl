@@ -1,1 +1,1 @@
-The references are too large to commit, so md5 checksums are provided instead. You can find mirrors of the reference tarballs gs://topmed_workflow_testing/tb/ref/
+The references are too large to commit, so md5 checksums are provided instead. You can find mirrors of the reference tarballs gs://ucsc-pathogen-genomics-public/tb/ref/
