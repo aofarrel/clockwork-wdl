@@ -84,6 +84,7 @@ task combined_decontamination_single_ref_included {
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
+	start_total=$SECONDS
 	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
 
 	# make sure reads are paired correctly
@@ -101,6 +102,7 @@ task combined_decontamination_single_ref_included {
 	# Downsampling relies on deleting inputs and then putting a new file where the the old
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
+	start_subsample=$SECONDS
 	if [[ "~{subsample_cutoff}" != "-1" ]]
 	then
 		echo "Subsampling..."
@@ -118,15 +120,20 @@ task combined_decontamination_single_ref_included {
 			fi
 		done
 	fi
+	timer_subsample=$(( SECONDS - start_subsample ))
+	echo ${timer_subsample} > timer_subsample
 
 	# Terra-Cromwell does not place you in the home dir, but rather one folder down, so we have
 	# to go up one to get the ref genome. miniwdl goes further. Who knows what other executors do.
 	# The tar command will however place the untarred directory in the workdir.
 	# If we are using the CDC (varpipe) version, this also prevents it from untaring to a folder
 	# named "varpipe.Ref.remove_contam"
+	start_untar=$SECONDS
 	echo "Expanding decontamination reference..."
 	mkdir Ref.remove_contam
 	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
+	timer_untar=$(( SECONDS - start_untar ))
+	echo ${timer_untar} > timer_untar
 	
 	# debug information, useful because different WDL executors handle stuff differently
 	echo "Debug information: workdir is $(pwd)"
@@ -149,6 +156,7 @@ task combined_decontamination_single_ref_included {
 	echo "****************"
 	echo "Mapping reads..."
 	echo "****************"
+	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
 		~{arg_threads} \
@@ -196,6 +204,8 @@ task combined_decontamination_single_ref_included {
 		set -eux -o pipefail
 		exit 1
 	fi
+	timer_map_reads=$(( SECONDS - start_map_reads ))
+	echo ${timer_map_reads} > timer_map_reads
 
 	# calculate the last three positional arguments of the rm_contam task
 	if [[ ! "~{counts_out}" = "" ]]
@@ -208,7 +218,7 @@ task combined_decontamination_single_ref_included {
 	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
 	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
-	# TODO: this doesn't seem to be in the nextflow version of this pipeline, but it seems
+	# TODO: samtools sort doesn't seem to be in the nextflow version of this pipeline, but it seems
 	# we need it in the WDL version?
 	# https://github.com/iqbal-lab-org/clockwork/issues/77
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/contam_remover.py#L170
@@ -217,9 +227,13 @@ task combined_decontamination_single_ref_included {
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
 	
+	start_samtools_sort=$SECONDS
 	echo "Sorting by read name..."
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
+	timer_samtools_sort=$(( SECONDS - start_samtools_sort ))
+	echo ${timer_samtools_sort} > timer_samtools_sort
 
+	start_rm_contam=$SECONDS
 	echo "Removing contamination..."
 	# One of remove_contam's tasks will throw a warning about index files. Ignore it.
 	# https://github.com/mhammell-laboratory/TEtranscripts/issues/99
@@ -272,10 +286,15 @@ task combined_decontamination_single_ref_included {
 		set -eux -o pipefail
 		exit 1
 	fi
+	timer_rm_contam=$(( SECONDS - start_rm_contam ))
+	echo ${timer_rm_contam} > timer_rm_contam
 
 	# We passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
 	echo "PASS" >> ERROR
+	
+	timer_total=$(( SECONDS - start_total ))
+	echo ${timer_total} > timer_total
 
 	echo "Decontamination completed."
 	ls -lha
@@ -297,7 +316,16 @@ task combined_decontamination_single_ref_included {
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
 		String errorcode = read_string("ERROR")
+		
+		# timers and debug information
+		Int seconds_to_untar = read_int("timer_untar")
+		Int seconds_to_map_reads = read_int("timer_map_reads")
+		Int seconds_to_sort = read_int("timer_samtools_sort")
+		Int seconds_to_rm_contam = read_int("timer_rm_contam")
+		Int seconds_total = read_int("timer_total")
+		String docker_used = docker_image
 	}
+	
 }
 
 task combined_decontamination_single {
