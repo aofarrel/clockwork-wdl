@@ -96,30 +96,39 @@ task combined_decontamination_single_ref_included {
 	# never an issue when downloading reads via SRANWRP, but to better support direct
 	# input of reads, this sort of hack is necessary.
 	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
-
-	# downsample, if necessary
+	
+	# get size of inputs (disk size and counts), and downsample if necessary
 	#
+	# This is useful for determining how much data was removed during downsampling.
 	# Downsampling relies on deleting inputs and then putting a new file where the the old
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
 	start_subsample=$SECONDS
-	if [[ "~{subsample_cutoff}" != "-1" ]]
-	then
-		echo "Subsampling..."
-		for inputfq in "${READS_FILES[@]}"
-		do
-			size_inputfq=$(du -m "$inputfq" | cut -f1)
-			# shellcheck disable=SC2004
-			# just trust me on this one
+	touch input_fq_stats.tsv
+	input_fq_reads=0
+	input_fq_size=0
+	for inputfq in "${READS_FILES[@]}"
+	do
+		size_inputfq=$(du -m "$inputfq" | cut -f1)
+		reads_inputfq=$(fqtools count "$inputfq")
+		printf "%s\t%s\t%s" "$inputfq" "$size_inputfq" "$reads_inputfq" >> input_fq_stats.tsv
+		#echo "$inputfq\t$size_inputfq\t$reads_inputfq" >> input_fq_stats.tsv
+		input_fq_size=$((input_fq_size+size_inputfq))
+		input_fq_reads=$((input_fq_reads+reads_inputfq))
+		# shellcheck disable=SC2004
+		# just trust me on this one
+		if [[ "~{subsample_cutoff}" != "-1" ]]
+		then
+			echo "Subsampling..."
 			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
 				rm "$inputfq"
 				mv temp.fq "$inputfq"
-				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB, $reads_inputfq reads)"
 			fi
-		done
-	fi
+		fi
+	done
 	timer_subsample=$(( SECONDS - start_subsample ))
 	echo ${timer_subsample} > timer_subsample
 
@@ -288,6 +297,18 @@ task combined_decontamination_single_ref_included {
 	fi
 	timer_rm_contam=$(( SECONDS - start_rm_contam ))
 	echo ${timer_rm_contam} > timer_rm_contam
+	
+	# Calcuate size change
+	decon_size_out_1=$(du -m "~{sample_name}+_1.decontam.fq.gz" | cut -f1)
+	decon_size_out_2=$(du -m "~{sample_name}+_2.decontam.fq.gz" | cut -f1)
+	decon_size_out=$((decon_size_out_1 + decon_size_out_2))
+	decon_reads_out_1=$(fqtools count "~{sample_name}+_1.decontam.fq.gz")
+	decon_reads_out_2=$(fqtools count "~{sample_name}+_2.decontam.fq.gz")
+	decon_reads_out=$((decon_reads_out_1 + decon_reads_out_2))
+	size_difference=$((input_fq_size - decon_size_out))
+	reads_difference=$((input_fq_reads - decon_reads_out))
+	echo "$size_difference" > size_difference
+	echo "$reads_difference" > reads_difference
 
 	# We passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
@@ -323,6 +344,8 @@ task combined_decontamination_single_ref_included {
 		Int seconds_to_sort = read_int("timer_samtools_sort")
 		Int seconds_to_rm_contam = read_int("timer_rm_contam")
 		Int seconds_total = read_int("timer_total")
+		Float size_difference = read_float("size_difference")
+		Float reads_difference = read_float("reads_difference")
 		String docker_used = docker_image
 	}
 	
