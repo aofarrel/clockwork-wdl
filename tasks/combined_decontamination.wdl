@@ -140,11 +140,6 @@ task combined_decontamination_single_ref_included {
 	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
 	timer_untar=$(( SECONDS - start_untar ))
 	echo ${timer_untar} > timer_untar
-	
-	# debug information, useful because different WDL executors handle stuff differently
-	echo "Debug information: workdir is $(pwd)"
-	echo "Contents of ./Ref.remove_contam/:"
-	tree Ref.remove_contam/
 
 	# anticipate bad fastqs
 	#
