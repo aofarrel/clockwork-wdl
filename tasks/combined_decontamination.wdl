@@ -287,9 +287,15 @@ task combined_decontamination_single_ref_included {
 	timer_rm_contam=$(( SECONDS - start_rm_contam ))
 	echo ${timer_rm_contam} > timer_rm_contam
 
-	# We passed, so delete the output that would signal to run fastqc
+	# if we got here, then we passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
 	echo "PASS" >> ERROR
+	
+	# parse decontam.counts.tsv
+	cat $arg_counts_out | head -2 | tail -1 | cut -f3 > reads_is_contam
+	cat $arg_counts_out | head -3 | tail -1 | cut -f3 > reads_reference
+	cat $arg_counts_out | head -4 | tail -1 | cut -f3 > reads_unmapped
+	cat $arg_counts_out | head -5 | tail -1 | cut -f3 > reads_kept
 	
 	timer_total=$(( SECONDS - start_total ))
 	echo ${timer_total} > timer_total
@@ -308,7 +314,6 @@ task combined_decontamination_single_ref_included {
 	}
 
 	output {
-		#File? mapped_to_decontam = glob("*.sam")[0]
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
@@ -316,12 +321,19 @@ task combined_decontamination_single_ref_included {
 		String errorcode = read_string("ERROR")
 		
 		# timers and debug information
-		#Int seconds_to_untar = read_int("timer_untar")
-		Int seconds_to_map_reads = read_int("timer_map_reads")
-		Int seconds_to_sort = read_int("timer_samtools_sort")
-		Int seconds_to_rm_contam = read_int("timer_rm_contam")
-		Int seconds_total = read_int("timer_total")
+		Int timer_map_reads = read_int("timer_map_reads")
+		Int timer_rm_contam = read_int("timer_rm_contam")
+		Int timer_total = read_int("timer_total")
 		String docker_used = docker_image
+		Int reads_is_contam = read_int("reads_is_contam")
+		Int reads_reference = read_int("reads_reference")
+		Int reads_unmapped = read_int("reads_unmapped")
+		Int reads_kept = read_int("reads_kept")
+		
+		# you probably don't want these...
+		#File? mapped_to_decontam = glob("*.sam")[0]
+		#Int timer_sort = read_int("timer_samtools_sort")
+		#Int seconds_to_untar = read_int("timer_untar")
 	}
 	
 }

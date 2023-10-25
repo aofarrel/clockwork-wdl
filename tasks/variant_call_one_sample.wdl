@@ -265,10 +265,10 @@ task variant_call_one_sample_ref_included {
 		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
 		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
 		String errorcode = read_string("ERROR")
-		File? ls1 = "contents_1.txt"
-		File? ls2 = "contents_2.txt"
-		File? ls3 = "contents_3.txt"
-		File? workdir_tarball = sample_name+".tar"
+		#File? ls1 = "contents_1.txt"
+		#File? ls2 = "contents_2.txt"
+		#File? ls3 = "contents_3.txt"
+		File? workdir_tarball = sample_name+".tar"  # only if debug is true and something breaks
 	}
 }
 
