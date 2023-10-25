@@ -28,8 +28,9 @@ task combined_decontamination_single_ref_included {
 
 		# runtime attributes
 		Int addldisk = 100
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
 		Int cpu = 8
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		Int max_retries = 0
 		Int memory = 16
 		Int preempt = 1
 		Boolean ssd = true
@@ -304,6 +305,7 @@ task combined_decontamination_single_ref_included {
 		cpu: cpu
 		docker: docker_image
 		disks: "local-disk " + finalDiskSize + diskType
+		maxRetries: max_retries
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
 	}
