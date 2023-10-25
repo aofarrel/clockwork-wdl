@@ -111,7 +111,7 @@ task combined_decontamination_single_ref_included {
 	do
 		size_inputfq=$(du -m "$inputfq" | cut -f1)
 		reads_inputfq=$(fqtools count "$inputfq")
-		printf "%s\t%s\t%s" "$inputfq" "$size_inputfq" "$reads_inputfq" >> input_fq_stats.tsv
+		printf "%s\t%s\t%s\n" "$inputfq" "$size_inputfq" "$reads_inputfq" >> input_fq_stats.tsv
 		#echo "$inputfq\t$size_inputfq\t$reads_inputfq" >> input_fq_stats.tsv
 		input_fq_size=$((input_fq_size+size_inputfq))
 		input_fq_reads=$((input_fq_reads+reads_inputfq))
@@ -299,11 +299,11 @@ task combined_decontamination_single_ref_included {
 	echo ${timer_rm_contam} > timer_rm_contam
 	
 	# Calcuate size change
-	decon_size_out_1=$(du -m "~{sample_name}+_1.decontam.fq.gz" | cut -f1)
-	decon_size_out_2=$(du -m "~{sample_name}+_2.decontam.fq.gz" | cut -f1)
+	decon_size_out_1=$(du -m "~{sample_name}_1.decontam.fq.gz" | cut -f1)
+	decon_size_out_2=$(du -m "~{sample_name}_2.decontam.fq.gz" | cut -f1)
 	decon_size_out=$((decon_size_out_1 + decon_size_out_2))
-	decon_reads_out_1=$(fqtools count "~{sample_name}+_1.decontam.fq.gz")
-	decon_reads_out_2=$(fqtools count "~{sample_name}+_2.decontam.fq.gz")
+	decon_reads_out_1=$(fqtools count "~{sample_name}_1.decontam.fq.gz")
+	decon_reads_out_2=$(fqtools count "~{sample_name}_2.decontam.fq.gz")
 	decon_reads_out=$((decon_reads_out_1 + decon_reads_out_2))
 	size_difference=$((input_fq_size - decon_size_out))
 	reads_difference=$((input_fq_reads - decon_reads_out))
@@ -346,6 +346,7 @@ task combined_decontamination_single_ref_included {
 		Int seconds_total = read_int("timer_total")
 		Float size_difference = read_float("size_difference")
 		Float reads_difference = read_float("reads_difference")
+		File input_stats = "input_fq_stats.tsv"
 		String docker_used = docker_image
 	}
 	
