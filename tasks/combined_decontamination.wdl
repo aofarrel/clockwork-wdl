@@ -84,6 +84,8 @@ task combined_decontamination_single_ref_included {
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
+	# shellcheck disable=SC2004
+	# WDL parsers can get a little iffy with SC2004 so let's just. not.
 	start_total=$SECONDS
 	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
 
@@ -103,22 +105,27 @@ task combined_decontamination_single_ref_included {
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
 	start_subsample=$SECONDS
-	if [[ "~{subsample_cutoff}" != "-1" ]]
-	then
-		echo "Subsampling..."
-		for inputfq in "${READS_FILES[@]}"
-		do
-			size_inputfq=$(du -m "$inputfq" | cut -f1)
-			# shellcheck disable=SC2004
-			# just trust me on this one
+	input_fq_reads=0
+	for inputfq in "${READS_FILES[@]}"
+	do
+		size_inputfq=$(du -m "$inputfq" | cut -f1)
+		reads_inputfq=$(fqtools count "$inputfq")
+		input_fq_reads=$((input_fq_reads+reads_inputfq))
+		if [[ "~{subsample_cutoff}" != "-1" ]]
+		then
+			echo "Subsampling..."
 			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
 				rm "$inputfq"
 				mv temp.fq "$inputfq"
-				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB, $reads_inputfq reads)"
 			fi
-		done
+		fi
+	done
+	if (( $input_fq_reads < 1000 ))
+	then
+		echo "WARNING: There seems to be less than a thousand input reads in total!"
 	fi
 	timer_subsample=$(( SECONDS - start_subsample ))
 	echo ${timer_subsample} > timer_subsample
@@ -318,7 +325,7 @@ task combined_decontamination_single_ref_included {
 		String errorcode = read_string("ERROR")
 		
 		# timers and debug information
-		Int seconds_to_untar = read_int("timer_untar")
+		#Int seconds_to_untar = read_int("timer_untar")
 		Int seconds_to_map_reads = read_int("timer_map_reads")
 		Int seconds_to_sort = read_int("timer_samtools_sort")
 		Int seconds_to_rm_contam = read_int("timer_rm_contam")
