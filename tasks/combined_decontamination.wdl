@@ -20,7 +20,6 @@ task combined_decontamination_single_ref_included {
 		Boolean     unsorted_sam = false
 
 		# rename outs
-		String? counts_out     # must end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
@@ -160,9 +159,7 @@ task combined_decontamination_single_ref_included {
 	done
 
 	# map reads for decontamination
-	echo "****************"
 	echo "Mapping reads..."
-	echo "****************"
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
@@ -214,17 +211,12 @@ task combined_decontamination_single_ref_included {
 	timer_map_reads=$(( SECONDS - start_map_reads ))
 	echo ${timer_map_reads} > timer_map_reads
 
-	# calculate the last three positional arguments of the rm_contam task
-	if [[ ! "~{counts_out}" = "" ]]
-	then
-		arg_counts_out="~{counts_out}"
-	else
-		arg_counts_out="~{sample_name}.decontam.counts.tsv"
-	fi
-
+	arg_counts_out="~{sample_name}.decontam.counts.tsv"
 	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
 	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
+	# handle samtools sort
+	#
 	# TODO: samtools sort doesn't seem to be in the nextflow version of this pipeline, but it seems
 	# we need it in the WDL version?
 	# https://github.com/iqbal-lab-org/clockwork/issues/77
@@ -233,7 +225,6 @@ task combined_decontamination_single_ref_included {
 	# This might intereact with unsorted_sam, which seems to actually be a dupe remover
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
-	
 	start_samtools_sort=$SECONDS
 	echo "Sorting by read name..."
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
