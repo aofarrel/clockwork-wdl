@@ -104,7 +104,7 @@ task combined_decontamination_single_ref_included {
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
 	start_subsample=$SECONDS
-	touch input_fq_stats.tsv
+	echo "Please also check *.decontam.counts.tsv for more information.\n" >> fq_stats.tsv
 	input_fq_reads=0
 	input_fq_size=0
 	for inputfq in "${READS_FILES[@]}"
@@ -112,7 +112,6 @@ task combined_decontamination_single_ref_included {
 		size_inputfq=$(du -m "$inputfq" | cut -f1)
 		reads_inputfq=$(fqtools count "$inputfq")
 		printf "%s\t%s\t%s\n" "$inputfq" "$size_inputfq MB" "$reads_inputfq" >> fq_stats.tsv
-		#echo "$inputfq\t$size_inputfq\t$reads_inputfq" >> input_fq_stats.tsv
 		input_fq_size=$((input_fq_size+size_inputfq))
 		input_fq_reads=$((input_fq_reads+reads_inputfq))
 		# shellcheck disable=SC2004
