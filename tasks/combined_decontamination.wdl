@@ -20,7 +20,6 @@ task combined_decontamination_single_ref_included {
 		Boolean     unsorted_sam = false
 
 		# rename outs
-		String? counts_out     # must end in counts.tsv
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
@@ -29,8 +28,9 @@ task combined_decontamination_single_ref_included {
 
 		# runtime attributes
 		Int addldisk = 100
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
 		Int cpu = 8
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		Int max_retries = 0
 		Int memory = 16
 		Int preempt = 1
 		Boolean ssd = true
@@ -84,6 +84,8 @@ task combined_decontamination_single_ref_included {
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
+	# shellcheck disable=SC2004
+	# WDL parsers can get a little iffy with SC2004 so let's just. not.
 	start_total=$SECONDS
 	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
 
@@ -103,22 +105,27 @@ task combined_decontamination_single_ref_included {
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
 	start_subsample=$SECONDS
-	if [[ "~{subsample_cutoff}" != "-1" ]]
-	then
-		echo "Subsampling..."
-		for inputfq in "${READS_FILES[@]}"
-		do
-			size_inputfq=$(du -m "$inputfq" | cut -f1)
-			# shellcheck disable=SC2004
-			# just trust me on this one
+	input_fq_reads=0
+	for inputfq in "${READS_FILES[@]}"
+	do
+		size_inputfq=$(du -m "$inputfq" | cut -f1)
+		reads_inputfq=$(fqtools count "$inputfq")
+		input_fq_reads=$((input_fq_reads+reads_inputfq))
+		if [[ "~{subsample_cutoff}" != "-1" ]]
+		then
+			echo "Subsampling..."
 			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
 				rm "$inputfq"
 				mv temp.fq "$inputfq"
-				echo "WARNING: downsampled $inputfq (was $size_inputfq MB)"
+				echo "WARNING: downsampled $inputfq (was $size_inputfq MB, $reads_inputfq reads)"
 			fi
-		done
+		fi
+	done
+	if (( $input_fq_reads < 1000 ))
+	then
+		echo "WARNING: There seems to be less than a thousand input reads in total!"
 	fi
 	timer_subsample=$(( SECONDS - start_subsample ))
 	echo ${timer_subsample} > timer_subsample
@@ -134,11 +141,6 @@ task combined_decontamination_single_ref_included {
 	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
 	timer_untar=$(( SECONDS - start_untar ))
 	echo ${timer_untar} > timer_untar
-	
-	# debug information, useful because different WDL executors handle stuff differently
-	echo "Debug information: workdir is $(pwd)"
-	echo "Contents of ./Ref.remove_contam/:"
-	tree Ref.remove_contam/
 
 	# anticipate bad fastqs
 	#
@@ -153,9 +155,7 @@ task combined_decontamination_single_ref_included {
 	done
 
 	# map reads for decontamination
-	echo "****************"
 	echo "Mapping reads..."
-	echo "****************"
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
@@ -207,17 +207,12 @@ task combined_decontamination_single_ref_included {
 	timer_map_reads=$(( SECONDS - start_map_reads ))
 	echo ${timer_map_reads} > timer_map_reads
 
-	# calculate the last three positional arguments of the rm_contam task
-	if [[ ! "~{counts_out}" = "" ]]
-	then
-		arg_counts_out="~{counts_out}"
-	else
-		arg_counts_out="~{sample_name}.decontam.counts.tsv"
-	fi
-
+	arg_counts_out="~{sample_name}.decontam.counts.tsv"
 	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
 	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
+	# handle samtools sort
+	#
 	# TODO: samtools sort doesn't seem to be in the nextflow version of this pipeline, but it seems
 	# we need it in the WDL version?
 	# https://github.com/iqbal-lab-org/clockwork/issues/77
@@ -226,7 +221,6 @@ task combined_decontamination_single_ref_included {
 	# This might intereact with unsorted_sam, which seems to actually be a dupe remover
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
-	
 	start_samtools_sort=$SECONDS
 	echo "Sorting by read name..."
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
@@ -289,9 +283,15 @@ task combined_decontamination_single_ref_included {
 	timer_rm_contam=$(( SECONDS - start_rm_contam ))
 	echo ${timer_rm_contam} > timer_rm_contam
 
-	# We passed, so delete the output that would signal to run fastqc
+	# if we got here, then we passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
 	echo "PASS" >> ERROR
+	
+	# parse decontam.counts.tsv
+	cat $arg_counts_out | head -2 | tail -1 | cut -f3 > reads_is_contam
+	cat $arg_counts_out | head -3 | tail -1 | cut -f3 > reads_reference
+	cat $arg_counts_out | head -4 | tail -1 | cut -f3 > reads_unmapped
+	cat $arg_counts_out | head -5 | tail -1 | cut -f3 > reads_kept
 	
 	timer_total=$(( SECONDS - start_total ))
 	echo ${timer_total} > timer_total
@@ -305,12 +305,12 @@ task combined_decontamination_single_ref_included {
 		cpu: cpu
 		docker: docker_image
 		disks: "local-disk " + finalDiskSize + diskType
+		maxRetries: max_retries
 		memory: "${memory} GB"
 		preemptible: "${preempt}"
 	}
 
 	output {
-		#File? mapped_to_decontam = glob("*.sam")[0]
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
@@ -318,12 +318,19 @@ task combined_decontamination_single_ref_included {
 		String errorcode = read_string("ERROR")
 		
 		# timers and debug information
-		Int seconds_to_untar = read_int("timer_untar")
-		Int seconds_to_map_reads = read_int("timer_map_reads")
-		Int seconds_to_sort = read_int("timer_samtools_sort")
-		Int seconds_to_rm_contam = read_int("timer_rm_contam")
-		Int seconds_total = read_int("timer_total")
+		Int timer_map_reads = read_int("timer_map_reads")
+		Int timer_rm_contam = read_int("timer_rm_contam")
+		Int timer_total = read_int("timer_total")
 		String docker_used = docker_image
+		Int reads_is_contam = read_int("reads_is_contam")
+		Int reads_reference = read_int("reads_reference")
+		Int reads_unmapped = read_int("reads_unmapped")
+		Int reads_kept = read_int("reads_kept")
+		
+		# you probably don't want these...
+		#File? mapped_to_decontam = glob("*.sam")[0]
+		#Int timer_sort = read_int("timer_samtools_sort")
+		#Int seconds_to_untar = read_int("timer_untar")
 	}
 	
 }
