@@ -31,7 +31,7 @@ task combined_decontamination_single_ref_included {
 		Int cpu = 8
 		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
 		Int max_retries = 0
-		Int memory = 16
+		Int memory = 32
 		Int preempt = 1
 		Boolean ssd = true
 	}
