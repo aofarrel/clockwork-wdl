@@ -33,7 +33,7 @@ task clean_and_decontam_and_check {
 		# runtime attributes
 		Int addldisk = 100
 		Int cpu = 8
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.2-full"
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.9-full"
 		Int max_retries = 0
 		Int memory = 32
 		Int preempt = 1
@@ -44,7 +44,7 @@ task clean_and_decontam_and_check {
 		reads_files: "FASTQs to decontaminate"
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
-		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.8-CDC for CDC varpipe ref"
+		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.9-CDC for CDC varpipe ref"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		threads: "Attempt to use these many threads when mapping reads"
