@@ -20,7 +20,7 @@ task clean_and_decontam_and_check {
 		
 		# fastp cleaning options (happens second)
 		Int fastp_cleaning_avg_qual = 29
-		Boolean fastp_cleaning_disable_adaptor_trimming = false
+		Boolean fastp_cleaning_disable_adapter_trimming = false
 		Boolean fastp_cleaning_detect_adapter_for_pe = true
 		Boolean fastp_skip_cleaning = false
 		
@@ -65,7 +65,8 @@ task clean_and_decontam_and_check {
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
 	}
-	String arg_adapter_trimming = if(fastp_cleaning_disable_adaptor_trimming) then "--disable_adapter_trimming" else ""
+	String arg_adapter_trimming = if(fastp_cleaning_disable_adapter_trimming) then "--disable_adapter_trimming" else ""
+	String arg_adapter_pe = if(fastp_cleaning_detect_adapter_for_pe) then "--detect_adapter_for_pe" else ""
 	
 	# The Docker image has our reference information, so these can be hardcoded.
 	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
@@ -181,7 +182,7 @@ task clean_and_decontam_and_check {
 	if (( "~{fastp_skip_cleaning}" = "false" ))
 	then
 		fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" --out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
-			--average_qual ~{fastp_cleaning_avg_qual} --json "~{sample_name}_first_fastp.json" "~{arg_adapter_trimming}"
+			--average_qual ~{fastp_cleaning_avg_qual} "~{arg_adapter_pe}" "~{arg_adapter_trimming}" --json "~{sample_name}_first_fastp.json"
 		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
