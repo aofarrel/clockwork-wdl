@@ -56,9 +56,9 @@ task clean_and_decontam_and_check {
 		
 		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
 		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.9-CDC for CDC varpipe ref"
-		fastp_cleaning_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
-		fastp_cleaning_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
-		fastp_cleaning_detect_adapter_for_pe: "Enable auto-detection for adapter for PE data, not just SE data. WDL default: true. fastp default: false."
+		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
+		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
+		fastp_clean_detect_adapter_for_pe: "Enable auto-detection for adapter for PE data, not just SE data. WDL default: true. fastp default: false."
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		timeout_decontam: "If decontamination takes longer than this number of minutes, stop processing this sample"
