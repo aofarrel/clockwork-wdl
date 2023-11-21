@@ -19,9 +19,9 @@ task clean_and_decontam_and_check {
 		Int         subsample_seed = 1965
 		
 		# fastp cleaning options (happens second)
-		Int fastp_cleaning_avg_qual = 29
-		Boolean fastp_cleaning_disable_adapter_trimming = false
-		Boolean fastp_cleaning_detect_adapter_for_pe = true
+		Int fastp_clean_avg_qual = 29
+		Boolean fastp_clean_disable_adapter_trimming = false
+		Boolean fastp_clean_detect_adapter_for_pe = true
 		Boolean fastp_skip_cleaning = false
 		
 		# decontamination options (happens third)
@@ -65,8 +65,8 @@ task clean_and_decontam_and_check {
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
 	}
-	String arg_adapter_trimming = if(fastp_cleaning_disable_adapter_trimming) then "--disable_adapter_trimming" else ""
-	String arg_adapter_pe = if(fastp_cleaning_detect_adapter_for_pe) then "--detect_adapter_for_pe" else ""
+	String arg_adapter_trimming = if(fastp_clean_disable_adapter_trimming) then "--disable_adapter_trimming" else ""
+	String arg_adapter_pe = if(fastp_clean_detect_adapter_for_pe) then "--detect_adapter_for_pe" else ""
 	
 	# The Docker image has our reference information, so these can be hardcoded.
 	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
@@ -107,9 +107,9 @@ task clean_and_decontam_and_check {
 	# WDL parsers can get a little iffy with SC2004 so let's just. not.
 	start_total=$SECONDS
 
-	# -----------------------------------------
-	# (1) Make sure reads are paired correctly
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(1) [bash] Ensure reads are paired correctly"
+	echo "----------------------------------------------"
 	# What it does: Makes an array to ensure _1 and _2 reads are in the right order.
 	#
 	# Rationale: clockwork map_reads seems to require each pair of fqs are consecutive, eg:
@@ -118,12 +118,19 @@ task clean_and_decontam_and_check {
 	# fail assuming SRR1 and SRR2 have different read counts. This hack does not seem to be
 	# needed if reads were piped in from an SRANWRP downloaload, but to support Terra data 
 	# table input of reads this seems to be necessary.
+	start_first=$SECONDS
 	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
 	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
+	echo 'fqs as recieved:' "~{sep='" "' reads_files}"
+	echo 'fqs after sorting:' 
+	for fq in "${READS_FILES[@]}"; do echo "$fq"; done 
+	timer_first=$(( SECONDS - start_first ))
+	echo ${timer_first} > timer_1_process
 
-	# -----------------------------------------
-	# (2) Check fq size and (maybe) downsample
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(2) [fqtools/seqtk] Check size & maybe subsample"
+	echo "---> subsample_cutoff: ~{subsample_cutoff} MB (-1 means never)"
+	echo "----------------------------------------------"
 	# What it does: Use fqtools count and du to see how big our fastqs are, and downsample
 	# if above user-defined limit.
 	#
@@ -136,6 +143,9 @@ task clean_and_decontam_and_check {
 	input_fq_reads=0
 	for inputfq in "${READS_FILES[@]}"
 	do
+		size_inputfq=$(du -m "$inputfq" | cut -f1)
+		reads_inputfq=$(fqtools count "$inputfq")
+		input_fq_reads=$((input_fq_reads+reads_inputfq))
 		if [[ "~{subsample_cutoff}" != "-1" ]]
 		then
 			echo "Subsampling..."
@@ -152,47 +162,34 @@ task clean_and_decontam_and_check {
 	then
 		echo "WARNING: There seems to be less than a thousand input reads in total!"
 	fi
-	timer_subsample=$(( SECONDS - start_subsample ))
-	echo ${timer_subsample} > timer_subsample
+	echo $(( SECONDS - start_subsample )) > timer_2_size
 	
-	# -----------------------------------------
-	# (3) Duplicate input fastqs
-	# -----------------------------------------
-	# What it does: Creates duplicates of the input fastqs
-	#
-	# Rationale: This is a hack to make sure the check_this_fastq task output is defined iff this
-	# WDL task fails. The duplicate will be deleted if we decontam successfully.
-	#
-	# TODO: This step could probably be deleted if we change some of the error handling!
-	echo "Preparing for bad fastqs..."
-	for inputfq in "${READS_FILES[@]}"
-	do
-		cp "$inputfq" "~{read_file_basename}_dcntmfail.fastq"
-	done
-	
-	
-	# -----------------------------------------
-	# (4) Run fastp for the first time
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(3) [fastp] Check and maybe clean reads"
+	echo "---> fastp_skip_cleaning: ~{fastp_skip_cleaning}"
+	echo "----------------------------------------------"
 	# What it does: Runs fastp
 	#
 	# Rationale: This cleans our input fastqs.
 	#
 	# TODO: Support multi-lane-multi-file fastq sets!!
-	if (( "~{fastp_skip_cleaning}" = "false" ))
-	then
-		fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" --out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
-			--average_qual ~{fastp_cleaning_avg_qual} "~{arg_adapter_pe}" "~{arg_adapter_trimming}" --json "~{sample_name}_first_fastp.json"
+	start_fastp_1=$SECONDS
+	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" --out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
+		--average_qual ~{fastp_clean_avg_qual} "~{arg_adapter_pe}" "~{arg_adapter_trimming}" --json "~{sample_name}_first_fastp.json"
+	if [[ "~{fastp_skip_cleaning}" = "false" ]]
+	then		
 		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
 		# this is basically a repeat of step 1
 		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
 	fi
+	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
 
-	# -----------------------------------------
-	# (5) Untar the decontamination reference
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(4) [tar] Expand decontamination reference"
+	echo "---> reference used: ~{docker_image}"
+	echo "----------------------------------------------"
 	# What it does: Untars and moves the decontamination reference
 	#
 	# Rationale: We need it to decontaminate!
@@ -202,17 +199,14 @@ task clean_and_decontam_and_check {
 	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
 	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
 	start_untar=$SECONDS
-	echo "Expanding decontamination reference..."
 	mkdir Ref.remove_contam
 	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
-	timer_untar=$(( SECONDS - start_untar ))
-	echo ${timer_untar} > timer_untar
+	echo $(( SECONDS - start_untar ))  > timer_4_untar
 
-	# -----------------------------------------
-	# (6) Map reads to decontamination reference
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(5) [clockwork] Map FQs to decontam reference"
+	echo "----------------------------------------------"
 	# What it does: clockwork map_reads to decontamination ref
-	echo "Mapping reads..."
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{arg_unsorted_sam} \
@@ -260,17 +254,16 @@ task clean_and_decontam_and_check {
 		set -eux -o pipefail
 		exit 1
 	fi
-	timer_map_reads=$(( SECONDS - start_map_reads ))
-	echo ${timer_map_reads} > timer_map_reads
+	echo $(( SECONDS - start_map_reads )) > timer_5_map_reads
 
 	arg_counts_out="~{sample_name}.decontam.counts.tsv"
 	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
 	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
 
-	# -----------------------------------------
-	# (7) Sort the output sam file
-	# -----------------------------------------
-	# What it does: samtools sort the sam file we just created
+	echo "----------------------------------------------"
+	echo "(6) [samtools] Sort by read name"
+	echo "----------------------------------------------"
+	# What it does: samtools sort the sam file we just created by read name
 	#
 	# Rationale/Dev Notes: This seems to be required, although exactly why is it a bit unclear. 
 	# samtools sort doesn't seem to be in the nextflow version of this pipeline, for instance:
@@ -281,20 +274,17 @@ task clean_and_decontam_and_check {
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/tasks/map_reads.py#L18
 	# https://github.com/iqbal-lab-org/clockwork/blob/v0.11.3/python/clockwork/read_map.py#L26
 	start_samtools_sort=$SECONDS
-	echo "Sorting by read name..."
 	samtools sort -n ~{outfile_sam} > sorted_by_read_name_~{sample_name}.sam
-	timer_samtools_sort=$(( SECONDS - start_samtools_sort ))
-	echo ${timer_samtools_sort} > timer_samtools_sort
+	echo $(( SECONDS - start_samtools_sort )) > timer_6_sort
 
-	# -----------------------------------------
-	# (8) Actually remove contaminated reads
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(7) [clockwork] Remove contamination"
+	echo "----------------------------------------------"
 	# What it does: clockwork remove_contam on the sam file we sorted
 	# 
 	# Dev notes: One of the subtasks will throw a warning about index files. Ignore it.
 	# See: https://github.com/mhammell-laboratory/TEtranscripts/issues/99
 	start_rm_contam=$SECONDS
-	echo "Removing contamination..."
 	timeout -v ~{timeout_decontam}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_~{sample_name}.sam \
@@ -344,27 +334,20 @@ task clean_and_decontam_and_check {
 		set -eux -o pipefail
 		exit 1
 	fi
-	timer_rm_contam=$(( SECONDS - start_rm_contam ))
-	echo ${timer_rm_contam} > timer_rm_contam
+	echo $(( SECONDS - start_rm_contam )) > timer_7_rm_contam
 	
-	# -----------------------------------------
-	# (9) Run fastp (second time)
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(8) [fastp] Post-decontam QC check"
+	echo "----------------------------------------------"
 	# What it does: Run fastp again, this time as a QC filter
+	start_fastp_2=$SECONDS
 	fastp --in1 $arg_reads_out1 --in2 $arg_reads_out2 --json "~{sample_name}_second_fastp.json"
-
-	# -----------------------------------------
-	# (10) Delete copied dcntmfail fastq
-	# -----------------------------------------
-	# if we got here, then we passed, so delete the output that would signal to run fastqc
-	#
-	# TODO: if no downstream code relies on WDL output "check_this_fastq" we can get rid of this and step 3
-	rm "~{read_file_basename}_dcntmfail.fastq"
-	echo "PASS" >> ERROR
+	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
 	
-	# -----------------------------------------
-	# (11) Parse fastp and decontam reports
-	# -----------------------------------------
+	echo "----------------------------------------------"
+	echo "(9) [python/bash] Parse reports"
+	echo "----------------------------------------------"
+	start_parse=$SECONDS
 	python3 << CODE
 	import os
 	import json
@@ -406,11 +389,13 @@ task clean_and_decontam_and_check {
 	cat $arg_counts_out | head -4 | tail -1 | cut -f3 > reads_unmapped
 	cat $arg_counts_out | head -5 | tail -1 | cut -f3 > reads_kept
 	
+	## TODO: add qc cutoffs here
+	
+	echo $(( SECONDS - start_parse )) > timer_9_parse
+	
 	timer_total=$(( SECONDS - start_total ))
 	echo ${timer_total} > timer_total
-
-	echo "Decontamination completed."
-	ls -lha
+	echo "Completed! 🎉"
 	>>>
 
 	runtime {
@@ -427,7 +412,6 @@ task clean_and_decontam_and_check {
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
-		File? check_this_fastq = read_file_basename + "_dcntmfail.fastq"
 		String errorcode = read_string("ERROR")
 		
 		# fastp stuff
@@ -442,19 +426,24 @@ task clean_and_decontam_and_check {
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
 		
 		# timers and debug information
-		Int timer_map_reads = read_int("timer_map_reads")
-		Int timer_rm_contam = read_int("timer_rm_contam")
-		Int timer_total = read_int("timer_total")
+		Int timer_1_prep  = read_int("timer_1_process")
+		Int timer_2_size  = read_int("timer_2_size")
+		Int timer_3_clean = read_int("timer_3_clean")
+		Int timer_4_untar = read_int("timer_4_untar")
+		Int timer_5_mapFQ = read_int("timer_map_reads")
+		Int timer_6_sort  = read_int("timer_6_sort")
+		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
+		Int timer_8_qchck = read_int("timer_8_qc")
+		Int timer_9_parse = read_int("timer_9_parse")
+		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
 		Int reads_is_contam = read_int("reads_is_contam")
 		Int reads_reference = read_int("reads_reference")
-		Int reads_unmapped = read_int("reads_unmapped")
-		Int reads_kept = read_int("reads_kept")
+		Int reads_unmapped  = read_int("reads_unmapped")
+		Int reads_clck_kept = read_int("reads_kept")
 		
 		# you probably don't want these...
 		#File? mapped_to_decontam = glob("*.sam")[0]
-		#Int timer_sort = read_int("timer_samtools_sort")
-		#Int seconds_to_untar = read_int("timer_untar")
 	}
 	
 }
