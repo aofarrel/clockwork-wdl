@@ -32,7 +32,8 @@ task clean_and_decontam_and_check {
 		
 		# post-decontamination QC options (happens forth)
 		Boolean no_qc = false
-		#Boolean qc_min_q30_rate
+		Int pre_decontam_min_q30 = 10
+		Int post_decontam_min_q30 = 50
 
 		# rename outs
 		String? no_match_out_1
@@ -425,6 +426,9 @@ task clean_and_decontam_and_check {
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
+		Float pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
+		Float pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
+		Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
 		
 		# timers and debug information
 		Int timer_1_prep  = read_int("timer_1_process")
