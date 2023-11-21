@@ -364,7 +364,7 @@ task clean_and_decontam_and_check {
 				outfile.write(f"{keys}\t{values}\n")
 			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp["summary"]["after_filtering"]["q20_rate"]))
 			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp["summary"]["after_filtering"]["q30_rate"]))
-			with open("total_reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp["summary"]["after_filtering"]["total_reads"]))
+			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp["summary"]["after_filtering"]["total_reads"]))
 		else:
 			outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
 	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp["summary"]["before_filtering"]["q20_rate"]))
@@ -413,6 +413,7 @@ task clean_and_decontam_and_check {
 		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
 		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
 		String errorcode = read_string("ERROR")
+		String sample = sample_name # needed by ThiagenTBProfiler
 		
 		# fastp stuff
 		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
