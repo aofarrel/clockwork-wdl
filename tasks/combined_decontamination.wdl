@@ -32,7 +32,7 @@ task clean_and_decontam_and_check {
 		
 		# post-decontamination QC options (happens forth)
 		Boolean no_qc = false
-		Boolean qc_min_q30_rate = 
+		#Boolean qc_min_q30_rate
 
 		# rename outs
 		String? no_match_out_1
@@ -65,6 +65,8 @@ task clean_and_decontam_and_check {
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
 	}
+	String arg_adapter_trimming = if(fastp_cleaning_disable_adaptor_trimming) then "--disable_adapter_trimming" else ""
+	
 	# The Docker image has our reference information, so these can be hardcoded.
 	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
 	String arg_ref_fasta = "Ref.remove_contam/ref.fa"
@@ -179,13 +181,13 @@ task clean_and_decontam_and_check {
 	if (( "~{fastp_skip_cleaning}" = "false" ))
 	then
 		fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" --out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
-			--average_qual ~{average_qual} --json "~{sample_name}_first_fastp.json" "~{arg_adapter_trimming}"
+			--average_qual ~{fastp_cleaning_avg_qual} --json "~{sample_name}_first_fastp.json" "~{arg_adapter_trimming}"
 		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
 		# this is basically a repeat of step 1
 		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
-	
+	fi
 
 	# -----------------------------------------
 	# (5) Untar the decontamination reference
@@ -348,7 +350,7 @@ task clean_and_decontam_and_check {
 	# (9) Run fastp (second time)
 	# -----------------------------------------
 	# What it does: Run fastp again, this time as a QC filter
-	fastp --in1 "~{fastq_1}" --in2 "~{fastq_2}" --json "~{sample}_second_fastp.json"
+	fastp --in1 $arg_reads_out1 --in2 $arg_reads_out2 --json "~{sample_name}_second_fastp.json"
 
 	# -----------------------------------------
 	# (10) Delete copied dcntmfail fastq
@@ -367,9 +369,9 @@ task clean_and_decontam_and_check {
 	import json
 	
 	# first fastp
-	with open("~{sample}_first_fastp.json", "r") as fastpJSON:
+	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
 		fastp = json.load(fastpJSON)
-	with open("~{sample}_first_fastp.txt", "w") as outfile:
+	with open("~{sample_name}_first_fastp.txt", "w") as outfile:
 		for keys, values in fastp["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
 		if "~{fastp_skip_cleaning}" == "true":
@@ -386,9 +388,9 @@ task clean_and_decontam_and_check {
 	with open("total_reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp["summary"]["before_filtering"]["total_reads"]))
 	
 	# second fastp
-	with open("~{sample}_second_fastp.json", "r") as fastpJSON:
+	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON:
 		fastp = json.load(fastpJSON)
-	with open("~{sample}_second_fastp.txt", "w") as outfile:
+	with open("~{sample_name}_second_fastp.txt", "w") as outfile:
 		for keys, values in fastp["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp["summary"]["before_filtering"]["q20_rate"]))
