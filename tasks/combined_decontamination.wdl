@@ -435,7 +435,7 @@ task clean_and_decontam_and_check {
 		Int timer_2_size  = read_int("timer_2_size")
 		Int timer_3_clean = read_int("timer_3_clean")
 		Int timer_4_untar = read_int("timer_4_untar")
-		Int timer_5_mapFQ = read_int("timer_map_reads")
+		Int timer_5_mapFQ = read_int("timer_5_map_reads")
 		Int timer_6_sort  = read_int("timer_6_sort")
 		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
 		Int timer_8_qchck = read_int("timer_8_qc")
