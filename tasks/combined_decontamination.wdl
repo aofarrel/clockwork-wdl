@@ -392,7 +392,7 @@ task clean_and_decontam_and_check {
 			outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
 	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp["summary"]["before_filtering"]["q30_rate"]))
-	with open("total_reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp["summary"]["before_filtering"]["total_reads"]))
+	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp["summary"]["before_filtering"]["total_reads"]))
 	
 	# second fastp
 	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON:
