@@ -22,7 +22,8 @@ task clean_and_decontam_and_check {
 		Int fastp_clean_avg_qual = 29
 		Boolean fastp_clean_disable_adapter_trimming = false
 		Boolean fastp_clean_detect_adapter_for_pe = true
-		Boolean fastp_skip_cleaning = false
+		Boolean fastp_clean_before_decontam = true
+		Boolean fastp_clean_after_decontam = false
 		
 		# decontamination options (happens third)
 		Boolean     crash_on_timeout = false
@@ -66,9 +67,7 @@ task clean_and_decontam_and_check {
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
 		unsorted_sam: "It's best to leave this as false"
 	}
-	String arg_adapter_trimming = if(fastp_clean_disable_adapter_trimming) then "--disable_adapter_trimming" else ""
-	String arg_adapter_pe = if(fastp_clean_detect_adapter_for_pe) then "--detect_adapter_for_pe" else ""
-	
+
 	# The Docker image has our reference information, so these can be hardcoded.
 	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
 	String arg_ref_fasta = "Ref.remove_contam/ref.fa"
@@ -89,6 +88,15 @@ task clean_and_decontam_and_check {
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
 	String sample_name = sub(sub(read_file_basename, "_.*", ""), ".gz", "")
 	String outfile_sam = sample_name + ".sam"
+	
+	# Hardcoded to make delocalization less of a pain
+	String arg_counts_out = sample_name + ".decontam.counts.tsv"
+	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
+	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
+	String clean_after_decontamination1 = sub(arg_reads_out1, "_1.decontam.fq.gz", ".decontam.clean_1.fq.gz")
+	String clean_after_decontamination2 = sub(arg_reads_out2, "_2.decontam.fq.gz", ".decontam.clean_2.fq.gz")
+	String final_fastq1 = if(fastp_clean_after_decontam) then clean_after_decontamination1 else arg_reads_out1
+	String final_fastq2 = if(fastp_clean_after_decontam) then clean_after_decontamination2 else arg_reads_out2
 
 	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
@@ -96,7 +104,6 @@ task clean_and_decontam_and_check {
 	String arg_done_file = if(!defined(done_file)) then "" else "--done_file ~{done_file}"
 	String arg_no_match_out_1 = if(!defined(no_match_out_1)) then "" else "--no_match_out_1 ~{no_match_out_1}"
 	String arg_no_match_out_2 = if(!defined(no_match_out_2)) then "" else "--no_match_out_2 ~{no_match_out_2}"
-	String arg_unsorted_sam = if unsorted_sam == true then "--unsorted_sam" else ""
 
 	# Estimate disk size
 	Int readsSize = 5*ceil(size(reads_files, "GB"))
@@ -104,8 +111,8 @@ task clean_and_decontam_and_check {
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	command <<<
-	# shellcheck disable=SC2004
-	# WDL parsers can get a little iffy with SC2004 so let's just. not.
+	# shellcheck disable=SC2002,SC2004
+	# SC2002 results in less readable code and SC2004 detecting is iffy on WDL
 	start_total=$SECONDS
 
 	echo "----------------------------------------------"
@@ -167,17 +174,21 @@ task clean_and_decontam_and_check {
 	
 	echo "----------------------------------------------"
 	echo "(3) [fastp] Check and maybe clean reads"
-	echo "---> fastp_skip_cleaning: ~{fastp_skip_cleaning}"
+	echo "---> fastp_clean_before_decontam: ~{fastp_clean_before_decontam}"
 	echo "----------------------------------------------"
 	# What it does: Runs fastp
 	#
-	# Rationale: This cleans our input fastqs.
+	# Rationale: This cleans our input fastqs if fastp_clean_before_decontam
 	#
 	# TODO: Support multi-lane-multi-file fastq sets!!
 	start_fastp_1=$SECONDS
-	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" --out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
-		--average_qual ~{fastp_clean_avg_qual} "~{arg_adapter_pe}" "~{arg_adapter_trimming}" --json "~{sample_name}_first_fastp.json"
-	if [[ "~{fastp_skip_cleaning}" = "false" ]]
+	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" \
+		--out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
+		--average_qual ~{fastp_clean_avg_qual} \
+		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
+		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
+		--json "~{sample_name}_first_fastp.json"
+	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
 	then		
 		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
@@ -210,7 +221,7 @@ task clean_and_decontam_and_check {
 	# What it does: clockwork map_reads to decontamination ref
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
-		~{arg_unsorted_sam} \
+		~{true="--unsorted_sam" false="" unsorted_sam} \
 		~{sample_name} \
 		~{arg_ref_fasta} \
 		~{outfile_sam} \
@@ -257,10 +268,6 @@ task clean_and_decontam_and_check {
 	fi
 	echo $(( SECONDS - start_map_reads )) > timer_5_map_reads
 
-	arg_counts_out="~{sample_name}.decontam.counts.tsv"
-	arg_reads_out1="~{sample_name}_1.decontam.fq.gz"
-	arg_reads_out2="~{sample_name}_2.decontam.fq.gz"
-
 	echo "----------------------------------------------"
 	echo "(6) [samtools] Sort by read name"
 	echo "----------------------------------------------"
@@ -289,9 +296,9 @@ task clean_and_decontam_and_check {
 	timeout -v ~{timeout_decontam}m clockwork remove_contam \
 		~{arg_metadata_tsv} \
 		sorted_by_read_name_~{sample_name}.sam \
-		$arg_counts_out \
-		$arg_reads_out1 \
-		$arg_reads_out2 \
+		~{arg_counts_out} \
+		~{arg_reads_out1} \
+		~{arg_reads_out2} \
 		~{arg_no_match_out_1} ~{arg_no_match_out_2} \
 		~{arg_contam_out_1} ~{arg_contam_out_2} \
 		~{arg_done_file}
@@ -338,11 +345,27 @@ task clean_and_decontam_and_check {
 	echo $(( SECONDS - start_rm_contam )) > timer_7_rm_contam
 	
 	echo "----------------------------------------------"
-	echo "(8) [fastp] Post-decontam QC check"
+	echo "(8) [fastp] Post-decontam QC check and/or clean"
 	echo "----------------------------------------------"
 	# What it does: Run fastp again, this time as a QC filter
-	start_fastp_2=$SECONDS
-	fastp --in1 $arg_reads_out1 --in2 $arg_reads_out2 --json "~{sample_name}_second_fastp.json"
+	start_fastp_2=$SECONDS	
+	fastp --in1 ~{arg_reads_out1} --in2 ~{arg_reads_out2} \
+		--out1 ~{clean_after_decontamination1} --out2 ~{clean_after_decontamination2} \
+		--average_qual ~{fastp_clean_avg_qual} \
+		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
+		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
+		--json "~{sample_name}_second_fastp.json"
+	if [[ "~{fastp_clean_after_decontam}" = "true" ]]
+	then
+		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
+		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
+	else
+		# ignore 'em!
+		pass
+	fi
+	fastp_clean_after_decontam
+	
+	
 	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
 	
 	echo "----------------------------------------------"
@@ -359,7 +382,7 @@ task clean_and_decontam_and_check {
 	with open("~{sample_name}_first_fastp.txt", "w") as outfile:
 		for keys, values in fastp["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
-		if "~{fastp_skip_cleaning}" == "true":
+		if "~{fastp_clean_before_decontam}" == "true":
 			outfile.write("after fastp cleaned the fastqs:\n")
 			for keys, values in fastp["summary"]["after_filtering"].items():
 				outfile.write(f"{keys}\t{values}\n")
@@ -385,10 +408,10 @@ task clean_and_decontam_and_check {
 	CODE
 	
 	# parse decontam.counts.tsv
-	cat $arg_counts_out | head -2 | tail -1 | cut -f3 > reads_is_contam
-	cat $arg_counts_out | head -3 | tail -1 | cut -f3 > reads_reference
-	cat $arg_counts_out | head -4 | tail -1 | cut -f3 > reads_unmapped
-	cat $arg_counts_out | head -5 | tail -1 | cut -f3 > reads_kept
+	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
+	cat "~{arg_counts_out}" | head -3 | tail -1 | cut -f3 > reads_reference
+	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
+	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
 	
 	## TODO: add qc cutoffs here
 	
@@ -410,19 +433,20 @@ task clean_and_decontam_and_check {
 	}
 
 	output {
-		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"
-		File? decontaminated_fastq_1 = sample_name + "_1.decontam.fq.gz"
-		File? decontaminated_fastq_2 = sample_name + "_2.decontam.fq.gz"
-		String errorcode = read_string("ERROR")
+		# the fastqs
+		File? decontaminated_fastq_1 = final_fastq1
+		File? decontaminated_fastq_2 = final_fastq2
+		
+		# other important things
 		String sample = sample_name # needed by ThiagenTBProfiler
 		
 		# fastp stuff
 		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
 		Float  raw_pct_above_q30  = read_float("q30_raw.txt")
 		Int    raw_total_reads    = read_int("reads_raw.txt")
-		Float  cleaned_pct_above_q20     = if !fastp_skip_cleaning then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
-		Float  cleaned_pct_above_q30     = if !fastp_skip_cleaning then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
-		Int    cleaned_total_reads       = if !fastp_skip_cleaning then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
+		Float  cleaned_pct_above_q20     = if fastp_clean_before_decontam then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
+		Float  cleaned_pct_above_q30     = if fastp_clean_before_decontam then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
+		Int    cleaned_total_reads       = if fastp_clean_before_decontam then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
@@ -431,6 +455,7 @@ task clean_and_decontam_and_check {
 		Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
 		
 		# timers and debug information
+		String errorcode = read_string("ERROR")
 		Int timer_1_prep  = read_int("timer_1_process")
 		Int timer_2_size  = read_int("timer_2_size")
 		Int timer_3_clean = read_int("timer_3_clean")
@@ -446,6 +471,7 @@ task clean_and_decontam_and_check {
 		Int reads_reference = read_int("reads_reference")
 		Int reads_unmapped  = read_int("reads_unmapped")
 		Int reads_clck_kept = read_int("reads_kept")
+		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
 		
 		# you probably don't want these...
 		#File? mapped_to_decontam = glob("*.sam")[0]
