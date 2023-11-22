@@ -33,8 +33,8 @@ task clean_and_decontam_and_check {
 		
 		# post-decontamination QC options (happens forth)
 		Boolean no_qc = false
-		Int pre_decontam_min_q30 = 10
-		Int post_decontam_min_q30 = 50
+		Float pre_decontam_min_q30 = 0.2   # 20%
+		Float post_decontam_min_q30 = 0.5  # 50%
 
 		# rename outs
 		String? no_match_out_1
@@ -178,7 +178,8 @@ task clean_and_decontam_and_check {
 	echo "----------------------------------------------"
 	# What it does: Runs fastp
 	#
-	# Rationale: This cleans our input fastqs if fastp_clean_before_decontam
+	# Rationale: This cleans our input fastqs if fastp_clean_before_decontam,
+	# and also filters out VERY bad fastqs.
 	#
 	# TODO: Support multi-lane-multi-file fastq sets!!
 	start_fastp_1=$SECONDS
@@ -188,6 +189,33 @@ task clean_and_decontam_and_check {
 		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
 		--json "~{sample_name}_first_fastp.json"
+		
+	# very lenient filter to check for very bad fqs
+	python3 << CODE
+	import os
+	import json
+	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
+		fastp = json.load(fastpJSON)
+		q30_before_anything = ["summary"]["before_filtering"]["q30_rate"]
+		if q30_before_anything < ~{pre_decontam_min_q30}:
+			print(f"ERROR -- Q30 rate before filtering was just {q30_before_anything} (out of 1.0)")
+			exit(100)
+	CODE
+	exit=$?
+	if [[ $exit = 100 ]]
+	then
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			echo "DECONTAMINATION_AWFUL_Q30" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+			set -eux -o pipefail
+			exit 1
+		else
+			echo "DECONTAMINATION_AWFUL_Q30" >> ERROR
+			exit 0
+		fi
+	fi
+		
+		
 	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
 	then		
 		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
