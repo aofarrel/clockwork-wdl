@@ -14,9 +14,11 @@ task clean_and_decontam_and_check {
 		
 		Array[File] reads_files
 		
-		# subsampling options (happens first)
-		Int         subsample_cutoff = -1
-		Int         subsample_seed = 1965
+		# guardrails, to prevent this task from taking forever
+		Float      preliminary_min_q30 = 0.2   # 20%
+		Int        subsample_cutoff = -1
+		Int        subsample_seed = 1965
+		Int        subsample_to_this_many_reads = 1000000
 		
 		# fastp cleaning options (happens second)
 		Int fastp_clean_avg_qual = 29
@@ -32,9 +34,7 @@ task clean_and_decontam_and_check {
 		Boolean     unsorted_sam = false
 		
 		# post-decontamination QC options (happens forth)
-		Boolean no_qc = false
-		Float pre_decontam_min_q30 = 0.2   # 20%
-		Float post_decontam_min_q30 = 0.5  # 50%
+		Float QC_min_q30 = 0.5  # 50%
 
 		# rename outs
 		String? no_match_out_1
@@ -159,7 +159,7 @@ task clean_and_decontam_and_check {
 			echo "Subsampling..."
 			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
-				seqtk sample -s~{subsample_seed} "$inputfq" 1000000 > temp.fq
+				seqtk sample -s~{subsample_seed} "$inputfq" ~{subsample_to_this_many_reads} > temp.fq
 				rm "$inputfq"
 				mv temp.fq "$inputfq"
 				echo "WARNING: downsampled $inputfq (was $size_inputfq MB, $reads_inputfq reads)"
@@ -197,8 +197,10 @@ task clean_and_decontam_and_check {
 	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
 		fastp = json.load(fastpJSON)
 		q30_before_anything = ["summary"]["before_filtering"]["q30_rate"]
-		if q30_before_anything < ~{pre_decontam_min_q30}:
+		if q30_before_anything < ~{preliminary_min_q30}:
 			print(f"ERROR -- Q30 rate before filtering was just {q30_before_anything} (out of 1.0)")
+			with open("ERROR", "w") as err:
+				err.write(f"DECONTAMINATION_{q30_before_anything}_PRELIM_Q30_RATE")
 			exit(100)
 	CODE
 	exit=$?
@@ -206,15 +208,12 @@ task clean_and_decontam_and_check {
 	then
 		if [[ "~{crash_on_timeout}" = "true" ]]
 		then
-			echo "DECONTAMINATION_AWFUL_Q30" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_AWFUL_Q30" >> ERROR
 			exit 0
 		fi
 	fi
-		
 		
 	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
 	then		
@@ -404,35 +403,67 @@ task clean_and_decontam_and_check {
 	import json
 	
 	# first fastp
-	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
-		fastp = json.load(fastpJSON)
-	with open("~{sample_name}_first_fastp.txt", "w") as outfile:
+	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON_1:
+		fastp_1 = json.load(fastpJSON_1)
+	with open("~{sample_name}_fastp.txt", "w") as outfile:
+		outfile.write("before any filtering or decontamination:\n")
 		for keys, values in fastp["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
 		if "~{fastp_clean_before_decontam}" == "true":
-			outfile.write("after fastp cleaned the fastqs:\n")
+			outfile.write("after fastp cleaned the non-decontaminated fastqs:\n")
 			for keys, values in fastp["summary"]["after_filtering"].items():
 				outfile.write(f"{keys}\t{values}\n")
-			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp["summary"]["after_filtering"]["q20_rate"]))
-			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp["summary"]["after_filtering"]["q30_rate"]))
-			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp["summary"]["after_filtering"]["total_reads"]))
+			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
+			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
+			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
 		else:
-			outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
-	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp["summary"]["before_filtering"]["q20_rate"]))
-	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp["summary"]["before_filtering"]["total_reads"]))
+			outfile.write("reads were not cleaned before decontamination.\n")
+	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp_1["summary"]["before_filtering"]["q20_rate"]))
+	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
+	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp_1["summary"]["before_filtering"]["total_reads"]))
 	
 	# second fastp
-	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON:
-		fastp = json.load(fastpJSON)
-	with open("~{sample_name}_second_fastp.txt", "w") as outfile:
+	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
+		fastp_2 = json.load(fastpJSON_2)
+	with open("~{sample_name}_fastp.txt", "a") as outfile: # appends to the same outfile as the first fastp
+		print("after decontamination:\n")
 		for keys, values in fastp["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
-	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp["summary"]["before_filtering"]["q20_rate"]))
-	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp["summary"]["before_filtering"]["total_reads"])) 
+			if "~{fastp_clean_after_decontam}" == "true":
+				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
+				for keys, values in fastp["summary"]["after_filtering"].items():
+					outfile.write(f"{keys}\t{values}\n")
+				q30_after_everything = ["summary"]["after_filtering"]["q30_rate"]
+				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
+				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
+				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
+			else:
+				outfile.write("no additional cleaning was performed post-decontamination.\n")
+				q30_after_everything = ["summary"]["before_filtering"]["q30_rate"]
+	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
+	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
+	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
 	
+			outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
+	
+	# actual filtering
+	if q30_after_everything < ~{QC_min_q30}:
+		print(f"ERROR -- Q30 rate before filtering was only {q30_after_everything} (out of 1.0)")
+		with open("ERROR", "w") as err:
+			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
+		exit(100)
 	CODE
+	exit=$?
+	if [[ $exit = 100 ]]
+	then
+		if [[ "~{crash_on_timeout}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	fi
 	
 	# parse decontam.counts.tsv
 	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
@@ -440,7 +471,6 @@ task clean_and_decontam_and_check {
 	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
 	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
 	
-	## TODO: consider adding qc cutoffs here, if not later in myco
 	echo "PASS" >> ERROR
 	
 	echo $(( SECONDS - start_parse )) > timer_9_parse
@@ -472,9 +502,9 @@ task clean_and_decontam_and_check {
 		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
 		Float  raw_pct_above_q30  = read_float("q30_raw.txt")
 		Int    raw_total_reads    = read_int("reads_raw.txt")
-		Float  cleaned_pct_above_q20     = if fastp_clean_before_decontam then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
-		Float  cleaned_pct_above_q30     = if fastp_clean_before_decontam then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
-		Int    cleaned_total_reads       = if fastp_clean_before_decontam then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
+		Float  cleaned_pct_above_q20     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
+		Float  cleaned_pct_above_q30     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
+		Int    cleaned_total_reads       = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
