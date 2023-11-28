@@ -443,8 +443,7 @@ task clean_and_decontam_and_check {
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
 	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
-	
-			outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
+	outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
 	
 	# actual filtering
 	if q30_after_everything < ~{QC_min_q30}:
