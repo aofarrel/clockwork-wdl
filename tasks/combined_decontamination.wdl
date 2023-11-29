@@ -414,13 +414,11 @@ task clean_and_decontam_and_check {
 				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
 				for keys, values in fastp_2["summary"]["after_filtering"].items():
 					outfile.write(f"{keys}\t{values}\n")
-				q30_after_everything = fastp_2["summary"]["after_filtering"]["q30_rate"]
 				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_2["summary"]["after_filtering"]["q20_rate"]))
 				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_2["summary"]["after_filtering"]["q30_rate"]))
 				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_2["summary"]["after_filtering"]["total_reads"]))
 			else:
 				outfile.write("no additional cleaning was performed post-decontamination.\n")
-				q30_after_everything = ["summary"]["before_filtering"]["q30_rate"]
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
 	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
@@ -451,6 +449,12 @@ task clean_and_decontam_and_check {
 	
 	
 	# actual filtering
+	
+	try:
+		q30_after_everything = fastp_2["summary"]["after_filtering"]["q30_rate"] # post clean and decontam
+	except KeyError:
+		q30_after_everything = fastp_2["summary"]["before_filtering"]["q30_rate"] # post decontam (pre-decontam cleaning not relevent)
+	
 	if q30_after_everything < ~{QC_min_q30}:
 		print(f"ERROR -- Q30 rate before filtering was only {q30_after_everything} (out of 1.0)")
 		with open("ERROR", "w") as err:
