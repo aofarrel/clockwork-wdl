@@ -402,17 +402,44 @@ task clean_and_decontam_and_check {
 	import os
 	import json
 	
-	# first fastp
+	# second fastp run
+	# we handle this one first to account for the "cleaning twice" case, as we want the first run's cleaned stats to be saved
+	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
+		fastp_2 = json.load(fastpJSON_2)
+	with open("~{sample_name}_fastp.txt", "a") as outfile: # appends to the same outfile as the first fastp
+		print("after decontamination:\n")
+		for keys, values in fastp_2["summary"]["before_filtering"].items():
+			outfile.write(f"{keys}\t{values}\n")
+			if "~{fastp_clean_after_decontam}" == "true":
+				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
+				for keys, values in fastp_2["summary"]["after_filtering"].items():
+					outfile.write(f"{keys}\t{values}\n")
+				q30_after_everything = fastp_2["summary"]["after_filtering"]["q30_rate"]
+				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_2["summary"]["after_filtering"]["q20_rate"]))
+				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_2["summary"]["after_filtering"]["q30_rate"]))
+				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_2["summary"]["after_filtering"]["total_reads"]))
+			else:
+				outfile.write("no additional cleaning was performed post-decontamination.\n")
+				q30_after_everything = ["summary"]["before_filtering"]["q30_rate"]
+	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
+	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
+	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
+	outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
+	
+	
+	# first fastp run
 	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON_1:
 		fastp_1 = json.load(fastpJSON_1)
 	with open("~{sample_name}_fastp.txt", "w") as outfile:
 		outfile.write("before any filtering or decontamination:\n")
-		for keys, values in fastp["summary"]["before_filtering"].items():
+		for keys, values in fastp_1["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
 		if "~{fastp_clean_before_decontam}" == "true":
 			outfile.write("after fastp cleaned the non-decontaminated fastqs:\n")
-			for keys, values in fastp["summary"]["after_filtering"].items():
+			for keys, values in fastp_1["summary"]["after_filtering"].items():
 				outfile.write(f"{keys}\t{values}\n")
+			# if both cleans are true, this one will overwrite the other one -- this is intended, because cleaning a second time
+			# does not really do anything, so what we actually care about are the stats from the first cleaning
 			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
 			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
 			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
@@ -422,28 +449,6 @@ task clean_and_decontam_and_check {
 	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
 	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp_1["summary"]["before_filtering"]["total_reads"]))
 	
-	# second fastp
-	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
-		fastp_2 = json.load(fastpJSON_2)
-	with open("~{sample_name}_fastp.txt", "a") as outfile: # appends to the same outfile as the first fastp
-		print("after decontamination:\n")
-		for keys, values in fastp["summary"]["before_filtering"].items():
-			outfile.write(f"{keys}\t{values}\n")
-			if "~{fastp_clean_after_decontam}" == "true":
-				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
-				for keys, values in fastp["summary"]["after_filtering"].items():
-					outfile.write(f"{keys}\t{values}\n")
-				q30_after_everything = ["summary"]["after_filtering"]["q30_rate"]
-				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
-				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
-				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
-			else:
-				outfile.write("no additional cleaning was performed post-decontamination.\n")
-				q30_after_everything = ["summary"]["before_filtering"]["q30_rate"]
-	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
-	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
-	outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
 	
 	# actual filtering
 	if q30_after_everything < ~{QC_min_q30}:
