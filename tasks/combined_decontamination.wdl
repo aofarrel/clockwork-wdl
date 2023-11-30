@@ -133,7 +133,6 @@ task clean_and_decontam_and_check {
 	# when ungzipping multilane files so we can concatenate them).
 	start_first=$SECONDS
 	fx_echo_array () {
-		sleep 0.5
 		fq_array=("$@")
 		for fq in "${fq_array[@]}"; do echo "$fq"; done
 		printf "\n"
@@ -145,15 +144,20 @@ task clean_and_decontam_and_check {
 	}
 	
 	fx_sort_array () {
-		# this could break if there's a space in a filename
 		fq_array=("$@")
 		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
-		echo "${OUTPUT[@]}"
+		echo "${OUTPUT[@]}" # this is a bit dangerous
 	}
+	
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
-	fx_move_to_workdir "${READS_FILES_RAW[@]}"
-	readarray -d '' READS_FILES_UNSORTED < <(find . -name "*.fq*" -print0)
-	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") )
+	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
+	# I really did try to make these next three lines just one -iregex string but
+	# kept messing up the syntax -- this approach is unsatisfying but cleaner
+	readarray -d '' -t FQ < <(find . -iname "*.fq*" -print0) 
+	readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
+	readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}")
+	fx_echo_array "Located files:" "${READS_FILES_UNSORTED[@]}"
+	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") ) # this appears to be more consistent than mapfile
 	fx_echo_array "In workdir and sorted:" "${READS_FILES[@]}"
 	
 	if (( "${#READS_FILES[@]}" != 2 ))
@@ -166,21 +170,30 @@ task clean_and_decontam_and_check {
 			apt-get install -y pigz # since we are decompressing, this will not be a huge performance increase
 			for fq in "${READS_FILES[@]}"; do pigz -d "$fq"; done
 			# TODO: check that .gz originals got deleted to avoid issues with find
-			readarray -d '' READS_FILES_UNZIPPED_UNSORTED < <(find . -name "*.fq*" -print0)
-			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )
+			readarray -d '' FQ < <(find . -iname "*.fq*" -print0) 
+			readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
+			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
+			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
 			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
 		fi
 	
-		readarray -d '' READ1_LANES_UNSORTED < <(find . -name "*R1*" -print0)
-		readarray -d '' READ2_LANES_UNSORTED < <(find . -name "*R2*" -print0)
-		READ1_LANES=( $(fx_sort_array "${READ1_LANES_UNSORTED[@]}") )
-		READ2_LANES=( $(fx_sort_array "${READ2_LANES_UNSORTED[@]}") )
-		touch ~{sample_name}_cat_R1.fq
-		touch ~{sample_name}_cat_R2.fq
+		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*R1*" -print0)
+		readarray -d '' READ2_LANES_IF_CDPH < <(find . -name "*R2*" -print0)
+		readarray -d '' READ1_LANES_IF_SRA < <(find . -name "*_1.f*" -print0)
+		readarray -d '' READ2_LANES_IF_SRA < <(find . -name "*_2.f*" -print0)
+		readarray -d ' ' READ1_LANES_UNSORTED < <(echo "${READ1_LANES_IF_CDPH[@]}" "${READ1_LANES_IF_SRA[@]}")
+		readarray -d ' ' READ2_LANES_UNSORTED < <(echo "${READ2_LANES_IF_CDPH[@]}" "${READ2_LANES_IF_SRA[@]}")
+		READ1_LANES=( $(fx_sort_array "${READ1_LANES_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
+		READ2_LANES=( $(fx_sort_array "${READ2_LANES_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
+		touch "~{sample_name}_cat_R1.fq"
+		touch "~{sample_name}_cat_R2.fq"
 		fx_echo_array "Read 1:" "${READ1_LANES[@]}"
 		fx_echo_array "Read 2:" "${READ2_LANES[@]}"
-		for fq in "${READ1_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R1.fq > ~{sample_name}_cat_R1.fq; done
-		for fq in "${READ2_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R2.fq > ~{sample_name}_cat_R2.fq; done
+		for fq in "${READ1_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R1.fq > temp; mv temp ~{sample_name}_cat_R1.fq; done
+		for fq in "${READ2_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R2.fq > temp; mv temp ~{sample_name}_cat_R2.fq; done
+		
+		READS_FILES=( "~{sample_name}_cat_R1.fq" "~{sample_name}_cat_R2.fq" )
+		fx_echo_array "After merging:" "${READS_FILES[@]}"
 	fi
 		
 	timer_first=$(( SECONDS - start_first ))
