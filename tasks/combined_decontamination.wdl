@@ -118,20 +118,71 @@ task clean_and_decontam_and_check {
 	echo "----------------------------------------------"
 	echo "(1) [bash] Ensure reads are paired correctly"
 	echo "----------------------------------------------"
-	# What it does: Makes an array to ensure _1 and _2 reads are in the right order.
+	# What it does: Makes an array to ensure _1 and _2 reads are in the right order, and
+	# concatenate reads if there are more than two (necessary for pre-decontam fastp).
 	#
 	# Rationale: clockwork map_reads seems to require each pair of fqs are consecutive, eg:
 	#                    (SRR1_1.fq, SRR1_2.fq, SRR2_1.fq, SRR2_2.fq)
 	# If you instead had (SRR1_1.fq, SRR2_1.fq, SRR1_2.fq, SRR2_2.fq) then fqcount would
 	# fail assuming SRR1 and SRR2 have different read counts. This hack does not seem to be
-	# needed if reads were piped in from an SRANWRP downloaload, but to support Terra data 
+	# needed if reads were piped in from an SRANWRP download, but to support Terra data 
 	# table input of reads this seems to be necessary.
+	# Additionally, fastp doesn't support multi-lane-split-across-multiple-file situations, eg
+	# (SRR1_1.fq, SRR1_2.fq, SRR2_1.fq, SRR2_2.fq) needs to become (SRR_1.fq, SRR_2.fq).
+	# Also, we move reads into the workdir to avoid issues with find (which is only used
+	# when ungzipping multilane files so we can concatenate them).
 	start_first=$SECONDS
-	READS_FILES_UNSORTED=("~{sep='" "' reads_files}")
-	readarray -t READS_FILES < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
-	echo 'fqs as recieved:' "~{sep='" "' reads_files}"
-	echo 'fqs after sorting:' 
-	for fq in "${READS_FILES[@]}"; do echo "$fq"; done 
+	fx_echo_array () {
+		sleep 0.5
+		fq_array=("$@")
+		for fq in "${fq_array[@]}"; do echo "$fq"; done
+		printf "\n"
+	}
+	
+	fx_move_to_workdir () { 
+		fq_array=("$@")
+		for fq in "${fq_array[@]}"; do mv "$fq" .; done 
+	}
+	
+	fx_sort_array () {
+		# this could break if there's a space in a filename
+		fq_array=("$@")
+		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
+		echo "${OUTPUT[@]}"
+	}
+	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
+	fx_move_to_workdir "${READS_FILES_RAW[@]}"
+	readarray -d '' READS_FILES_UNSORTED < <(find . -name "*.fq*" -print0)
+	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") )
+	fx_echo_array "In workdir and sorted:" "${READS_FILES[@]}"
+	
+	if (( "${#READS_FILES[@]}" != 2 ))
+	then
+		# check for gzipped inputs
+		some_base=$(basename -- "${READS_FILES[0]}") # just check the first element; should never be a mix of gzipped and not-gzipped fqs
+		some_extension="${some_base##*.}"
+		if [[ $some_extension = ".gz" ]]
+		then
+			apt-get install -y pigz # since we are decompressing, this will not be a huge performance increase
+			for fq in "${READS_FILES[@]}"; do pigz -d "$fq"; done
+			# TODO: check that .gz originals got deleted to avoid issues with find
+			readarray -d '' READS_FILES_UNZIPPED_UNSORTED < <(find . -name "*.fq*" -print0)
+			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )
+			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
+		fi
+	
+		readarray -d '' READ1_LANES_UNSORTED < <(find . -name "*R1*" -print0)
+		readarray -d '' READ2_LANES_UNSORTED < <(find . -name "*R2*" -print0)
+		READ1_LANES=( $(fx_sort_array "${READ1_LANES_UNSORTED[@]}") )
+		READ2_LANES=( $(fx_sort_array "${READ2_LANES_UNSORTED[@]}") )
+		touch ~{sample_name}_cat_R1.fq
+		touch ~{sample_name}_cat_R2.fq
+		fx_echo_array "Read 1:" "${READ1_LANES[@]}"
+		fx_echo_array "Read 2:" "${READ2_LANES[@]}"
+		for fq in "${READ1_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R1.fq > ~{sample_name}_cat_R1.fq; done
+		for fq in "${READ2_LANES[@]}"; do cat "$fq" ~{sample_name}_cat_R2.fq > ~{sample_name}_cat_R2.fq; done
+	fi
+		
 	timer_first=$(( SECONDS - start_first ))
 	echo ${timer_first} > timer_1_process
 
@@ -314,6 +365,8 @@ task clean_and_decontam_and_check {
 
 	echo "----------------------------------------------"
 	echo "(7) [clockwork] Remove contamination"
+	echo "If you see 'Could not retrieve index file' you"
+	echo "can safely ignore it; it's a false warning."
 	echo "----------------------------------------------"
 	# What it does: clockwork remove_contam on the sam file we sorted
 	# 
@@ -422,7 +475,6 @@ task clean_and_decontam_and_check {
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
 	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
-	outfile.write("fastp cleaning was skipped, so the above represent the final result of these fastqs (before decontaminating)")
 	
 	
 	# first fastp run
