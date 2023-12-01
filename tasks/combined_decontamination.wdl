@@ -614,9 +614,10 @@ task clean_and_decontam_and_check {
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
-		Float pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
-		Float pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
-		Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
+		# these don't seem to work (likely due to Terra output-relying-on-outputs limitations?)
+		#Float pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
+		#Float pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
+		#Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
 		
 		# timers and debug information
 		# note that enabling the timers means errors will be thrown on early exits, since the files they are
