@@ -260,7 +260,7 @@ task clean_and_decontam_and_check {
 	import json
 	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
 		fastp = json.load(fastpJSON)
-		q30_before_anything = ["summary"]["before_filtering"]["q30_rate"]
+		q30_before_anything = fastp["summary"]["before_filtering"]["q30_rate"]
 		if q30_before_anything < ~{preliminary_min_q30}:
 			print(f"ERROR -- Q30 rate before filtering was just {q30_before_anything} (out of 1.0)")
 			with open("ERROR", "w") as err:
@@ -512,16 +512,17 @@ task clean_and_decontam_and_check {
 	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
 	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp_1["summary"]["before_filtering"]["total_reads"]))
 	
-	
+
 	# actual filtering
-	
 	try:
 		q30_after_everything = fastp_2["summary"]["after_filtering"]["q30_rate"] # post clean and decontam
+		print("Checking Q30 rate post-decontamination-then-cleaning...")
 	except KeyError:
 		q30_after_everything = fastp_2["summary"]["before_filtering"]["q30_rate"] # post decontam (pre-decontam cleaning not relevent)
+		print("Checking Q30 rate post-decontamination...")
 	
 	if q30_after_everything < ~{QC_min_q30}:
-		print(f"ERROR -- Q30 rate before filtering was only {q30_after_everything} (out of 1.0)")
+		print(f"ERROR -- Q30 rate after filtering was only {q30_after_everything} (out of 1.0, minimum ~{QC_min_q30})")
 		with open("ERROR", "w") as err:
 			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
 		exit(100)
