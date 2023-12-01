@@ -472,6 +472,14 @@ task clean_and_decontam_and_check {
 	echo "(9) [python/bash] Parse reports"
 	echo "----------------------------------------------"
 	start_parse=$SECONDS
+	
+	# parse decontam.counts.tsv
+	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
+	cat "~{arg_counts_out}" | head -3 | tail -1 | cut -f3 > reads_reference
+	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
+	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
+	
+	# parse fastp reports
 	python3 << CODE
 	import os
 	import json
@@ -547,12 +555,6 @@ task clean_and_decontam_and_check {
 		fi
 	fi
 	
-	# parse decontam.counts.tsv
-	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
-	cat "~{arg_counts_out}" | head -3 | tail -1 | cut -f3 > reads_reference
-	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
-	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
-	
 	echo "PASS" >> ERROR
 	
 	echo $(( SECONDS - start_parse )) > timer_9_parse
@@ -595,22 +597,24 @@ task clean_and_decontam_and_check {
 		Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
 		
 		# timers and debug information
+		# note that enabling the timers means errors will be thrown on early exits, since the files they are
+		# trying to read will not exist. this effectively forces crash_loudly behavior.
 		String errorcode = read_string("ERROR")
-		Int timer_1_prep  = read_int("timer_1_process")
-		Int timer_2_size  = read_int("timer_2_size")
-		Int timer_3_clean = read_int("timer_3_clean")
-		Int timer_4_untar = read_int("timer_4_untar")
-		Int timer_5_mapFQ = read_int("timer_5_map_reads")
-		Int timer_6_sort  = read_int("timer_6_sort")
-		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
-		Int timer_8_qchck = read_int("timer_8_qc")
-		Int timer_9_parse = read_int("timer_9_parse")
-		Int timer_total   = read_int("timer_total")
+		Int? timer_1_prep  = read_int("timer_1_process")
+		Int? timer_2_size  = read_int("timer_2_size")
+		Int? timer_3_clean = read_int("timer_3_clean")
+		Int? timer_4_untar = read_int("timer_4_untar")
+		Int? timer_5_mapFQ = read_int("timer_5_map_reads")
+		Int? timer_6_sort  = read_int("timer_6_sort")
+		Int? timer_7_dcnFQ = read_int("timer_7_rm_contam")
+		Int? timer_8_qchck = read_int("timer_8_qc")
+		Int? timer_9_parse = read_int("timer_9_parse")
+		Int? timer_total   = select_first([read_int("timer_total"), -1])
 		String docker_used = docker_image
-		Int reads_is_contam = read_int("reads_is_contam")
-		Int reads_reference = read_int("reads_reference")
-		Int reads_unmapped  = read_int("reads_unmapped")
-		Int reads_clck_kept = read_int("reads_kept")
+		Int? reads_is_contam = read_int("reads_is_contam")
+		Int? reads_reference = read_int("reads_reference")
+		Int? reads_unmapped  = read_int("reads_unmapped")
+		Int? reads_clck_kept = read_int("reads_kept")
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
 		
 		# you probably don't want these...
