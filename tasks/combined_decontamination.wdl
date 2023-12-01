@@ -28,7 +28,7 @@ task clean_and_decontam_and_check {
 		Boolean fastp_clean_after_decontam = false
 		
 		# decontamination options (happens third)
-		Boolean     crash_on_timeout = false
+		Boolean     crash_loudly = false
 		Int         timeout_map_reads = 120
 		Int         timeout_decontam  = 120
 		Boolean     unsorted_sam = false
@@ -56,7 +56,7 @@ task clean_and_decontam_and_check {
 	parameter_meta {
 		reads_files: "FASTQs to decontaminate"
 		
-		crash_on_timeout: "If true, fail entire pipeline if a task times out (see timeout_minutes)"
+		crash_loudly: "If true, force a WDL task failure (which will crash the overall pipeline) if a task times out, too few reads are detected, out of memory error, or a sample fails QC. If false, these instances will return 0 but give no fastq output. Regardless of this setting, unhandled errors (eg out of disk space) may still crash the pipeline."
 		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.9-CDC for CDC varpipe ref"
 		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
 		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
@@ -233,6 +233,14 @@ task clean_and_decontam_and_check {
 	if (( $input_fq_reads < 1000 ))
 	then
 		echo "WARNING: There seems to be less than a thousand input reads in total!"
+		if [[ $exit = 100 ]]
+		then
+			if [[ "~{crash_loudly}" = "true" ]]
+			then
+				set -eux -o pipefail
+				exit 1
+			fi
+		fi
 	fi
 	echo $(( SECONDS - start_subsample )) > timer_2_size
 	
@@ -270,7 +278,7 @@ task clean_and_decontam_and_check {
 	exit=$?
 	if [[ $exit = 100 ]]
 	then
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
@@ -321,7 +329,7 @@ task clean_and_decontam_and_check {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork map_reads timed out"
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			echo "DECONTAMINATION_MAP_READS_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
@@ -333,7 +341,7 @@ task clean_and_decontam_and_check {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			echo "DECONTAMINATION_MAP_READS_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
@@ -399,7 +407,7 @@ task clean_and_decontam_and_check {
 	if [[ $exit = 124 ]]
 	then
 		echo "ERROR -- clockwork remove_contam timed out"
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
@@ -411,7 +419,7 @@ task clean_and_decontam_and_check {
 	elif [[ $exit = 137 ]]
 	then
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			echo "DECONTAMINATION_RM_CONTAM_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
@@ -530,7 +538,7 @@ task clean_and_decontam_and_check {
 	exit=$?
 	if [[ $exit = 100 ]]
 	then
-		if [[ "~{crash_on_timeout}" = "true" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
