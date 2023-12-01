@@ -56,7 +56,7 @@ task clean_and_decontam_and_check {
 	parameter_meta {
 		reads_files: "FASTQs to decontaminate"
 		
-		crash_loudly: "If true, force a WDL task failure (which will crash the overall pipeline) if a task times out, too few reads are detected, out of memory error, or a sample fails QC. If false, these instances will return 0 but give no fastq output. Regardless of this setting, unhandled errors (eg out of disk space) may still crash the pipeline."
+		crash_loudly: "If true, force a WDL task failure if handled error (failed QC, timeout, etc). If false, handled errors will return 0 but give no fastq output."
 		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.11.3.9-CDC for CDC varpipe ref"
 		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
 		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
@@ -114,6 +114,28 @@ task clean_and_decontam_and_check {
 	# shellcheck disable=SC2002,SC2004
 	# SC2002 results in less readable code and SC2004 detecting is iffy on WDL
 	start_total=$SECONDS
+	
+	# ----------------------------------------------
+	# (0) [bash] Create fallback "output" files
+	# ----------------------------------------------
+	# What it does: Makes a bunch of fallback files which will later be overwritten
+	# with actual data should this sample not be filtered out.
+	#
+	# Rationale: Terra-Cromwell outputs cannot rely on other outputs, so we have no
+	# way of saying "don't try to read_int() this nonexistent file." Making the Int
+	# an optional Int? does not work as the rest of the TB pipeline expects Ints,
+	# even though those values will not even be called should a sample fail decontam.
+	FALLBACK_FILES=( q20_raw.txt q30_raw.txt reads_raw.txt )
+	FALLBACK_FILES+=( q20_cleaned.txt q30_cleaned.txt reads_cleaned.txt q20_decontaminated.txt q30_decontaminated.txt reads_decontaminated.txt )
+	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
+	FALLBACK_FILES+=( ERROR reads_is_contam reads_reference reads_unmapped reads_kept )
+	for fallback_file in "${FALLBACK_FILES[@]}"
+	do
+		echo "Creating fallback for $fallback_file"
+		echo -1 > "$fallback_file"
+	done
+	# TODO: force pct_loss_* to be negative
+
 
 	echo "----------------------------------------------"
 	echo "(1) [bash] Ensure reads are paired correctly"
@@ -331,11 +353,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork map_reads timed out"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_MAP_READS_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_MAP_READS_TIMEOUT" >> ERROR
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -343,11 +365,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_MAP_READS_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_MAP_READS_KILLED" >> ERROR
+			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -356,12 +378,12 @@ task clean_and_decontam_and_check {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
-		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" >> ERROR # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork map_reads returned $exit for unknown reasons"
-		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" >> ERROR # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
@@ -409,11 +431,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork remove_contam timed out"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" >> ERROR
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -421,11 +443,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_RM_CONTAM_KILLED" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_RM_CONTAM_KILLED" >> ERROR
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -434,12 +456,12 @@ task clean_and_decontam_and_check {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
-		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork remove_contam returned $exit for unknown reasons"
-		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" >> ERROR  # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
@@ -555,7 +577,7 @@ task clean_and_decontam_and_check {
 		fi
 	fi
 	
-	echo "PASS" >> ERROR
+	echo "PASS" > ERROR
 	
 	echo $(( SECONDS - start_parse )) > timer_9_parse
 	
@@ -600,21 +622,21 @@ task clean_and_decontam_and_check {
 		# note that enabling the timers means errors will be thrown on early exits, since the files they are
 		# trying to read will not exist. this effectively forces crash_loudly behavior.
 		String errorcode = read_string("ERROR")
-		Int? timer_1_prep  = read_int("timer_1_process")
-		Int? timer_2_size  = read_int("timer_2_size")
-		Int? timer_3_clean = read_int("timer_3_clean")
-		Int? timer_4_untar = read_int("timer_4_untar")
-		Int? timer_5_mapFQ = read_int("timer_5_map_reads")
-		Int? timer_6_sort  = read_int("timer_6_sort")
-		Int? timer_7_dcnFQ = read_int("timer_7_rm_contam")
-		Int? timer_8_qchck = read_int("timer_8_qc")
-		Int? timer_9_parse = read_int("timer_9_parse")
-		Int? timer_total   = select_first([read_int("timer_total"), -1])
+		Int timer_1_prep  = read_int("timer_1_process")
+		Int timer_2_size  = read_int("timer_2_size")
+		Int timer_3_clean = read_int("timer_3_clean")
+		Int timer_4_untar = read_int("timer_4_untar")
+		Int timer_5_mapFQ = read_int("timer_5_map_reads")
+		Int timer_6_sort  = read_int("timer_6_sort")
+		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
+		Int timer_8_qchck = read_int("timer_8_qc")
+		Int timer_9_parse = read_int("timer_9_parse")
+		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
-		Int? reads_is_contam = read_int("reads_is_contam")
-		Int? reads_reference = read_int("reads_reference")
-		Int? reads_unmapped  = read_int("reads_unmapped")
-		Int? reads_clck_kept = read_int("reads_kept")
+		Int reads_is_contam = read_int("reads_is_contam")
+		Int reads_reference = read_int("reads_reference")
+		Int reads_unmapped  = read_int("reads_unmapped")
+		Int reads_clck_kept = read_int("reads_kept")
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
 		
 		# you probably don't want these...
