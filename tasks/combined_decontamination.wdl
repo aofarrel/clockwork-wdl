@@ -177,8 +177,8 @@ task clean_and_decontam_and_check {
 			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
 		fi
 	
-		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*R1*" -print0)
-		readarray -d '' READ2_LANES_IF_CDPH < <(find . -name "*R2*" -print0)
+		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*_R1*" -print0)
+		readarray -d '' READ2_LANES_IF_CDPH < <(find . -name "*_R2*" -print0)
 		readarray -d '' READ1_LANES_IF_SRA < <(find . -name "*_1.f*" -print0)
 		readarray -d '' READ2_LANES_IF_SRA < <(find . -name "*_2.f*" -print0)
 		readarray -d ' ' READ1_LANES_UNSORTED < <(echo "${READ1_LANES_IF_CDPH[@]}" "${READ1_LANES_IF_SRA[@]}")

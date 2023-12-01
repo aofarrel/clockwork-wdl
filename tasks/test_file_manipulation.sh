@@ -8,7 +8,7 @@ rm ./*.fq
 rm ./*.fastq
 
 # set up test files
-READS_FILES_RAW=('testing/BIOSAMP_SRA1_1.fastq' 'testing/BIOSAMP_SRA1_2.fastq' 'testing/BIOSAMP_SRA2_1.fastq' 'testing/BIOSAMP_SRA2_2.fastq' 'testing/STRING_L001_R1_001.fq' 'testing/STRING_L002_R1_001.fq' 'testing/STRING_L001_R2_001.fq' 'testing/STRING_L002_R2_001.fq')
+READS_FILES_RAW=('testing/BIOSAMP_ERR1_1.fastq' 'testing/BIOSAMP_ERR1_2.fastq' 'testing/BIOSAMP_ERR2_1.fastq' 'testing/BIOSAMP_ERR2_2.fastq' 'testing/STRING_L001_R1_001.fq' 'testing/STRING_L002_R1_001.fq' 'testing/STRING_L001_R2_001.fq' 'testing/STRING_L002_R2_001.fq')
 for test_file in "${READS_FILES_RAW[@]}"; do touch "$test_file"; done
 
     fx_echo_array () {
@@ -56,8 +56,8 @@ for test_file in "${READS_FILES_RAW[@]}"; do touch "$test_file"; done
 			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
 		fi
 	
-		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*R1*" -print0)
-		readarray -d '' READ2_LANES_IF_CDPH < <(find . -name "*R2*" -print0)
+		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*_R1*" -print0)
+		readarray -d '' READ2_LANES_IF_CDPH < <(find . -name "*_R2*" -print0)
 		readarray -d '' READ1_LANES_IF_SRA < <(find . -name "*_1.f*" -print0)
 		readarray -d '' READ2_LANES_IF_SRA < <(find . -name "*_2.f*" -print0)
 		readarray -d ' ' READ1_LANES_UNSORTED < <(echo "${READ1_LANES_IF_CDPH[@]}" "${READ1_LANES_IF_SRA[@]}")
