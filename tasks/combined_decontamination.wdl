@@ -20,20 +20,21 @@ task clean_and_decontam_and_check {
 		Int        subsample_seed = 1965
 		Int        subsample_to_this_many_reads = 1000000
 		
-		# fastp cleaning options (happens second)
+		# fastp cleaning options
 		Int fastp_clean_avg_qual = 29
 		Boolean fastp_clean_disable_adapter_trimming = false
 		Boolean fastp_clean_detect_adapter_for_pe = true
 		Boolean fastp_clean_before_decontam = true
 		Boolean fastp_clean_after_decontam = false
 		
-		# decontamination options (happens third)
+		# decontamination options
 		Boolean     crash_loudly = false
 		Int         timeout_map_reads = 120
 		Int         timeout_decontam  = 120
 		Boolean     unsorted_sam = false
 		
-		# post-decontamination QC options (happens forth)
+		# fastp QC cleaning options
+		Boolean soft_qc = true
 		Float QC_min_q30 = 0.5  # 50%
 
 		# rename outs
@@ -257,10 +258,15 @@ task clean_and_decontam_and_check {
 		echo "WARNING: There seems to be less than a thousand input reads in total!"
 		if [[ $exit = 100 ]]
 		then
-			if [[ "~{crash_loudly}" = "true" ]]
+			if [[ "~{soft_qc}" = "false" ]]
 			then
-				set -eux -o pipefail
-				exit 1
+				if [[ "~{crash_loudly}" = "true" ]]
+				then
+					set -eux -o pipefail
+					exit 1
+				else
+					exit 0
+				fi
 			fi
 		fi
 	fi
@@ -284,7 +290,7 @@ task clean_and_decontam_and_check {
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
 		--json "~{sample_name}_first_fastp.json"
 		
-	# very lenient filter to check for very bad fqs
+	# very lenient filter to check for very bad fqs -- NOT AFFECTED BY soft_qc ON PURPOSE!
 	python3 << CODE
 	import os
 	import json
@@ -568,12 +574,15 @@ task clean_and_decontam_and_check {
 	exit=$?
 	if [[ $exit = 100 ]]
 	then
-		if [[ "~{crash_loudly}" = "true" ]]
+		if [[ "~{soft_qc}" = "false" ]]
 		then
-			set -eux -o pipefail
-			exit 1
-		else
-			exit 0
+			if [[ "~{crash_loudly}" = "true" ]]
+			then
+				set -eux -o pipefail
+				exit 1
+			else
+				exit 0
+			fi
 		fi
 	fi
 	
