@@ -321,7 +321,8 @@ task clean_and_decontam_and_check {
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
 		# this is basically a repeat of step 1
-		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES_UNSORTED[@]}"; do echo "$fq"; done | sort)
+		# READS_FILES is updated whether or not there were fastqs to merge
+		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES[@]}"; do echo "$fq"; done)
 	fi
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
 
@@ -346,6 +347,8 @@ task clean_and_decontam_and_check {
 	echo "(5) [clockwork] Map FQs to decontam reference"
 	echo "----------------------------------------------"
 	# What it does: clockwork map_reads to decontamination ref
+	echo "Fastqs we will be mapping: "
+	echo "${MAP_THESE_FQS[@]}"
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{true="--unsorted_sam" false="" unsorted_sam} \
