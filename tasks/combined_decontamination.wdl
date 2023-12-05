@@ -38,6 +38,7 @@ task clean_and_decontam_and_check {
 		Float QC_min_q30 = 0.5  # 50%
 
 		# rename outs
+		String? force_rename_out
 		String? no_match_out_1
 		String? no_match_out_2
 		String? contam_out_1
@@ -96,8 +97,10 @@ task clean_and_decontam_and_check {
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
 	String clean_after_decontamination1 = sub(arg_reads_out1, "_1.decontam.fq.gz", ".decontam.clean_1.fq.gz")
 	String clean_after_decontamination2 = sub(arg_reads_out2, "_2.decontam.fq.gz", ".decontam.clean_2.fq.gz")
-	String final_fastq1 = if(fastp_clean_after_decontam) then clean_after_decontamination1 else arg_reads_out1
-	String final_fastq2 = if(fastp_clean_after_decontam) then clean_after_decontamination2 else arg_reads_out2
+	String usual_final_fastq1 = if(fastp_clean_after_decontam) then clean_after_decontamination1 else arg_reads_out1
+	String usual_final_fastq2 = if(fastp_clean_after_decontam) then clean_after_decontamination2 else arg_reads_out2
+	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
+	String final_fastq2 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out2]) + "_2.fq.gz" else usual_final_fastq2
 
 	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
@@ -587,6 +590,13 @@ task clean_and_decontam_and_check {
 				exit 0
 			fi
 		fi
+	fi
+	
+	# rename outputs if necessary
+	if [[ ! "~{force_rename_out}" = "" ]]
+	then
+		mv "~{usual_final_fastq1}" "~{final_fastq1}"
+		mv "~{usual_final_fastq2}" "~{final_fastq2}"
 	fi
 	
 	echo "PASS" > ERROR
