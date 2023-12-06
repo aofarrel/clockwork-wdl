@@ -92,7 +92,7 @@ task clean_and_decontam_and_check {
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
-	String arg_counts_out = sample_name + ".decontam.counts.tsv"
+	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
 	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
 	String clean_after_decontamination1 = sub(arg_reads_out1, "_1.decontam.fq.gz", ".decontam.clean_1.fq.gz")
