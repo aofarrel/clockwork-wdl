@@ -59,9 +59,9 @@ sed -i '' -e "2s/.*/$base_image_line/" Dockerfile_CRyPTIC
 sed -i '' -e "2s/.*/$base_image_line/" Dockerfile_CDC
 
 # build CRyPTIC image
-#echo "Building CRyPTIC..."
-#docker build -f Dockerfile_CRyPTIC .
-#docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CRyPTIC
+echo "Building CRyPTIC..."
+docker build -f Dockerfile_CRyPTIC .
+docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CRyPTIC
 #echo "Pushing CRyPTIC..."
 #docker push "ashedpotatoes/clockwork-plus:$tag-CRyPTIC"
 
