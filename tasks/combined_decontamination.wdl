@@ -96,10 +96,10 @@ task clean_and_decontam_and_check {
 	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
 	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
-	String clean_after_decontamination1 = sub(arg_reads_out1, "_1.decontam.fq.gz", ".decontam.clean_1.fq.gz")
-	String clean_after_decontamination2 = sub(arg_reads_out2, "_2.decontam.fq.gz", ".decontam.clean_2.fq.gz")
-	String usual_final_fastq1 = if(fastp_clean_after_decontam) then clean_after_decontamination1 else arg_reads_out1
-	String usual_final_fastq2 = if(fastp_clean_after_decontam) then clean_after_decontamination2 else arg_reads_out2
+	String reads_cleaned_1 = sub(arg_reads_out1, ".fq.gz", ".clean.fq.gz")
+	String reads_cleaned_2 = sub(arg_reads_out2, ".fq.gz", ".clean.fq.gz")
+	String usual_final_fastq1 = if(fastp_clean_after_decontam) then reads_cleaned_1 else arg_reads_out1
+	String usual_final_fastq2 = if(fastp_clean_after_decontam) then reads_cleaned_2 else arg_reads_out2
 	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
 	String final_fastq2 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out2]) + "_2.fq.gz" else usual_final_fastq2
 
@@ -293,7 +293,7 @@ task clean_and_decontam_and_check {
 	# TODO: Support multi-lane-multi-file fastq sets!!
 	start_fastp_1=$SECONDS
 	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" \
-		--out1 "~{sample_name}_cleaned_1.fq" --out2 "~{sample_name}_cleaned_2.fq" \
+		--out1 "~{reads_cleaned_1}" --out2 "~{reads_cleaned_2}" \
 		--average_qual ~{fastp_clean_avg_qual} \
 		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
@@ -496,7 +496,7 @@ task clean_and_decontam_and_check {
 	# or after decontamination in order to test how the end result differs.
 	start_fastp_2=$SECONDS	
 	fastp --in1 ~{arg_reads_out1} --in2 ~{arg_reads_out2} \
-		--out1 ~{clean_after_decontamination1} --out2 ~{clean_after_decontamination2} \
+		--out1 ~{reads_cleaned_1} --out2 ~{reads_cleaned_2} \
 		--average_qual ~{fastp_clean_avg_qual} \
 		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
