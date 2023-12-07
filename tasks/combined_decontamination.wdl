@@ -63,7 +63,8 @@ task clean_and_decontam_and_check {
 		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
 		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
 		fastp_clean_detect_adapter_for_pe: "Enable auto-detection for adapter for PE data, not just SE data. WDL default: true. fastp default: false."
-		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample 1,000,000 random reads and use that instead (-1 to disable)"
+		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample subsample_to_this_many_reads random reads and use that instead (-1 to disable)"
+		subsample_to_this_many_reads: "This is the number of reads to subsample down to (default: 1,000,000)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
 		timeout_decontam: "If decontamination takes longer than this number of minutes, stop processing this sample"
 		timeout_map_reads: "If read mapping takes longer than this number of minutes, stop processing this sample"
@@ -237,6 +238,10 @@ task clean_and_decontam_and_check {
 	# Dev note: Downsampling relies on deleting inputs and then putting a new file where the
 	# input was. This works on Terra, but there is a chance this gets iffy elsewhere.
 	# If you're having issues with miniwdl, --copy-input-files might help
+	#
+	# TODO: if _1 is just barely above the cutoff and _2 is just barely below, you may end up
+	# with two very differently size fastqs. Should probably check only one fastq then decide
+	# to subsample/not everything else based on that.
 	start_subsample=$SECONDS
 	input_fq_reads=0
 	for inputfq in "${READS_FILES[@]}"
@@ -246,13 +251,14 @@ task clean_and_decontam_and_check {
 		input_fq_reads=$((input_fq_reads+reads_inputfq))
 		if [[ "~{subsample_cutoff}" != "-1" ]]
 		then
-			echo "Subsampling..."
 			if (( $size_inputfq > ~{subsample_cutoff} ))
 			then
 				seqtk sample -s~{subsample_seed} "$inputfq" ~{subsample_to_this_many_reads} > temp.fq
 				rm "$inputfq"
 				mv temp.fq "$inputfq"
 				echo "WARNING: downsampled $inputfq (was $size_inputfq MB, $reads_inputfq reads)"
+			else
+				echo "$inputfq is $size_inputfq MB, and we will not be subsampling it"
 			fi
 		fi
 	done
@@ -587,6 +593,8 @@ task clean_and_decontam_and_check {
 				set -eux -o pipefail
 				exit 1
 			else
+				rm "~{usual_final_fastq1}"
+				rm "~{usual_final_fastq2}"
 				exit 0
 			fi
 		fi
