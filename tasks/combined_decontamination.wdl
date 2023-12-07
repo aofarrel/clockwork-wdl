@@ -326,7 +326,7 @@ task clean_and_decontam_and_check {
 		
 	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
 	then		
-		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
+		CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
 		# this is basically a repeat of step 1
@@ -494,7 +494,13 @@ task clean_and_decontam_and_check {
 	# Rationale: There is no point in running fastp as a cleaner twice, but users
 	# can do it. Our actual goal is to provide the option to do fastp before
 	# or after decontamination in order to test how the end result differs.
-	start_fastp_2=$SECONDS	
+	start_fastp_2=$SECONDS
+	if [ -f "~{reads_cleaned_1}" ]
+	then
+		# remove previous cleaned-before-decontam fastqs, because we are
+		# going to overwrite them with outputs with a similar filename
+		rm "~{reads_cleaned_1}" "~{reads_cleaned_2}"
+	fi
 	fastp --in1 ~{arg_reads_out1} --in2 ~{arg_reads_out2} \
 		--out1 ~{reads_cleaned_1} --out2 ~{reads_cleaned_2} \
 		--average_qual ~{fastp_clean_avg_qual} \
@@ -503,7 +509,7 @@ task clean_and_decontam_and_check {
 		--json "~{sample_name}_second_fastp.json"
 	if [[ "~{fastp_clean_after_decontam}" = "true" ]]
 	then
-		CLEANED_FQS=("~{sample_name}_cleaned_1.fq" "~{sample_name}_cleaned_2.fq")
+		CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	fi
 	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
