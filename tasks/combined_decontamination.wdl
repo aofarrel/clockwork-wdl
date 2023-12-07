@@ -529,7 +529,7 @@ task clean_and_decontam_and_check {
 	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
 		fastp_2 = json.load(fastpJSON_2)
 	with open("~{sample_name}_fastp.txt", "a") as outfile: # appends to the same outfile as the first fastp
-		print("after decontamination:\n")
+		outfile.write("after decontamination:\n")
 		for keys, values in fastp_2["summary"]["before_filtering"].items():
 			outfile.write(f"{keys}\t{values}\n")
 			if "~{fastp_clean_after_decontam}" == "true":
@@ -591,10 +591,11 @@ task clean_and_decontam_and_check {
 			if [[ "~{crash_loudly}" = "true" ]]
 			then
 				set -eux -o pipefail
+				echo "Due to QC failure, no .fq output will be given. Crashing!"
 				exit 1
 			else
-				rm "~{usual_final_fastq1}"
-				rm "~{usual_final_fastq2}"
+				rm ./"*.fq.gz"
+				echo "Due to QC failure, no .fq output will be given."
 				exit 0
 			fi
 		fi
