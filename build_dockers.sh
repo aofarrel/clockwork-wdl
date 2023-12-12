@@ -48,8 +48,8 @@ fi
 echo "Building slim..."
 docker build -f Dockerfile_slim .
 docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-slim
-#echo "Pushing slim..."
-#docker push "ashedpotatoes/clockwork-plus:$tag-slim"
+echo "Pushing slim..."
+docker push "ashedpotatoes/clockwork-plus:$tag-slim"
 
 
 # I use Mac OS, so https://stackoverflow.com/a/62309999 and https://stackoverflow.com/a/4247319 are at play
@@ -62,12 +62,12 @@ sed -i '' -e "2s/.*/$base_image_line/" Dockerfile_CDC
 echo "Building CRyPTIC..."
 docker build -f Dockerfile_CRyPTIC .
 docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CRyPTIC
-#echo "Pushing CRyPTIC..."
-#docker push "ashedpotatoes/clockwork-plus:$tag-CRyPTIC"
+echo "Pushing CRyPTIC..."
+docker push "ashedpotatoes/clockwork-plus:$tag-CRyPTIC"
 
 # build CDC image
 echo "Building CDC..."
 docker build -f Dockerfile_CDC .
 docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CDC
-#echo "Pushing CDC..."
-#docker push "ashedpotatoes/clockwork-plus:$tag-CDC"
+echo "Pushing CDC..."
+docker push "ashedpotatoes/clockwork-plus:$tag-CDC"
