@@ -33,7 +33,7 @@ if [ -f "./references/Ref.remove_contam.tar" ];
 then
     echo "Found default (CRyPTIC) decontamination reference."
 else
-    echo "Place Ref.remove_contam.tar in $pwd/reference"
+    echo "Place cryptic.Ref.remove_contam.tar in $pwd/reference"
     exit 1
 fi
 
