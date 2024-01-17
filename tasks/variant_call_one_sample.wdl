@@ -39,8 +39,7 @@ task variant_call_one_sample_ref_included {
 	Boolean force = false
 
 	# estimate disk size required and see what kind of disk we're using
-	Int size_in = ceil(size(reads_files, "GB")) + addldisk
-	Int finalDiskSize = ceil(2*size_in + addldisk)
+	Int finalDiskSize = 5 + addldisk
 	String diskType = if((ssd)) then " SSD" else " HDD"
 
 	# we need to be able set the outputs name from an input name to use optional outs
