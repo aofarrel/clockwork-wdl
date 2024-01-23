@@ -189,7 +189,7 @@ task clean_and_decontam_and_check {
 	
 	if (( "${#READS_FILES[@]}" != 2 ))
 	then
-		# check for gzipped inputs
+		# check for gzipped or tarball inputs
 		some_base=$(basename -- "${READS_FILES[0]}") # just check the first element; should never be a mix of gzipped and not-gzipped fqs
 		some_extension="${some_base##*.}"
 		if [[ $some_extension = ".gz" ]]
@@ -202,6 +202,15 @@ task clean_and_decontam_and_check {
 			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
 			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
 			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
+		elif [[ $some_extension = ".gz" ]]
+		then
+			for tarball in "${READS_FILES[@]}"; do tar -xvf "$tarball"; done
+			# TODO: check that .tar originals got deleted to avoid issues with find
+			readarray -d '' FQ < <(find . -iname "*.fq*" -print0) 
+			readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
+			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
+			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
+			fx_echo_array "After untarring:" "${READS_FILES[@]}"
 		fi
 	
 		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*_R1*" -print0)
