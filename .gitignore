@@ -40,3 +40,4 @@ references/supposedly.default.Ref.remove_contam/ref.fa.fai
 references/supposedly.default.Ref.remove_contam/ref.fa
 references/default.Ref.remove_contam.md5
 varpipe.Ref.remove_contam.tar
+*.tar
