@@ -134,6 +134,7 @@ task clean_and_decontam_and_check {
 	FALLBACK_FILES+=( q20_cleaned.txt q30_cleaned.txt reads_cleaned.txt q20_decontaminated.txt q30_decontaminated.txt reads_decontaminated.txt )
 	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
 	FALLBACK_FILES+=( ERROR reads_is_contam reads_reference reads_unmapped reads_kept )
+	FALLBACK_FILES+=( pct_loss_total.txt pct_loss_decon.txt pct_loss_cleaning.txt )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
 		echo "Creating fallback for $fallback_file"
