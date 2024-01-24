@@ -89,7 +89,7 @@ task clean_and_decontam_and_check {
 	# So, we instead need to know output filenames before the command block
 	# executes.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name = sub(sub(read_file_basename, "_.*", ""), ".gz", "")
+	String sample_name = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
@@ -222,6 +222,7 @@ task clean_and_decontam_and_check {
 	if (( "${#READS_FILES[@]}" != 2 ))
 	then
 		# check for gzipped or tarball inputs
+		# clockwork can handle gzipped inputs, we only unzip in case there's multiple fqs in a single zip
 		some_base=$(basename -- "${READS_FILES[0]}") # just check the first element; should never be a mix of gzipped and not-gzipped fqs
 		some_extension="${some_base##*.}"
 		if [[ $some_extension = "gz" ]]
@@ -568,14 +569,16 @@ task clean_and_decontam_and_check {
 				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
 				for keys, values in fastp_2["summary"]["after_filtering"].items():
 					outfile.write(f"{keys}\t{values}\n")
+				reads_cleaned = fastp_1["summary"]["after_filtering"]["total_reads"] # like the files, this can be overwritten
 				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_2["summary"]["after_filtering"]["q20_rate"]))
 				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_2["summary"]["after_filtering"]["q30_rate"]))
-				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_2["summary"]["after_filtering"]["total_reads"]))
+				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(reads_cleaned))
 			else:
 				outfile.write("no additional cleaning was performed post-decontamination.\n")
+	dcntmd_total_reads = fastp_2["summary"]["before_filtering"]["total_reads"]
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
+	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(dcntmd_total_reads))
 	
 	
 	# first fastp run
@@ -589,17 +592,18 @@ task clean_and_decontam_and_check {
 			outfile.write("after fastp cleaned the non-decontaminated fastqs:\n")
 			for keys, values in fastp_1["summary"]["after_filtering"].items():
 				outfile.write(f"{keys}\t{values}\n")
-			# if both cleans are true, this one will overwrite the other one -- this is intended, because cleaning a second time
-			# does not really do anything, so what we actually care about are the stats from the first cleaning
+			# if both cleans are true, this section will overwrite the other files and dcntmd_total_reads -- this is intended!
+			# cleaning a second time doesn't do much, so what we care about are stats from the first cleaning
+			cleaned_total_reads = fastp_1["summary"]["after_filtering"]["total_reads"]
 			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
 			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
-			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
+			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(cleaned_total_reads))
 		else:
 			outfile.write("reads were not cleaned before decontamination.\n")
+	raw_total_reads = fastp_1["summary"]["before_filtering"]["total_reads"]
 	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp_1["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp_1["summary"]["before_filtering"]["total_reads"]))
-	
+	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(raw_total_reads))
 
 	# actual filtering
 	try:
@@ -614,6 +618,15 @@ task clean_and_decontam_and_check {
 		with open("ERROR", "w") as err:
 			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
 		exit(100)
+	
+	# more stats, because Terra doesn't support outputs based on other outputs
+	pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
+	pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
+	pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
+	with open("pct_loss_cleaning.txt", "w") as reads_in: reads_in.write(str(pct_loss_cleaning))
+	with open("pct_loss_decon.txt", "w") as reads_in: reads_in.write(str(pct_loss_decon))
+	with open("pct_loss_total.txt", "w") as reads_in: reads_in.write(str(pct_loss_total))
+	
 	CODE
 	exit=$?
 	if [[ $exit = 100 ]]
@@ -671,16 +684,15 @@ task clean_and_decontam_and_check {
 		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
 		Float  raw_pct_above_q30  = read_float("q30_raw.txt")
 		Int    raw_total_reads    = read_int("reads_raw.txt")
-		Float  cleaned_pct_above_q20     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
-		Float  cleaned_pct_above_q30     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
-		Int    cleaned_total_reads       = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
+		Float  cleaned_pct_above_q20   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
+		Float  cleaned_pct_above_q30   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
+		Int    cleaned_total_reads     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
-		# these don't seem to work (likely due to Terra output-relying-on-outputs limitations?)
-		#Float pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
-		#Float pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
-		#Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
+		Float pct_loss_cleaning = read_float("pct_loss_cleaning.txt")
+		Float pct_loss_decon    = read_float("pct_loss_decon.txt")
+		Float pct_loss_total    = read_float("pct_loss_total.txt")
 		
 		# timers and debug information
 		# note that enabling the timers means errors will be thrown on early exits, since the files they are
