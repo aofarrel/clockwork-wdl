@@ -140,6 +140,22 @@ task clean_and_decontam_and_check {
 		echo -1 > "$fallback_file"
 	done
 	# TODO: force pct_loss_* to be negative
+	
+	echo "----------------------------------------------"
+	echo "(0.5) [tar] Expand decontamination reference"
+	echo "---> reference used: ~{docker_image}"
+	echo "----------------------------------------------"
+	# What it does: Untars and moves the decontamination reference
+	#
+	# Rationale: We need it to decontaminate! Also, this needs to be done before trying to
+	# untar any of the read files.
+	#
+	# Dev note: Terra-Cromwell does not place you in the home dir, but rather one folder down, so we
+	# go up one to get the ref genome. miniwdl goes further. So, we place the untarred directory in
+	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
+	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
+	mkdir Ref.remove_contam
+	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
 
 
 	echo "----------------------------------------------"
@@ -175,15 +191,31 @@ task clean_and_decontam_and_check {
 		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
 		echo "${OUTPUT[@]}" # this is a bit dangerous
 	}
-	
+	READS_FILES_RAW=$("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t FQ < <(find . -iname "*.fq*" -print0) 
-	readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
-	readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}")
-	fx_echo_array "Located files:" "${READS_FILES_UNSORTED[@]}"
+	readarray -d '' -t FASTQ < <(find . -iname "*.fastq*" -print0)
+	readarray -d '' -t TAR < <(find . -iname "*.tar*" -print0)
+	fx_echo_array "Located these .fq files: " "${FQ[@]}"
+	fx_echo_array "Located these .fastq files: " "${FASTQ[@]}"
+	fx_echo_array "Located these .tar files: " "${TAR[@]}"
+	# check length of arrays -- we do not want "fq.fastq" files to cause issues
+	if (( "${#FQ[@]}" != 0 && "${#FASTQ[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FASTQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
+	else
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${TAR[@]}")
+	fi
+	fx_echo_array "Probable input files:" "${READS_FILES_UNSORTED[@]}"
 	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") ) # this appears to be more consistent than mapfile
 	fx_echo_array "In workdir and sorted:" "${READS_FILES[@]}"
 	
@@ -345,23 +377,6 @@ task clean_and_decontam_and_check {
 		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES[@]}"; do echo "$fq"; done)
 	fi
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
-
-	echo "----------------------------------------------"
-	echo "(4) [tar] Expand decontamination reference"
-	echo "---> reference used: ~{docker_image}"
-	echo "----------------------------------------------"
-	# What it does: Untars and moves the decontamination reference
-	#
-	# Rationale: We need it to decontaminate!
-	#
-	# Dev note: Terra-Cromwell does not place you in the home dir, but rather one folder down, so we
-	# go up one to get the ref genome. miniwdl goes further. So, we place the untarred directory in
-	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
-	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
-	start_untar=$SECONDS
-	mkdir Ref.remove_contam
-	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
-	echo $(( SECONDS - start_untar ))  > timer_4_untar
 
 	echo "----------------------------------------------"
 	echo "(5) [clockwork] Map FQs to decontam reference"
@@ -674,7 +689,6 @@ task clean_and_decontam_and_check {
 		Int timer_1_prep  = read_int("timer_1_process")
 		Int timer_2_size  = read_int("timer_2_size")
 		Int timer_3_clean = read_int("timer_3_clean")
-		Int timer_4_untar = read_int("timer_4_untar")
 		Int timer_5_mapFQ = read_int("timer_5_map_reads")
 		Int timer_6_sort  = read_int("timer_6_sort")
 		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
