@@ -89,7 +89,7 @@ task clean_and_decontam_and_check {
 	# So, we instead need to know output filenames before the command block
 	# executes.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name = sub(sub(read_file_basename, "_.*", ""), ".gz", "")
+	String sample_name = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
@@ -134,12 +134,29 @@ task clean_and_decontam_and_check {
 	FALLBACK_FILES+=( q20_cleaned.txt q30_cleaned.txt reads_cleaned.txt q20_decontaminated.txt q30_decontaminated.txt reads_decontaminated.txt )
 	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
 	FALLBACK_FILES+=( ERROR reads_is_contam reads_reference reads_unmapped reads_kept )
+	FALLBACK_FILES+=( pct_loss_total.txt pct_loss_decon.txt pct_loss_cleaning.txt )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
 		echo "Creating fallback for $fallback_file"
 		echo -1 > "$fallback_file"
 	done
 	# TODO: force pct_loss_* to be negative
+	
+	echo "----------------------------------------------"
+	echo "(0.5) [tar] Expand decontamination reference"
+	echo "---> reference used: ~{docker_image}"
+	echo "----------------------------------------------"
+	# What it does: Untars and moves the decontamination reference
+	#
+	# Rationale: We need it to decontaminate! Also, this needs to be done before trying to
+	# untar any of the read files.
+	#
+	# Dev note: Terra-Cromwell does not place you in the home dir, but rather one folder down, so we
+	# go up one to get the ref genome. miniwdl goes further. So, we place the untarred directory in
+	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
+	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
+	mkdir Ref.remove_contam
+	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
 
 
 	echo "----------------------------------------------"
@@ -175,24 +192,41 @@ task clean_and_decontam_and_check {
 		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
 		echo "${OUTPUT[@]}" # this is a bit dangerous
 	}
-	
+	READS_FILES_RAW=$("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t FQ < <(find . -iname "*.fq*" -print0) 
-	readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
-	readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}")
-	fx_echo_array "Located files:" "${READS_FILES_UNSORTED[@]}"
+	readarray -d '' -t FASTQ < <(find . -iname "*.fastq*" -print0)
+	readarray -d '' -t TAR < <(find . -iname "*.tar*" -print0)
+	fx_echo_array "Located these .fq files: " "${FQ[@]}"
+	fx_echo_array "Located these .fastq files: " "${FASTQ[@]}"
+	fx_echo_array "Located these .tar files: " "${TAR[@]}"
+	# check length of arrays -- we do not want "fq.fastq" files to cause issues
+	if (( "${#FQ[@]}" != 0 && "${#FASTQ[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FASTQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
+	else
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${TAR[@]}")
+	fi
+	fx_echo_array "Probable input files:" "${READS_FILES_UNSORTED[@]}"
 	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") ) # this appears to be more consistent than mapfile
 	fx_echo_array "In workdir and sorted:" "${READS_FILES[@]}"
 	
 	if (( "${#READS_FILES[@]}" != 2 ))
 	then
-		# check for gzipped inputs
+		# check for gzipped or tarball inputs
+		# clockwork can handle gzipped inputs, we only unzip in case there's multiple fqs in a single zip
 		some_base=$(basename -- "${READS_FILES[0]}") # just check the first element; should never be a mix of gzipped and not-gzipped fqs
 		some_extension="${some_base##*.}"
-		if [[ $some_extension = ".gz" ]]
+		if [[ $some_extension = "gz" ]]
 		then
 			apt-get install -y pigz # since we are decompressing, this will not be a huge performance increase
 			for fq in "${READS_FILES[@]}"; do pigz -d "$fq"; done
@@ -202,6 +236,17 @@ task clean_and_decontam_and_check {
 			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
 			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
 			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
+		elif [[ $some_extension = "tar" ]]
+		then
+			for tarball in "${READS_FILES[@]}"; do tar -xvf "$tarball"; done
+			# TODO: check that .tar originals got deleted to avoid issues with find
+			readarray -d '' FQ < <(find . -iname "*.fq*" -print0) 
+			readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
+			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
+			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
+			fx_echo_array "After untarring:" "${READS_FILES[@]}"
+		else
+			echo "Files do not appear to be gzipped nor in tar format."
 		fi
 	
 		readarray -d '' READ1_LANES_IF_CDPH < <(find . -name "*_R1*" -print0)
@@ -334,23 +379,6 @@ task clean_and_decontam_and_check {
 		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES[@]}"; do echo "$fq"; done)
 	fi
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
-
-	echo "----------------------------------------------"
-	echo "(4) [tar] Expand decontamination reference"
-	echo "---> reference used: ~{docker_image}"
-	echo "----------------------------------------------"
-	# What it does: Untars and moves the decontamination reference
-	#
-	# Rationale: We need it to decontaminate!
-	#
-	# Dev note: Terra-Cromwell does not place you in the home dir, but rather one folder down, so we
-	# go up one to get the ref genome. miniwdl goes further. So, we place the untarred directory in
-	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
-	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
-	start_untar=$SECONDS
-	mkdir Ref.remove_contam
-	tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
-	echo $(( SECONDS - start_untar ))  > timer_4_untar
 
 	echo "----------------------------------------------"
 	echo "(5) [clockwork] Map FQs to decontam reference"
@@ -542,14 +570,16 @@ task clean_and_decontam_and_check {
 				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
 				for keys, values in fastp_2["summary"]["after_filtering"].items():
 					outfile.write(f"{keys}\t{values}\n")
+				reads_cleaned = fastp_1["summary"]["after_filtering"]["total_reads"] # like the files, this can be overwritten
 				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_2["summary"]["after_filtering"]["q20_rate"]))
 				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_2["summary"]["after_filtering"]["q30_rate"]))
-				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_2["summary"]["after_filtering"]["total_reads"]))
+				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(reads_cleaned))
 			else:
 				outfile.write("no additional cleaning was performed post-decontamination.\n")
+	dcntmd_total_reads = fastp_2["summary"]["before_filtering"]["total_reads"]
 	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(fastp_2["summary"]["before_filtering"]["total_reads"]))
+	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(dcntmd_total_reads))
 	
 	
 	# first fastp run
@@ -563,17 +593,18 @@ task clean_and_decontam_and_check {
 			outfile.write("after fastp cleaned the non-decontaminated fastqs:\n")
 			for keys, values in fastp_1["summary"]["after_filtering"].items():
 				outfile.write(f"{keys}\t{values}\n")
-			# if both cleans are true, this one will overwrite the other one -- this is intended, because cleaning a second time
-			# does not really do anything, so what we actually care about are the stats from the first cleaning
+			# if both cleans are true, this section will overwrite the other files and dcntmd_total_reads -- this is intended!
+			# cleaning a second time doesn't do much, so what we care about are stats from the first cleaning
+			cleaned_total_reads = fastp_1["summary"]["after_filtering"]["total_reads"]
 			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
 			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
-			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(fastp_1["summary"]["after_filtering"]["total_reads"]))
+			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(cleaned_total_reads))
 		else:
 			outfile.write("reads were not cleaned before decontamination.\n")
+	raw_total_reads = fastp_1["summary"]["before_filtering"]["total_reads"]
 	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp_1["summary"]["before_filtering"]["q20_rate"]))
 	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(fastp_1["summary"]["before_filtering"]["total_reads"]))
-	
+	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(raw_total_reads))
 
 	# actual filtering
 	try:
@@ -588,6 +619,15 @@ task clean_and_decontam_and_check {
 		with open("ERROR", "w") as err:
 			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
 		exit(100)
+	
+	# more stats, because Terra doesn't support outputs based on other outputs
+	pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
+	pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
+	pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
+	with open("pct_loss_cleaning.txt", "w") as reads_in: reads_in.write(str(pct_loss_cleaning))
+	with open("pct_loss_decon.txt", "w") as reads_in: reads_in.write(str(pct_loss_decon))
+	with open("pct_loss_total.txt", "w") as reads_in: reads_in.write(str(pct_loss_total))
+	
 	CODE
 	exit=$?
 	if [[ $exit = 100 ]]
@@ -645,16 +685,15 @@ task clean_and_decontam_and_check {
 		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
 		Float  raw_pct_above_q30  = read_float("q30_raw.txt")
 		Int    raw_total_reads    = read_int("reads_raw.txt")
-		Float  cleaned_pct_above_q20     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
-		Float  cleaned_pct_above_q30     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
-		Int    cleaned_total_reads       = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
+		Float  cleaned_pct_above_q20   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
+		Float  cleaned_pct_above_q30   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
+		Int    cleaned_total_reads     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
 		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
 		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
 		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
-		# these don't seem to work (likely due to Terra output-relying-on-outputs limitations?)
-		#Float pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
-		#Float pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
-		#Float pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
+		Float pct_loss_cleaning = read_float("pct_loss_cleaning.txt")
+		Float pct_loss_decon    = read_float("pct_loss_decon.txt")
+		Float pct_loss_total    = read_float("pct_loss_total.txt")
 		
 		# timers and debug information
 		# note that enabling the timers means errors will be thrown on early exits, since the files they are
@@ -663,7 +702,6 @@ task clean_and_decontam_and_check {
 		Int timer_1_prep  = read_int("timer_1_process")
 		Int timer_2_size  = read_int("timer_2_size")
 		Int timer_3_clean = read_int("timer_3_clean")
-		Int timer_4_untar = read_int("timer_4_untar")
 		Int timer_5_mapFQ = read_int("timer_5_map_reads")
 		Int timer_6_sort  = read_int("timer_6_sort")
 		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
