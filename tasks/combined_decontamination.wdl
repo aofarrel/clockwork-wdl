@@ -13,6 +13,8 @@ task clean_and_decontam_and_check {
 	input {
 		
 		Array[File] reads_files
+
+		# debugging help
 		Boolean p1_p2_format = false
 		
 		# guardrails, to prevent this task from taking forever
@@ -195,7 +197,9 @@ task clean_and_decontam_and_check {
 	}
 
 	# move inputs into the workdir
-	READS_FILES_RAW=$("~{sep='" "' reads_files}")
+	#READS_FILES_RAW=$(~{sep=" " reads_files})
+	#READS_FILES_RAW=$("~{sep='" "' reads_files}")
+	READS_FILES_RAW=("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	echo "Input files moved to workdir"
