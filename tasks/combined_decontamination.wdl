@@ -13,6 +13,7 @@ task clean_and_decontam_and_check {
 	input {
 		
 		Array[File] reads_files
+		Boolean p1_p2_format = false
 		
 		# guardrails, to prevent this task from taking forever
 		Float      preliminary_min_q30 = 0.2   # 20%
@@ -192,19 +193,56 @@ task clean_and_decontam_and_check {
 		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
 		echo "${OUTPUT[@]}" # this is a bit dangerous
 	}
+
+	# move inputs into the workdir
 	READS_FILES_RAW=$("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
+	echo "Input files moved to workdir"
+
+	# files from the Valencia lab use P1 P2 notation instead of R1 R2
+	if (( "~{p1_p2_format}" = "true" ))
+	then
+		echo "Workdir before renaming anything: "
+		ls
+		rename 's/P1/R1/' ./*P1*
+		rename 's/P2/R2/' ./*P2*
+		echo "Workdir after renaming things: "
+		ls
+	fi
+
+
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t FQ < <(find . -iname "*.fq*" -print0) 
 	readarray -d '' -t FASTQ < <(find . -iname "*.fastq*" -print0)
 	readarray -d '' -t TAR < <(find . -iname "*.tar*" -print0)
+	readarray -d '' -t GZ < <(find . -iname "*.gz*" -print0)
+	readarray -d '' -t ZIP < <(find . -iname "*.zip*" -print0)
 	fx_echo_array "Located these .fq files: " "${FQ[@]}"
 	fx_echo_array "Located these .fastq files: " "${FASTQ[@]}"
 	fx_echo_array "Located these .tar files: " "${TAR[@]}"
-	# check length of arrays -- we do not want "fq.fastq" files to cause issues
+	fx_echo_array "Located these .gz files: " "${GZ[@]}"
+	fx_echo_array "Located these .zip files: " "${ZIP[@]}"
+
+
+	# set our actual inputs, checking the length of the arrays to avoid issues
+	# caused by files named ".fq.fastq" or ".fastq.gz" or whatever, but note
+	# that this relies on there never being a mixture (eg, never one .fastq and
+	# one .gz)
 	if (( "${#FQ[@]}" != 0 && "${#FASTQ[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FQ[@]}" != 0 && "${#GZ[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#FASTQ[@]}" != 0 && "${#GZ[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
+	elif (( "${#FASTQ[@]}" != 0 && "${#ZIP[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
+	elif (( "${#FQ[@]}" != 0 && "${#ZIP[@]}" != 0 ))
 	then
 		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
 	elif (( "${#FQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
@@ -212,10 +250,14 @@ task clean_and_decontam_and_check {
 		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
 	elif (( "${#FASTQ[@]}" != 0 && "${#TAR[@]}" != 0 ))
 	then
-		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}")
+	elif (( "${#ZIP[@]}" != 0 && "${#TAR[@]}" != 0 ))
+	then
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${TAR[@]}")
 	else
-		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${TAR[@]}")
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${GZ[@]}" "${ZIP[@]}" "${TAR[@]}")
 	fi
+	
 	fx_echo_array "Probable input files:" "${READS_FILES_UNSORTED[@]}"
 	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") ) # this appears to be more consistent than mapfile
 	fx_echo_array "In workdir and sorted:" "${READS_FILES[@]}"
@@ -245,6 +287,15 @@ task clean_and_decontam_and_check {
 			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
 			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
 			fx_echo_array "After untarring:" "${READS_FILES[@]}"
+		elif [[ $some_extension = "zip" ]]
+		then
+			for zip in "${READS_FILES[@]}"; do unzp "$zip"; done
+			# TODO: check that .zip originals got deleted to avoid issues with find
+			readarray -d '' FQ < <(find . -iname "*.fq*" -print0) 
+			readarray -d '' FASTQ < <(find . -iname "*.fastq*" -print0)
+			readarray -d ' ' READS_FILES_UNZIPPED_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}") 
+			READS_FILES=( $(fx_sort_array "${READS_FILES_UNZIPPED_UNSORTED[@]}") )  # this appears to be more consistent than mapfile
+			fx_echo_array "After decompressing:" "${READS_FILES[@]}"
 		else
 			echo "Files do not appear to be gzipped nor in tar format."
 		fi
