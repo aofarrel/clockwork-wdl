@@ -205,7 +205,7 @@ task clean_and_decontam_and_check {
 	echo "Input files moved to workdir"
 
 	# files from the Valencia lab use P1 P2 notation instead of R1 R2
-	if (( "~{p1_p2_format}" = "true" ))
+	if [[ "~{p1_p2_format}" = "true" ]]
 	then
 		echo "Workdir before renaming anything: "
 		ls
