@@ -51,7 +51,7 @@ task clean_and_decontam_and_check {
 		# runtime attributes (applies to entire WDL task)
 		Int addldisk = 100
 		Int cpu = 8
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.9-full"
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.12-CRyPTIC" #0.11.3.12+ for rename to work
 		Int max_retries = 0
 		Int memory = 32
 		Int preempt = 1
