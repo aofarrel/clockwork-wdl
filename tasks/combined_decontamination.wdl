@@ -96,8 +96,9 @@ task clean_and_decontam_and_check {
 	# the reads are. For now I think this approach is acceptable, but ideally I'd
 	# want all the processing to be done here and then just echoed in the command section.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String read_file_basename_no_ending = sub(sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", ""), ".zip", "")
-	String sample_name = if(p1_p2_format) then sub(sub(read_file_basename_no_ending, "P1", "R1"), "P2", "R2") else read_file_basename_no_ending
+	String read_file_basename_no_ending = sub(sub(sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", ""), ".zip", ""), ".fastq", "")
+	# Sample name should lack R1/R2 or else clockwork decontam gets confused
+	String sample_name = if(p1_p2_format) then sub(sub(read_file_basename_no_ending, "P1", ""), "P2", "") else read_file_basename_no_ending
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
