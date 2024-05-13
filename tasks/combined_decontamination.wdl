@@ -91,8 +91,13 @@ task clean_and_decontam_and_check {
 	# having nothing at index 0 is okay if that output is an optional file.
 	# So, we instead need to know output filenames before the command block
 	# executes.
+	#
+	# One issue with this is that it might not always match what part 1 decides what
+	# the reads are. For now I think this approach is acceptable, but ideally I'd
+	# want all the processing to be done here and then just echoed in the command section.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
+	String read_file_basename_no_ending = sub(sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", ""), ".zip", "")
+	String sample_name = if(p1_p2_format) then sub(sub(read_file_basename_no_ending, "P1", "R1"), "P2", "R2") else read_file_basename_no_ending
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
@@ -322,6 +327,19 @@ task clean_and_decontam_and_check {
 		READS_FILES=( "~{sample_name}_cat_R1.fq" "~{sample_name}_cat_R2.fq" )
 		fx_echo_array "After merging:" "${READS_FILES[@]}"
 	fi
+
+	echo "Expected outputs, as determined before task execution -- IF THIS DOES NOT MATCH WHAT WE JUST DETERMINED"
+	echo "ABOVE, THINGS MIGHT BREAK!"
+	echo "sample_name ~{sample_name}"
+	echo "arg_counts_out ~{arg_counts_out}"
+	echo "arg_reads_out1 ~{arg_reads_out1}"
+	echo "arg_reads_out2 ~{arg_reads_out2}"
+	echo "reads_cleaned_1 ~{reads_cleaned_1}"
+	echo "reads_cleaned_2 ~{reads_cleaned_2}"
+	echo "usual_final_fastq1 ~{usual_final_fastq1}"
+	echo "usual_final_fastq2 ~{usual_final_fastq2}"
+	echo "final_fastq1 ~{final_fastq1}"
+	echo "final_fastq2 ~{final_fastq2}"
 		
 	timer_first=$(( SECONDS - start_first ))
 	echo ${timer_first} > timer_1_process
