@@ -317,6 +317,25 @@ task clean_and_decontam_and_check {
 			exit 1
 		else
 			echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR
+
+			# prepare for early exit
+			echo -1 >> q20_raw.txt
+			echo -1 >> q30_raw.txt
+			echo $input_fq_reads >> reads_raw.txt
+			echo -1 >> q20_cleaned.txt
+			echo -1 >> q30_cleaned.txt
+			echo -1 >> reads_cleaned.txt
+			echo -1 >> q20_decontaminated.txt
+			echo -1 >> q30_decontaminated.txt
+			echo -1 >> reads_decontaminated.txt
+			echo -1 >> pct_loss_cleaning.txt
+			echo -1 >> pct_loss_decon.txt
+			echo -1 >> pct_loss_total.txt
+			echo -1 >> reads_is_contam
+			echo -1 >> reads_reference
+			echo -1 >> reads_unmapped
+			echo -1 >> reads_kept
+			
 			exit 0
 		fi
 	fi
