@@ -311,16 +311,13 @@ task clean_and_decontam_and_check {
 	if (( $input_fq_reads < ~{minimum_number_of_passing_reads} ))
 	then
 		echo "ERROR: We're already starting out below the minimum number of passing reads!"
-		if [[ "~{soft_qc}" = "false" ]]
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			if [[ "~{crash_loudly}" = "true" ]]
-			then
-				set -eux -o pipefail
-				exit 1
-			else
-				echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR
-				exit 0
-			fi
+			set -eux -o pipefail
+			exit 1
+		else
+			echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR
+			exit 0
 		fi
 	fi
 	echo $(( SECONDS - start_subsample )) > timer_2_size
