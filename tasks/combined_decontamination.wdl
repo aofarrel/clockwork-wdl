@@ -19,6 +19,7 @@ task clean_and_decontam_and_check {
 		Int        subsample_cutoff = -1
 		Int        subsample_seed = 1965
 		Int        subsample_to_this_many_reads = 1000000
+		Int        minimum_number_of_passing_reads = 20000
 		
 		# fastp cleaning options
 		Int fastp_clean_avg_qual = 29
@@ -137,7 +138,6 @@ task clean_and_decontam_and_check {
 	FALLBACK_FILES+=( pct_loss_total.txt pct_loss_decon.txt pct_loss_cleaning.txt )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
-		echo "Creating fallback for $fallback_file"
 		echo -1 > "$fallback_file"
 	done
 	# TODO: force pct_loss_* to be negative
@@ -192,7 +192,7 @@ task clean_and_decontam_and_check {
 		readarray -t OUTPUT < <(for fq in "${fq_array[@]}"; do echo "$fq"; done | sort)
 		echo "${OUTPUT[@]}" # this is a bit dangerous
 	}
-	READS_FILES_RAW=$("~{sep='" "' reads_files}")
+	READS_FILES_RAW=("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	# I really did try to make these next three lines just one -iregex string but
@@ -307,21 +307,17 @@ task clean_and_decontam_and_check {
 			fi
 		fi
 	done
-	if (( $input_fq_reads < 1000 ))
+	if (( $input_fq_reads < ~{minimum_number_of_passing_reads} ))
 	then
-		echo "WARNING: There seems to be less than a thousand input reads in total!"
-		if [[ $exit = 100 ]]
+		echo "ERROR: We're already starting out below the minimum number of passing reads!"
+		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			if [[ "~{soft_qc}" = "false" ]]
-			then
-				if [[ "~{crash_loudly}" = "true" ]]
-				then
-					set -eux -o pipefail
-					exit 1
-				else
-					exit 0
-				fi
-			fi
+			set -eux -o pipefail
+			exit 1
+		else
+			echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR
+			echo $input_fq_reads > reads_raw.txt
+			exit 0
 		fi
 	fi
 	echo $(( SECONDS - start_subsample )) > timer_2_size
@@ -336,6 +332,7 @@ task clean_and_decontam_and_check {
 	# and also filters out VERY bad fastqs.
 	#
 	# TODO: Support multi-lane-multi-file fastq sets!!
+	echo "Fastp is taking in ${READS_FILES[0]} and ${READS_FILES[1]}"
 	start_fastp_1=$SECONDS
 	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" \
 		--out1 "~{reads_cleaned_1}" --out2 "~{reads_cleaned_2}" \
@@ -371,21 +368,27 @@ task clean_and_decontam_and_check {
 		
 	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
 	then		
+		echo "Fastp output ~{reads_cleaned_1} and ~{reads_cleaned_2}"
+		echo "Removing non-fastp'd ${READS_FILES[0]} and ${READS_FILES[1]}"
+		rm "${READS_FILES[0]}"
+		rm "${READS_FILES[1]}"
 		CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
 		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 	else
 		# this is basically a repeat of step 1
 		# READS_FILES is updated whether or not there were fastqs to merge
 		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES[@]}"; do echo "$fq"; done)
+		echo "Not using this fastp run's cleaned fastqs, so we will remove them"
+		rm "~{reads_cleaned_1}"
+		rm "~{reads_cleaned_2}"
 	fi
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
 
 	echo "----------------------------------------------"
-	echo "(5) [clockwork] Map FQs to decontam reference"
+	echo "(4) [clockwork] Map FQs to decontam reference"
 	echo "----------------------------------------------"
 	# What it does: clockwork map_reads to decontamination ref
-	echo "Fastqs we will be mapping: "
-	echo "${MAP_THESE_FQS[@]}"
+	fx_echo_array "Fastqs we will be mapping with clockwork:" "${MAP_THESE_FQS[@]}"
 	start_map_reads=$SECONDS
 	timeout -v ~{timeout_map_reads}m clockwork map_reads \
 		~{true="--unsorted_sam" false="" unsorted_sam} \
@@ -433,10 +436,13 @@ task clean_and_decontam_and_check {
 		set -eux -o pipefail
 		exit 1
 	fi
+	echo "SAM file created, so we'll delete the fastqs that have been mapped"
+	rm "${MAP_THESE_FQS[0]}"
+	rm "${MAP_THESE_FQS[1]}"
 	echo $(( SECONDS - start_map_reads )) > timer_5_map_reads
 
 	echo "----------------------------------------------"
-	echo "(6) [samtools] Sort by read name"
+	echo "(5) [samtools] Sort by read name"
 	echo "----------------------------------------------"
 	# What it does: samtools sort the sam file we just created by read name
 	#
@@ -453,7 +459,7 @@ task clean_and_decontam_and_check {
 	echo $(( SECONDS - start_samtools_sort )) > timer_6_sort
 
 	echo "----------------------------------------------"
-	echo "(7) [clockwork] Remove contamination"
+	echo "(6) [clockwork] Remove contamination"
 	echo "If you see 'Could not retrieve index file' you"
 	echo "can safely ignore it; it's a false warning."
 	echo "----------------------------------------------"
@@ -514,7 +520,7 @@ task clean_and_decontam_and_check {
 	echo $(( SECONDS - start_rm_contam )) > timer_7_rm_contam
 	
 	echo "----------------------------------------------"
-	echo "(8) [fastp] Post-decontam QC check and/or clean"
+	echo "(7) [fastp] Post-decontam QC check and/or clean"
 	echo "--> fastp_clean_after_decontam: ~{fastp_clean_after_decontam}"
 	echo "----------------------------------------------"
 	# What it does: Run fastp again, this time as a QC filter... or a cleaner.
@@ -543,7 +549,7 @@ task clean_and_decontam_and_check {
 	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
 	
 	echo "----------------------------------------------"
-	echo "(9) [python/bash] Parse reports"
+	echo "(8) [python/bash] Parse reports"
 	echo "----------------------------------------------"
 	start_parse=$SECONDS
 	
@@ -640,11 +646,21 @@ task clean_and_decontam_and_check {
 				echo "Due to QC failure, no .fq output will be given. Crashing!"
 				exit 1
 			else
-				rm ./"*.fq.gz"
+				rm "~{usual_final_fastq1}" 
+				rm "~{usual_final_fastq2}"
 				echo "Due to QC failure, no .fq output will be given."
 				exit 0
 			fi
 		fi
+	fi
+
+	if [[ $(fqtools count "~{usual_final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
+	then
+		echo "This sample has less than ~{minimum_number_of_passing_reads} reads and risks breaking the variant caller. We're getting rid of it."
+		echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_LATE" > ERROR
+		rm "~{usual_final_fastq1}" 
+		rm "~{usual_final_fastq2}"
+		exit 0
 	fi
 	
 	# rename outputs if necessary
@@ -696,17 +712,15 @@ task clean_and_decontam_and_check {
 		Float pct_loss_total    = read_float("pct_loss_total.txt")
 		
 		# timers and debug information
-		# note that enabling the timers means errors will be thrown on early exits, since the files they are
-		# trying to read will not exist. this effectively forces crash_loudly behavior.
 		String errorcode = read_string("ERROR")
-		Int timer_1_prep  = read_int("timer_1_process")
-		Int timer_2_size  = read_int("timer_2_size")
-		Int timer_3_clean = read_int("timer_3_clean")
-		Int timer_5_mapFQ = read_int("timer_5_map_reads")
-		Int timer_6_sort  = read_int("timer_6_sort")
-		Int timer_7_dcnFQ = read_int("timer_7_rm_contam")
-		Int timer_8_qchck = read_int("timer_8_qc")
-		Int timer_9_parse = read_int("timer_9_parse")
+		#Int timer_1_prep  = read_int("timer_1_process")
+		#Int timer_2_size  = read_int("timer_2_size")
+		#Int timer_3_clean = read_int("timer_3_clean")
+		Int timer_a_mapFQ = read_int("timer_5_map_reads")
+		Int timer_b_sort  = read_int("timer_6_sort")
+		Int timer_c_dcnFQ = read_int("timer_7_rm_contam")
+		#Int timer_8_qchck = read_int("timer_8_qc")
+		#Int timer_9_parse = read_int("timer_9_parse")
 		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
 		Int reads_is_contam = read_int("reads_is_contam")
