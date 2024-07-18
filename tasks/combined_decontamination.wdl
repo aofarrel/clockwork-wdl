@@ -554,10 +554,26 @@ task clean_and_decontam_and_check {
 	start_parse=$SECONDS
 	
 	# parse decontam.counts.tsv
-	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
-	cat "~{arg_counts_out}" | head -3 | tail -1 | cut -f3 > reads_reference
-	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
-	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
+	# different decontamination references have a different format, this should work with CDC and CRyPTIC
+	sum_contam_reads=0
+	tb_reads=0
+	unmapped_reads=0
+	kept_reads=0
+	while IFS=$'\t' read -r name is_contam reads
+	do
+		if [[ "$name" == "Name" ]]; then continue; fi
+		if [[ "$is_contam" -eq 1 ]]; then sum_contam_reads=$((sum_contam_reads + reads)); fi
+		if [[ "$name" == "Reads_kept_after_remove_contam" ]]; then kept_reads=$((kept_reads + reads)); fi
+		if [[ "$name" == "Unmapped" ]]; then unmapped_reads=$((unmapped_reads + reads)); fi
+		if [[ "$name" == "TB" || "$name" == "Reference" ]]  # CDC and CRyPTIC refs differ here
+		then
+			tb_reads=$((tb_reads + reads))
+		fi
+	done < "~{arg_counts_out}"
+	echo $sum_contam_reads > reads_is_contam
+	echo $tb_reads > reads_reference
+	echo $unmapped_reads > reads_unmapped
+	echo $kept_reads > reads_kept
 	
 	# parse fastp reports
 	python3 << CODE
