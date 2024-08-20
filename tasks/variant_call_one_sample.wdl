@@ -4,10 +4,26 @@ version 1.0
 # Can provide more than one run of reads from the same sample - if you do this then the reads are all
 # used together, treated as if they were all from one big run.
 
-# There are three versions of this task. You likely want variant_call_one_sample_simple. However, if
+# There are three versions of this task. You likely want variant_call_one_sample_ref_included. However, if
 # you want more information about failures and/or want to fail variant calling without failing the
 # whole pipeline, and can handle dealing with optional output, use variant_call_one_sample_verbose.
 # variant_call_one_sample_verbose can also handle tarballed read files.
+#
+# variant_call_one_sample_ref_included [recommended]
+# * Comes with H37Rv reference (cannot be overwritten)
+# * Read files can be fq or fastq
+# * Exits gracefully if variants cannot be called unless crash_on_error is true
+# * Supports timing out after n minutes to avoid runaway cloud comput costs
+#
+# variant_call_one_sample_simple [legacy]
+# * Must provide reference genome
+# * Read files can be fq or fastq
+# * If variants cannot be called, errors fatally (i.e., will crash pipeline)
+#
+# variant_call_one_sample_verbose [legacy]
+# * Must provide reference genome
+# * Read files can be fq, fastq, or tarballs
+# * Exits gracefully if variants cannot be called
 
 task variant_call_one_sample_ref_included {
 	input {

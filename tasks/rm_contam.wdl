@@ -1,5 +1,7 @@
 version 1.0
 
+# It is HIGHLY recommended to instead use "combined_decontamination.wdl" instead of this task.
+
 task remove_contam {
 	input {
 		File bam_in

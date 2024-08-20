@@ -1,7 +1,36 @@
 version 1.0
 
-# These tasks combine the rm_contam and map_reads steps into one WDL task.
-# This can save money on some backends.
+# These tasks are all-in-one decontamination tasks.
+#
+# clean_and_decontam_and_check [recommended]
+#   * single sample
+#   * includes decontamination reference in the Docker
+#   * runs fastp for QC and read cleaning
+#   * extremely verbose stdout for debugging
+#   * has the most QC options
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_single_ref_included [legacy]
+#   * single sample
+#   * includes decontamination refernce in the Docker
+#   * does not run fastp but does run trimmomatic
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_single [legacy]
+#   * single sample
+#   * must provide your own decontamination reference
+#   * does not fastp but does run trimmomatic
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_multiple [deprecated/experimental]
+#  An experimental version used to test if it was better
+#  to scatter combined_decontamination_single to handle
+#  multiple samples, or handle them all at once.
+#
+#
 
 task clean_and_decontam_and_check {
 	# This is similar to combined_decontamination_single but with the decontamination ref included
@@ -1033,6 +1062,7 @@ task combined_decontamination_single_ref_included {
 
 	# if we got here, then we passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
+	rm Ref.remove_contam
 	echo "PASS" >> ERROR
 	
 	# parse decontam.counts.tsv
@@ -1084,8 +1114,6 @@ task combined_decontamination_single_ref_included {
 }
 
 task combined_decontamination_single {
-	# This is the task you probably should be using. It works on one sample.
-	# If you're working on multiple samples, scatter upon this task.
 	input {
 
 		# the important stuff
