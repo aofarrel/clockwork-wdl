@@ -62,20 +62,18 @@ task reference_prepare_myco {
 	command <<<
 		set -eux -o pipefail
 
+		# if neither remove_contam.fa.gz or NC_000962.3.fa, error out
 		if [[ "~{reference_fa_string}" != "remove_contam.fa.gz" && "~{reference_fa_string}" != "NC_000962.3.fa" ]]
 		then
 			echo -n 'reference_fa_string is ~{reference_fa_string} but should be either '
 			echo    '"remove_contam.fa.gz" (note the gz) or "NC_000962.3.fa" (note the lack of .gz)'
 			echo    "More information:"
-			echo -n "In the refprep-TB pipeline (and by extension, the myco pipeline), a tarball of "
-			echo -n "reference genome files is downloaded by an upstream WDL task (download_tb_reference_files). "
-			echo -n "This file is about 1.2 GB and has md5sum 0015ae88c40ad50f92b1e8a37ec697fb, and can be "
-			echo -n "used to create a decontamination reference as well as a more typical TB reference."
+			echo -n "In the refprep-TB pipeline, a tarball of reference genome files is downloaded by a WDL task "
+			echo -n "upsteam of this one. The downloaded tarball is then used in this task to "
+			echo -n "create a decontamination reference as well as a more typical TB reference. "
 			echo -n "This WDL task is specifically made with these genomes in mind. If you are trying "
-			echo -n "to modify it for a different reference genome, modify reference_prepare_byob instead. "
-			echo -n "If you are trying to use a new version of the TB reference genome and/or the upstream "
-			echo -n "download_tb_reference_files task returns a different file than before, please open a PR "
-			echo -n "or issue on GitHub!"
+			echo -n "to modify it for a different reference genome, run task reference_prepare_byob instead."
+			exit 1
 		fi
 
 		cp ~{reference_folder} .
