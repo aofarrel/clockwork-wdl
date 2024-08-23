@@ -10,7 +10,7 @@ then
 fi
 
 ash_tag=".$1"
-official_tag="v0.11.3"
+official_tag="v0.12.5"
 tag=$official_tag$ash_tag
 echo "Images will be tagged with $tag"
 
@@ -29,7 +29,7 @@ else
     exit 1
 fi
 
-if [ -f "./references/Ref.remove_contam.tar" ]; 
+if [ -f "./references/clockwork-v0.12.5/Ref.remove_contam.tar" ]; 
 then
     echo "Found default (CRyPTIC) decontamination reference."
 else
@@ -37,12 +37,15 @@ else
     exit 1
 fi
 
-if [ -f "./references/varpipe.Ref.remove_contam.tar" ]; 
-then
-    echo "Found varpipe_wgs (CDC) decontamination reference."
-else
-    echo "Place varpipe.Ref.remove_contam.tar in $pwd/reference"
-    exit 1
+if [[ "$2" != "skipCDC" ]];
+then 
+    if [ -f "./references/CDC-varpipe/Ref.remove_contam.tar" ]; 
+    then
+        echo "Found varpipe_wgs (CDC) decontamination reference."
+    else
+        echo "Place varpipe.Ref.remove_contam.tar in $pwd/reference"
+        exit 1
+    fi
 fi
 
 echo "Building slim..."
@@ -65,9 +68,12 @@ docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clock
 echo "Pushing CRyPTIC..."
 docker push "ashedpotatoes/clockwork-plus:$tag-CRyPTIC"
 
-# build CDC image
-echo "Building CDC..."
-docker build -f Dockerfile_CDC .
-docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CDC
-echo "Pushing CDC..."
-docker push "ashedpotatoes/clockwork-plus:$tag-CDC"
+if [[ "$2" != "skipCDC" ]];
+then 
+    # build CDC image
+    echo "Building CDC..."
+    docker build -f Dockerfile_CDC .
+    docker tag $(docker images | awk '{print $3}' | awk 'NR==2') ashedpotatoes/clockwork-plus:$tag-CDC
+    echo "Pushing CDC..."
+    docker push "ashedpotatoes/clockwork-plus:$tag-CDC"
+fi

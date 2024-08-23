@@ -49,7 +49,7 @@ task clean_and_decontam_and_check {
 		# runtime attributes (applies to entire WDL task)
 		Int addldisk = 100
 		Int cpu = 8
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.11.3.9-full"
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.12.5.1-CRyPTIC"
 		Int max_retries = 0
 		Int memory = 32
 		Int preempt = 1
@@ -141,7 +141,7 @@ task clean_and_decontam_and_check {
 		echo -1 > "$fallback_file"
 	done
 	# TODO: force pct_loss_* to be negative
-	
+
 	echo "----------------------------------------------"
 	echo "(0.5) [tar] Expand decontamination reference"
 	echo "---> reference used: ~{docker_image}"
@@ -228,7 +228,6 @@ task clean_and_decontam_and_check {
 		some_extension="${some_base##*.}"
 		if [[ $some_extension = "gz" ]]
 		then
-			apt-get install -y pigz # since we are decompressing, this will not be a huge performance increase
 			for fq in "${READS_FILES[@]}"; do pigz -d "$fq"; done
 			# TODO: check that .gz originals got deleted to avoid issues with find
 			readarray -d '' FQ < <(find . -iname "*.fq*" -print0) 

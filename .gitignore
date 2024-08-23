@@ -1,3 +1,6 @@
 
 .DS_Store
 *.tar
+*.fa
+*.fa.minimap2_idx
+*.k31.ctx

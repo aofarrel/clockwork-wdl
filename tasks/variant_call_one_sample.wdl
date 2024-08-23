@@ -247,7 +247,7 @@ task variant_call_one_sample_ref_included {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/clockwork-plus:v0.11.3.2-slim"
+		docker: "ashedpotatoes/clockwork-plus:v0.12.5.1-slim"
 		disks: "local-disk " + finalDiskSize + diskType
 		maxRetries: "${retries}"
 		memory: "${memory} GB"
