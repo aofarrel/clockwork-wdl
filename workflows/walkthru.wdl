@@ -81,12 +81,10 @@ workflow ClockworkWalkthrough {
 			input:
 				ref_dir = ClockworkRefPrepTB.tar_indexd_H37Rv_ref,
 				reads_files = [remove_contamination.decontaminated_fastq_1, remove_contamination.decontaminated_fastq_2]
-
-
 		}
 	}
 
 	output {
-		File vcf = variant_call_one_sample.adjudicated_vcf
+		Array[File?] vcf = variant_call_one_sample.adjudicated_vcf
 	}
 }
