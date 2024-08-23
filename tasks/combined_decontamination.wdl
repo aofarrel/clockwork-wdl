@@ -1,7 +1,36 @@
 version 1.0
 
-# These tasks combine the rm_contam and map_reads steps into one WDL task.
-# This can save money on some backends.
+# These tasks are all-in-one decontamination tasks.
+#
+# clean_and_decontam_and_check [recommended]
+#   * single sample
+#   * includes decontamination reference in the Docker
+#   * runs fastp for QC and read cleaning
+#   * extremely verbose stdout for debugging
+#   * has the most QC options
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_single_ref_included [legacy]
+#   * single sample
+#   * includes decontamination refernce in the Docker
+#   * does not run fastp but does run trimmomatic
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_single [legacy]
+#   * single sample
+#   * must provide your own decontamination reference
+#   * does not fastp but does run trimmomatic
+#   * supports timing out guardrail
+#   * supports downsampling
+#
+# combined_decontamination_multiple [deprecated/experimental]
+#  An experimental version used to test if it was better
+#  to scatter combined_decontamination_single to handle
+#  multiple samples, or handle them all at once.
+#
+#
 
 task clean_and_decontam_and_check {
 	# This is similar to combined_decontamination_single but with the decontamination ref included
@@ -553,10 +582,26 @@ task clean_and_decontam_and_check {
 	start_parse=$SECONDS
 	
 	# parse decontam.counts.tsv
-	cat "~{arg_counts_out}" | head -2 | tail -1 | cut -f3 > reads_is_contam
-	cat "~{arg_counts_out}" | head -3 | tail -1 | cut -f3 > reads_reference
-	cat "~{arg_counts_out}" | head -4 | tail -1 | cut -f3 > reads_unmapped
-	cat "~{arg_counts_out}" | head -5 | tail -1 | cut -f3 > reads_kept
+	# different decontamination references have a different format, this should work with CDC and CRyPTIC
+	sum_contam_reads=0
+	tb_reads=0
+	unmapped_reads=0
+	kept_reads=0
+	while IFS=$'\t' read -r name is_contam reads
+	do
+		if [[ "$name" == "Name" ]]; then continue; fi
+		if [[ "$is_contam" -eq 1 ]]; then sum_contam_reads=$((sum_contam_reads + reads)); fi
+		if [[ "$name" == "Reads_kept_after_remove_contam" ]]; then kept_reads=$((kept_reads + reads)); fi
+		if [[ "$name" == "Unmapped" ]]; then unmapped_reads=$((unmapped_reads + reads)); fi
+		if [[ "$name" == "TB" || "$name" == "Reference" ]]  # CDC and CRyPTIC refs differ here
+		then
+			tb_reads=$((tb_reads + reads))
+		fi
+	done < "~{arg_counts_out}"
+	echo $sum_contam_reads > reads_is_contam
+	echo $tb_reads > reads_reference
+	echo $unmapped_reads > reads_unmapped
+	echo $kept_reads > reads_kept
 	
 	# parse fastp reports
 	python3 << CODE
@@ -1016,6 +1061,7 @@ task combined_decontamination_single_ref_included {
 
 	# if we got here, then we passed, so delete the output that would signal to run fastqc
 	rm "~{read_file_basename}_dcntmfail.fastq"
+	rm Ref.remove_contam
 	echo "PASS" >> ERROR
 	
 	# parse decontam.counts.tsv
@@ -1067,8 +1113,6 @@ task combined_decontamination_single_ref_included {
 }
 
 task combined_decontamination_single {
-	# This is the task you probably should be using. It works on one sample.
-	# If you're working on multiple samples, scatter upon this task.
 	input {
 
 		# the important stuff
