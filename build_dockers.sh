@@ -29,21 +29,21 @@ else
     exit 1
 fi
 
-if [ -f "./references/clockwork-v0.12.5/Ref.remove_contam.tar" ]; 
+if [ -f "./references/clockwork-v0.12.5/Ref.remove_contam/ref.fa"  -a -f "./references/clockwork-v0.12.5/Ref.remove_contam/ref.fa.fai"  -a -f "./references/clockwork-v0.12.5/Ref.remove_contam/remove_contam_metadata.tsv" ]; 
 then
     echo "Found default (CRyPTIC) decontamination reference."
 else
-    echo "Place Ref.remove_contam.tar in $pwd/reference"
+    echo "Place Ref.remove_contam/ref.fa, ref.fa.fai, and remove_contam_metadata.tsv in $pwd/reference"
     exit 1
 fi
 
 if [[ "$2" != "skipCDC" ]];
 then 
-    if [ -f "./references/CDC-varpipe/Ref.remove_contam.tar" ]; 
+    if [ -f "./references/CDC-varpipe/Ref.remove_contam/ref.fa" -a -f "./references/CDC-varpipe/Ref.remove_contam/ref.fa.fai"  -a -f "./references/CDC-varpipe/Ref.remove_contam/remove_contam_metadata.tsv" ];
     then
         echo "Found varpipe_wgs (CDC) decontamination reference."
     else
-        echo "Place varpipe.Ref.remove_contam.tar in $pwd/reference"
+        echo "Place varpipe.Ref.remove_contam.ref, ref.fa.fai, and remove_contam_metadata.tsv in $pwd/reference"
         exit 1
     fi
 fi

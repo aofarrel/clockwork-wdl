@@ -10,17 +10,20 @@ version 1.0
 # variant_call_one_sample_verbose can also handle tarballed read files.
 #
 # variant_call_one_sample_ref_included [recommended]
+# * Uses 0.12.5 of clockwork
 # * Comes with H37Rv reference (cannot be overwritten)
 # * Read files can be fq or fastq
 # * Exits gracefully if variants cannot be called unless crash_on_error is true
 # * Supports timing out after n minutes to avoid runaway cloud comput costs
 #
 # variant_call_one_sample_simple [legacy]
+# * Uses 0.11.3 of clockwork
 # * Must provide reference genome
 # * Read files can be fq or fastq
 # * If variants cannot be called, errors fatally (i.e., will crash pipeline)
 #
 # variant_call_one_sample_verbose [legacy]
+# * Uses 0.11.3 of clockwork
 # * Must provide reference genome
 # * Read files can be fq, fastq, or tarballs
 # * Exits gracefully if variants cannot be called
@@ -263,7 +266,7 @@ task variant_call_one_sample_ref_included {
 
 	runtime {
 		cpu: cpu
-		docker: "ashedpotatoes/clockwork-plus:v0.12.5.1-slim"
+		docker: "ashedpotatoes/clockwork-plus:v0.12.5.2-slim"
 		disks: "local-disk " + finalDiskSize + diskType
 		maxRetries: "${retries}"
 		memory: "${memory} GB"

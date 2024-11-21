@@ -1,6 +1,7 @@
 version 1.0
 
 # It is HIGHLY recommended to instead use "combined_decontamination.wdl" instead of this task.
+# This task expects a BAM file that has already been aligned to the decontamination reference.
 
 task remove_contam {
 	input {

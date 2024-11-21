@@ -1,5 +1,7 @@
 #! /usr/local/bin/bash
-# ^ on Mac OS, this points to homebrew-installed bash 5.2 instead of /bin/bash which is v3
+# ^ on Mac OS, this points to homebrew-installed bash 5.2 (if it exists) instead of /bin/bash which is v3
+#
+# This file is a test file for debugging file permissions, which can be an issue with some WDL executors or rootless Docker.
 
 # cleanup previous runs
 rm ~{sample_name}_cat_R1.fq
