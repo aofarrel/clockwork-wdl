@@ -192,6 +192,17 @@ task clean_and_decontam_and_check {
 	then
 		echo "Decontamination reference already expanded, moving to workdir"
 		mv /ref/Ref.remove_contam/ .
+		echo "workdir"
+		pwd
+		echo "./ref"
+		ls ./ref/
+		echo "/ref"
+		ls /ref/
+		echo "/Ref.remove_contam/"
+		ls /Ref.remove_contam/
+		echo "./Ref.remove_contam/"
+		ls ./Ref.remove_contam/
+		tree
 	else
 		echo "Failed to located decontamination reference"
 		exit 1
