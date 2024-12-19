@@ -1,9 +1,9 @@
-FROM ghcr.io/iqbal-lab-org/clockwork:v0.12.5 
+FROM ghcr.io/iqbal-lab-org/clockwork:v0.12.5
 RUN apt-get install -y tree
 RUN apt-get install -y pigz
 RUN cd .. && mkdir fastp && cd fastp && \
     wget http://opengene.org/fastp/fastp.0.23.4 && \
     mv fastp.0.23.4 fastp && chmod a+x ./fastp
 ENV PATH=/fastp:$PATH
-RUN mkdir ref
+RUN rm -rf /ref/ && mkdir /ref/  # the parent image has something in here that breaks things
 COPY references/Ref.H37Rv.tar ./ref/

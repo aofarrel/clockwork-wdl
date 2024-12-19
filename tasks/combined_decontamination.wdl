@@ -190,9 +190,11 @@ task clean_and_decontam_and_check {
 		tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
 	elif [ -f /ref/Ref.remove_contam/ref.fa ]
 	then
-		echo "Decontamination reference already expanded"
+		echo "Decontamination reference already expanded, moving to workdir"
+		mv /ref/Ref.remove_contam/ .
 	else
 		echo "Failed to located decontamination reference"
+		exit 1
 	fi
 
 
