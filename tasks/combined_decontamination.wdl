@@ -78,7 +78,7 @@ task clean_and_decontam_and_check {
 		# runtime attributes (applies to entire WDL task)
 		Int addldisk = 100
 		Int cpu = 8
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.12.5.2-CRyPTIC"
+		String docker_image = "ashedpotatoes/clockwork-plus:v0.12.5.1-CRyPTIC"
 		Int max_retries = 0
 		Int memory = 32
 		Int preempt = 1
@@ -191,22 +191,12 @@ task clean_and_decontam_and_check {
 	elif [ -f /ref/Ref.remove_contam/ref.fa ]
 	then
 		echo "Decontamination reference already expanded, moving to workdir"
-		mv /ref/Ref.remove_contam/ .
-		echo "workdir"
-		pwd
-		echo "./ref"
-		ls ./ref/
-		echo "/ref"
-		ls /ref/
-		echo "/Ref.remove_contam/"
-		ls /Ref.remove_contam/
-		echo "./Ref.remove_contam/"
-		ls ./Ref.remove_contam/
-		tree
 	else
 		echo "Failed to located decontamination reference"
 		exit 1
 	fi
+	echo "workdir contents:"
+	tree
 
 
 	echo "----------------------------------------------"
