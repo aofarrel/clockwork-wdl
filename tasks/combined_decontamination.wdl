@@ -546,6 +546,10 @@ task clean_and_decontam_and_check {
 	start_parse=$SECONDS
 
 	python3 << CODE
+	QC_min_q30 = ~{QC_min_q30}
+	arg_counts_out = "~{arg_counts_out}"
+	sample_name = "~{sample_name}"
+
 	import os
 	import json
 
@@ -556,7 +560,7 @@ task clean_and_decontam_and_check {
 	total_reads_kept, total_reads, total_reads_contam, total_reads_TB, total_reads_NTM, total_reads_human = -1, -1, -1, -1, -1, -1
 	pct_reads_TB_predecon, pct_reads_TB_postdecon, pct_reads_NTM, pct_reads_human = -1, -1, -1, -1
 
-	with open("~{arg_counts_out}", "r") as file:
+	with open(arg_counts_out, "r") as file:
 		lines = file.readlines()
 
 	header = lines[0].strip().split("\t")
@@ -578,16 +582,19 @@ task clean_and_decontam_and_check {
 			total_reads_human = read_counts
 		else:
 			pass
+	print(f"{total_reads} found by decontamination")
+	print(f"{total_reads_kept} kept by decontamination")
+
 
 	if total_reads != -1:
-		pct_reads_TB_predecon = ((total_reads_TB / total_reads) * 100 * 10000) / 10000
+		pct_reads_TB_predecon = int(((total_reads_TB / total_reads) * 100 * 10000)) / 10000
 	if total_reads_NTM != -1:
-		pct_reads_NTM = ((total_reads_NTM / total_reads) * 100 * 10000) / 10000
+		pct_reads_NTM = int(((total_reads_NTM / total_reads) * 100 * 10000)) / 10000
 	if total_reads_human != -1:
-		pct_reads_human = ((total_reads_human / total_reads) * 100 * 10000) / 10000
+		pct_reads_human = int(((total_reads_human / total_reads) * 100 * 10000)) / 10000
 	if total_reads_kept != -1:
-		pct_reads_TB_postdecon = ((total_reads_TB / total_reads_kept) * 100 * 10000) / 10000
-	pct_loss_decon_per_decon = (((total_reads - total_reads_kept) / total_reads) * 100 * 10000) / 10000
+		pct_reads_TB_postdecon = int(((total_reads_TB / total_reads_kept) * 100 * 10000)) / 10000
+	pct_loss_decon_per_decon = int(((total_reads - total_reads_kept) / total_reads) * 100 * 10000) / 10000
 
 	with open("reads_postclean_per_decon.txt", "w") as file: file.write(str(total_reads))
 	with open("reads_postdecon_per_decon.txt", "w") as file: file.write(str(total_reads_kept))
@@ -600,11 +607,11 @@ task clean_and_decontam_and_check {
 	with open("pct_reads_human.txt", "w") as file: file.write(str(pct_reads_human))
 	with open("pct_reads_TB_postdecon.txt", "w") as file: file.write(str(pct_reads_TB_postdecon))
 	with open("pct_loss_decon_per_decon.txt", "w") as file: file.write(str(pct_loss_decon_per_decon))
-	
+
 	# parse fastp reports
-	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON_1:
+	with open(f"{sample_name}_first_fastp.json", "r") as fastpJSON_1:
 		fastp_1 = json.load(fastpJSON_1)
-	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
+	with open(f"{sample_name}_second_fastp.json", "r") as fastpJSON_2:
 		fastp_2 = json.load(fastpJSON_2)
 
 	# IN: Files before any decontamination or filtering
@@ -613,6 +620,8 @@ task clean_and_decontam_and_check {
 	reads_in = fastp_1["summary"]["before_filtering"]["total_reads"]
 	mean_r1_len_in = fastp_1["summary"]["before_filtering"]["read1_mean_length"]
 	mean_r2_len_in = fastp_1["summary"]["before_filtering"]["read2_mean_length"]
+	duplication_rate = int(fastp_1["duplication"]["rate"] * 100 * 10000) / 10000
+	adapter_trimmed_reads = fastp_1["adapter_cutting"]["adapter_trimmed_reads"]
 
 	# CLEANED: Files after being cleaned by fastp, but before decontamination
 	q20_postclean = int(fastp_1["summary"]["after_filtering"]["q20_rate"] * 100 * 10000) / 10000
@@ -628,35 +637,37 @@ task clean_and_decontam_and_check {
 	mean_r1_len_postdecon = fastp_2["summary"]["before_filtering"]["read1_mean_length"]
 	mean_r2_len_postdecon = fastp_2["summary"]["before_filtering"]["read2_mean_length"]
 
-	if q30_postdecon < ~{QC_min_q30}:
+	if q30_postdecon < QC_min_q30:
 		print(f"ERROR -- Q30 rate after filtering and decontamination was only {q30_postdecon} (out of 100, minimum ~{QC_min_q30})")
 		with open("ERROR.TXT", "w") as err:
 			err.write(f"DECONTAMINATION_{q30_postclean}_Q30_RATE")
 		exit(100)
 
 	# Terra doesn't support outputs based on other outputs, so it's best that we squeeze as much out of this in this block as we can
-	pct_loss_cleaning_per_fastp = (((reads_in - reads_postclean_per_fastp) / reads_in) * 100 * 10000) / 10000
-	pct_loss_decon_per_fastp = (((reads_postclean_per_fastp - reads_postdecon_per_fastp) / reads_postclean_per_fastp) * 100 * 10000) / 10000
-	pct_loss_total_per_fastp = (((reads_in - reads_postdecon_per_fastp) / reads_in) * 100 * 10000) / 10000
+	pct_loss_cleaning_per_fastp = int(((reads_in - reads_postclean_per_fastp) / reads_in) * 100 * 10000) / 10000
+	pct_loss_decon_per_fastp = int(((reads_postclean_per_fastp - reads_postdecon_per_fastp) / reads_postclean_per_fastp) * 100 * 10000) / 10000
+	pct_loss_total_per_fastp = int(((reads_in - reads_postdecon_per_fastp) / reads_in) * 100 * 10000) / 10000
 
 	with open("pct_loss_cleaning_per_fastp.txt", "w") as file: file.write(str(pct_loss_cleaning_per_fastp))
 	with open("pct_loss_decon_per_fastp.txt", "w") as file: file.write(str(pct_loss_decon_per_fastp))
 	with open("pct_loss_total.txt", "w") as file: file.write(str(pct_loss_total_per_fastp))
-	with open("q20_in", "w") as file: file.write(str(q20_in))
-	with open("q30_in", "w") as file: file.write(str(q30_in))
-	with open("reads_in", "w") as file: file.write(str(reads_in))
-	with open("mean_r1_len_in", "w") as file: file.write(str(mean_r1_len_in))
-	with open("mean_r2_len_in", "w") as file: file.write(str(mean_r2_len_in))
-	with open("q20_postclean", "w") as file: file.write(str(q20_postclean))
-	with open("q30_postclean", "w") as file: file.write(str(q30_postclean))
-	with open("reads_postclean_per_fastp", "w") as file: file.write(str(reads_postclean_per_fastp))
-	with open("mean_r1_len_postclean", "w") as file: file.write(str(mean_r1_len_postclean))
-	with open("mean_r2_len_postclean", "w") as file: file.write(str(mean_r2_len_postclean))
-	with open("q20_postdecon", "w") as file: file.write(str(q20_postdecon))
-	with open("q30_postdecon", "w") as file: file.write(str(q30_postdecon))
-	with open("reads_postdecon_per_fastp", "w") as file: file.write(str(reads_postdecon_per_fastp))
-	with open("mean_r1_len_postdecon", "w") as file: file.write(str(mean_r1_len_postdecon))
-	with open("mean_r2_len_postdecon", "w") as file: file.write(str(mean_r2_len_postdecon))
+	with open("q20_in.txt", "w") as file: file.write(str(q20_in))
+	with open("q30_in.txt", "w") as file: file.write(str(q30_in))
+	with open("reads_in.txt", "w") as file: file.write(str(reads_in))
+	with open("mean_r1_len_in.txt", "w") as file: file.write(str(mean_r1_len_in))
+	with open("mean_r2_len_in.txt", "w") as file: file.write(str(mean_r2_len_in))
+	with open("q20_postclean.txt", "w") as file: file.write(str(q20_postclean))
+	with open("q30_postclean.txt", "w") as file: file.write(str(q30_postclean))
+	with open("reads_postclean_per_fastp.txt", "w") as file: file.write(str(reads_postclean_per_fastp))
+	with open("mean_r1_len_postclean.txt", "w") as file: file.write(str(mean_r1_len_postclean))
+	with open("mean_r2_len_postclean.txt", "w") as file: file.write(str(mean_r2_len_postclean))
+	with open("q20_postdecon.txt", "w") as file: file.write(str(q20_postdecon))
+	with open("q30_postdecon.txt", "w") as file: file.write(str(q30_postdecon))
+	with open("reads_postdecon_per_fastp.txt", "w") as file: file.write(str(reads_postdecon_per_fastp))
+	with open("mean_r1_len_postdecon.txt", "w") as file: file.write(str(mean_r1_len_postdecon))
+	with open("mean_r2_len_postdecon.txt", "w") as file: file.write(str(mean_r2_len_postdecon))
+	with open("duplication_rate.txt", "w") as file: file.write(str(duplication_rate))
+	with open("reads_adapter.txt", "w") as file: file.write(str(adapter_trimmed_reads))
 
 	CODE
 
