@@ -553,8 +553,8 @@ task clean_and_decontam_and_check {
 	# different decontamination references have a different format, this should work with CDC and CRyPTIC!
 	# the exact metric CDC wants is "At least >90% of the reads should map to Mycobacterium tuberculosis complex," but we are not
 	# going to filter on that yet as I'm unsure if this is measured before or after trying to decontaminate.
-	total_reads_kept, total_reads, total_reads_contam, total_reads_TB, total_reads_NTM, total_reads_human = -1
-	pct_reads_TB_predecon, pct_reads_TB_postdecon, pct_reads_NTM, pct_reads_human = -1
+	total_reads_kept, total_reads, total_reads_contam, total_reads_TB, total_reads_NTM, total_reads_human = -1, -1, -1, -1, -1, -1
+	pct_reads_TB_predecon, pct_reads_TB_postdecon, pct_reads_NTM, pct_reads_human = -1, -1, -1, -1
 
 	with open("~{arg_counts_out}", "r") as file:
 		lines = file.readlines()
@@ -594,11 +594,11 @@ task clean_and_decontam_and_check {
 	with open("reads_TB.txt", "w") as file: file.write(str(total_reads_TB))
 	with open("reads_NTM.txt", "w") as file: file.write(str(total_reads_NTM))
 	with open("reads_human.txt", "w") as file: file.write(str(total_reads_human))
-	with open("reads_contam.txt", "w") as file. file.write(str(total_reads_contam))
+	with open("reads_contam.txt", "w") as file: file.write(str(total_reads_contam))
 	with open("pct_reads_TB_predecon.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
-	with open("pct_reads_NTM.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
-	with open("pct_reads_human.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
-	with open("pct_reads_TB_postdecon.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
+	with open("pct_reads_NTM.txt", "w") as file: file.write(str(pct_reads_NTM))
+	with open("pct_reads_human.txt", "w") as file: file.write(str(pct_reads_human))
+	with open("pct_reads_TB_postdecon.txt", "w") as file: file.write(str(pct_reads_TB_postdecon))
 	with open("pct_loss_decon_per_decon.txt", "w") as file: file.write(str(pct_loss_decon_per_decon))
 	
 	# parse fastp reports
@@ -631,17 +631,17 @@ task clean_and_decontam_and_check {
 	if q30_postdecon < ~{QC_min_q30}:
 		print(f"ERROR -- Q30 rate after filtering and decontamination was only {q30_postdecon} (out of 100, minimum ~{QC_min_q30})")
 		with open("ERROR.TXT", "w") as err:
-			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
+			err.write(f"DECONTAMINATION_{q30_postclean}_Q30_RATE")
 		exit(100)
-	
-	# Terra doesn't support outputs based on other outputs, so it's best that we squeeze as much out of this in this block as we can
-	pct_loss_cleaning = (((reads_in - reads_postclean) / reads_in) * 100 * 10000) / 10000
-	pct_loss_decon = (((reads_postclean - reads_postdecon) / reads_postclean) * 100 * 10000) / 10000
-	pct_loss_total = (((reads_in - reads_postdecon) / reads_in) * 100 * 10000) / 10000
 
-	with open("pct_loss_cleaning.txt", "w") as file: file.write(str(pct_loss_cleaning))
-	with open("pct_loss_decon_per_fastp.txt", "w") as file: file.write(str(pct_loss_decon))
-	with open("pct_loss_total.txt", "w") as file: file.write(str(pct_loss_total))
+	# Terra doesn't support outputs based on other outputs, so it's best that we squeeze as much out of this in this block as we can
+	pct_loss_cleaning_per_fastp = (((reads_in - reads_postclean_per_fastp) / reads_in) * 100 * 10000) / 10000
+	pct_loss_decon_per_fastp = (((reads_postclean_per_fastp - reads_postdecon_per_fastp) / reads_postclean_per_fastp) * 100 * 10000) / 10000
+	pct_loss_total_per_fastp = (((reads_in - reads_postdecon_per_fastp) / reads_in) * 100 * 10000) / 10000
+
+	with open("pct_loss_cleaning_per_fastp.txt", "w") as file: file.write(str(pct_loss_cleaning_per_fastp))
+	with open("pct_loss_decon_per_fastp.txt", "w") as file: file.write(str(pct_loss_decon_per_fastp))
+	with open("pct_loss_total.txt", "w") as file: file.write(str(pct_loss_total_per_fastp))
 	with open("q20_in", "w") as file: file.write(str(q20_in))
 	with open("q30_in", "w") as file: file.write(str(q30_in))
 	with open("reads_in", "w") as file: file.write(str(reads_in))
@@ -649,12 +649,12 @@ task clean_and_decontam_and_check {
 	with open("mean_r2_len_in", "w") as file: file.write(str(mean_r2_len_in))
 	with open("q20_postclean", "w") as file: file.write(str(q20_postclean))
 	with open("q30_postclean", "w") as file: file.write(str(q30_postclean))
-	with open("reads_postclean", "w") as file: file.write(str(reads_postclean))
+	with open("reads_postclean_per_fastp", "w") as file: file.write(str(reads_postclean_per_fastp))
 	with open("mean_r1_len_postclean", "w") as file: file.write(str(mean_r1_len_postclean))
 	with open("mean_r2_len_postclean", "w") as file: file.write(str(mean_r2_len_postclean))
 	with open("q20_postdecon", "w") as file: file.write(str(q20_postdecon))
 	with open("q30_postdecon", "w") as file: file.write(str(q30_postdecon))
-	with open("reads_postdecon", "w") as file: file.write(str(reads_postdecon))
+	with open("reads_postdecon_per_fastp", "w") as file: file.write(str(reads_postdecon_per_fastp))
 	with open("mean_r1_len_postdecon", "w") as file: file.write(str(mean_r1_len_postdecon))
 	with open("mean_r2_len_postdecon", "w") as file: file.write(str(mean_r2_len_postdecon))
 
@@ -722,18 +722,20 @@ task clean_and_decontam_and_check {
 		String sample = sample_name # needed by ThiagenTBProfiler
 		
 		# before cleaning, before decontamination -- metrics according to fastp
-		Float q20_in = read_float("q20_in")
-		Float q30_in = read_float("q30_in")
-		Int reads_in = read_int("reads_in")
-		Int mean_r1_len_in = read_int("mean_r1_len_in")
-		Int mean_r2_len_in = read_int("mean_r2_len_in")
+		Float q20_in = read_float("q20_in.txt")
+		Float q30_in = read_float("q30_in.txt")
+		Int reads_in = read_int("reads_in.txt")
+		Int mean_r1_len_in = read_int("mean_r1_len_in.txt")
+		Int mean_r2_len_in = read_int("mean_r2_len_in.txt")
+		Float duplication_rate = read_float("duplication_rate.txt")
+		Int reads_adapter = read_int("reads_adapter.txt")
 
 		# after cleaning, before decontamination -- metrics according to fastp
-		Float q20_postclean = read_float("q20_postclean")
-		Float q30_postclean = read_float("q30_postclean")
-		Int reads_postclean_per_fastp = read_int("reads_postclean") # compare reads_postclean_per_decon
-		Int mean_r1_len_postclean = read_int("mean_r1_len_postclean")
-		Int mean_r2_len_postclean = read_int("mean_r2_len_postclean")
+		Float q20_postclean = read_float("q20_postclean.txt")
+		Float q30_postclean = read_float("q30_postclean.txt")
+		Int reads_postclean_per_fastp = read_int("reads_postclean.txt") # compare reads_postclean_per_decon
+		Int mean_r1_len_postclean = read_int("mean_r1_len_postclean.txt")
+		Int mean_r2_len_postclean = read_int("mean_r2_len_postclean.txt")
 		Float pct_loss_cleaning_per_fastp = read_float("pct_loss_cleaning.txt")
 
 		# after cleaning, before decontamination -- metrics according to decontamination
@@ -754,11 +756,11 @@ task clean_and_decontam_and_check {
 
 		# after cleaning, after decontamination -- metrics according to second run of fastp
 		Float pct_loss_decon_per_fastp = read_float("pct_loss_decon_per_fastp.txt")
-		Float q20_postdecon = read_float("q20_postdecon")
-		Float q30_postdecon = read_float("q30_postdecon")
-		Int reads_postdecon_per_fastp = read_int("reads_postdecon") # compare reads_postdecon_per_decon
-		Int mean_r1_len_postdecon = read_int("mean_r1_len_postdecon") 
-		Int mean_r2_len_postdecon = read_int("mean_r2_len_postdecon")
+		Float q20_postdecon = read_float("q20_postdecon.txt")
+		Float q30_postdecon = read_float("q30_postdecon.txt")
+		Int reads_postdecon_per_fastp = read_int("reads_postdecon.txt") # compare reads_postdecon_per_decon
+		Int mean_r1_len_postdecon = read_int("mean_r1_len_postdecon.txt") 
+		Int mean_r2_len_postdecon = read_int("mean_r2_len_postdecon.txt")
 		
 		# timers and debug information
 		String error_code = read_string("ERROR.TXT")
