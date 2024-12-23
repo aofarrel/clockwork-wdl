@@ -1,36 +1,7 @@
 version 1.0
 
-# These tasks are all-in-one decontamination tasks.
-#
-# clean_and_decontam_and_check [recommended]
-#   * single sample
-#   * includes decontamination reference in the Docker
-#   * runs fastp for QC and read cleaning
-#   * extremely verbose stdout for debugging
-#   * has the most QC options
-#   * supports timing out guardrail
-#   * supports downsampling
-#
-# combined_decontamination_single_ref_included [legacy]
-#   * single sample
-#   * includes decontamination refernce in the Docker
-#   * does not run fastp but does run trimmomatic
-#   * supports timing out guardrail
-#   * supports downsampling
-#
-# combined_decontamination_single [legacy]
-#   * single sample
-#   * must provide your own decontamination reference
-#   * does not fastp but does run trimmomatic
-#   * supports timing out guardrail
-#   * supports downsampling
-#
-# combined_decontamination_multiple [deprecated/experimental]
-#  An experimental version used to test if it was better
-#  to scatter combined_decontamination_single to handle
-#  multiple samples, or handle them all at once.
-#
-#
+# All-in-one read cleaning and decontamination. See also ./unsupported/unsupported_decontamination.wdl
+
 
 task clean_and_decontam_and_check {
 	# This is similar to combined_decontamination_single but with the decontamination ref included
@@ -44,18 +15,16 @@ task clean_and_decontam_and_check {
 		Array[File] reads_files
 		
 		# guardrails, to prevent this task from taking forever
-		Float      preliminary_min_q30 = 0.2   # 20%
+		Int        preliminary_min_q30 = 20
 		Int        subsample_cutoff = -1
 		Int        subsample_seed = 1965
-		Int        subsample_to_this_many_reads = 1000000
+		Int        subsample_to_this_many_reads =  1000000
 		Int        minimum_number_of_passing_reads = 20000
 		
 		# fastp cleaning options
 		Int fastp_clean_avg_qual = 29
 		Boolean fastp_clean_disable_adapter_trimming = false
 		Boolean fastp_clean_detect_adapter_for_pe = true
-		Boolean fastp_clean_before_decontam = true
-		Boolean fastp_clean_after_decontam = false
 		
 		# decontamination options
 		Boolean     crash_loudly = false
@@ -64,8 +33,7 @@ task clean_and_decontam_and_check {
 		Boolean     unsorted_sam = false
 		
 		# fastp QC cleaning options
-		Boolean soft_qc = true
-		Float QC_min_q30 = 0.5  # 50%
+		Float QC_min_q30 = 50
 
 		# rename outs
 		String? force_rename_out
@@ -88,11 +56,13 @@ task clean_and_decontam_and_check {
 	parameter_meta {
 		reads_files: "FASTQs to decontaminate"
 		
-		crash_loudly: "If true, force a WDL task failure if handled error (failed QC, timeout, etc). If false, handled errors will return 0 but give no fastq output."
+		crash_loudly: "If true, force a WDL task failure if handled ERROR.TXT (failed QC, timeout, etc). If false, handled ERROR.TXTs will return 0 but give no fastq output."
 		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.12.5.2-CDC for CDC varpipe ref"
 		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
 		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
 		fastp_clean_detect_adapter_for_pe: "Enable auto-detection for adapter for PE data, not just SE data. WDL default: true. fastp default: false."
+		preliminary_min_q30: "Throw out a sample immediately if it's got a Q30 rate below this, before any cleaning nor decontamination. Default: 20 (as in 20%)"
+		QC_min_q30: "Q30 rate must be above this after cleaning and decontamination. Default: 50 (as in 50%)"
 		subsample_cutoff: "If a FASTQ is larger than this size in megabytes, subsample subsample_to_this_many_reads random reads and use that instead (-1 to disable)"
 		subsample_to_this_many_reads: "This is the number of reads to subsample down to (default: 1,000,000)"
 		subsample_seed: "Seed to use when subsampling (default: year UCSC was founded)"
@@ -128,8 +98,8 @@ task clean_and_decontam_and_check {
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
 	String reads_cleaned_1 = sub(arg_reads_out1, ".fq.gz", ".clean.fq.gz")
 	String reads_cleaned_2 = sub(arg_reads_out2, ".fq.gz", ".clean.fq.gz")
-	String usual_final_fastq1 = if(fastp_clean_after_decontam) then reads_cleaned_1 else arg_reads_out1
-	String usual_final_fastq2 = if(fastp_clean_after_decontam) then reads_cleaned_2 else arg_reads_out2
+	String usual_final_fastq1 = arg_reads_out1
+	String usual_final_fastq2 = arg_reads_out2
 	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
 	String final_fastq2 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out2]) + "_2.fq.gz" else usual_final_fastq2
 
@@ -163,7 +133,7 @@ task clean_and_decontam_and_check {
 	FALLBACK_FILES=( q20_raw.txt q30_raw.txt reads_raw.txt )
 	FALLBACK_FILES+=( q20_cleaned.txt q30_cleaned.txt reads_cleaned.txt q20_decontaminated.txt q30_decontaminated.txt reads_decontaminated.txt )
 	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
-	FALLBACK_FILES+=( ERROR reads_is_contam reads_reference reads_unmapped reads_kept )
+	FALLBACK_FILES+=( ERROR.TXT reads_is_contam reads_reference reads_unmapped reads_kept )
 	FALLBACK_FILES+=( pct_loss_total.txt pct_loss_decon.txt pct_loss_cleaning.txt )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
@@ -348,13 +318,13 @@ task clean_and_decontam_and_check {
 	done
 	if (( $input_fq_reads < ~{minimum_number_of_passing_reads} ))
 	then
-		echo "ERROR: We're already starting out below the minimum number of passing reads!"
+		echo "ERROR.TXT: We're already starting out below the minimum number of passing reads!"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR
+			echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_EARLY" > ERROR.TXT
 			echo $input_fq_reads > reads_raw.txt
 			exit 0
 		fi
@@ -362,15 +332,13 @@ task clean_and_decontam_and_check {
 	echo $(( SECONDS - start_subsample )) > timer_2_size
 	
 	echo "----------------------------------------------"
-	echo "(3) [fastp] Check and maybe clean reads"
-	echo "---> fastp_clean_before_decontam: ~{fastp_clean_before_decontam}"
+	echo "(3) [fastp] Check and clean reads"
 	echo "----------------------------------------------"
 	# What it does: Runs fastp
 	#
-	# Rationale: This cleans our input fastqs if fastp_clean_before_decontam,
-	# and also filters out VERY bad fastqs.
+	# Rationale: This cleans our input fastqs and filters out VERY bad fastqs
 	#
-	# TODO: Support multi-lane-multi-file fastq sets!!
+	# low priority TODO: Support multi-lane-multi-file fastq sets
 	echo "Fastp is taking in ${READS_FILES[0]} and ${READS_FILES[1]}"
 	start_fastp_1=$SECONDS
 	fastp --in1 "${READS_FILES[0]}" --in2 "${READS_FILES[1]}" \
@@ -380,47 +348,41 @@ task clean_and_decontam_and_check {
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
 		--json "~{sample_name}_first_fastp.json"
 		
-	# very lenient filter to check for very bad fqs -- NOT AFFECTED BY soft_qc ON PURPOSE!
+	# VERY lenient filter to check for terrible samples
 	python3 << CODE
 	import os
 	import json
 	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON:
 		fastp = json.load(fastpJSON)
 		q30_before_anything = fastp["summary"]["before_filtering"]["q30_rate"]
-		if q30_before_anything < ~{preliminary_min_q30}:
-			print(f"ERROR -- Q30 rate before filtering was just {q30_before_anything} (out of 1.0)")
-			with open("ERROR", "w") as err:
+		if (100 * q30_before_anything) < ~{preliminary_min_q30}:
+			print(f"ERROR -- Q30 rate before filtering was just {q30_before_anything} (out of 100)")
+			with open("ERROR.TXT", "w") as err:
 				err.write(f"DECONTAMINATION_{q30_before_anything}_PRELIM_Q30_RATE")
 			exit(100)
 	CODE
-	exit=$?
-	if [[ $exit = 100 ]]
+	if grep -q '_' ERROR.TXT
 	then
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			set -eux -o pipefail
+			echo "Due to QC failure, no .fq output will be given. Crashing!"
 			exit 1
 		else
+			rm "~{usual_final_fastq1}" 
+			rm "~{usual_final_fastq2}"
+			echo "Due to QC failure, no .fq output will be given."
 			exit 0
 		fi
 	fi
 		
-	if [[ "~{fastp_clean_before_decontam}" = "true" ]]
-	then		
-		echo "Fastp output ~{reads_cleaned_1} and ~{reads_cleaned_2}"
-		echo "Removing non-fastp'd ${READS_FILES[0]} and ${READS_FILES[1]}"
-		rm "${READS_FILES[0]}"
-		rm "${READS_FILES[1]}"
-		CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
-		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
-	else
-		# this is basically a repeat of step 1
-		# READS_FILES is updated whether or not there were fastqs to merge
-		readarray -t MAP_THESE_FQS < <(for fq in "${READS_FILES[@]}"; do echo "$fq"; done)
-		echo "Not using this fastp run's cleaned fastqs, so we will remove them"
-		rm "~{reads_cleaned_1}"
-		rm "~{reads_cleaned_2}"
-	fi
+	echo "Fastp output ~{reads_cleaned_1} and ~{reads_cleaned_2}"
+	echo "Removing non-fastp'd ${READS_FILES[0]} and ${READS_FILES[1]}"
+	rm "${READS_FILES[0]}"
+	rm "${READS_FILES[1]}"
+	CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
+	readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
+
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
 
 	echo "----------------------------------------------"
@@ -441,11 +403,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork map_reads timed out"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR
+			echo "DECONTAMINATION_MAP_READS_TIMEOUT" > ERROR.TXT
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -453,11 +415,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork map_reads was killed -- it may have run out of memory"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR
+			echo "DECONTAMINATION_MAP_READS_KILLED" > ERROR.TXT
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -466,12 +428,12 @@ task clean_and_decontam_and_check {
 	elif [[ $exit = 1 ]]
 	then
 		echo "ERROR -- clockwork map_reads errored out for unknown reasons"
-		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR.TXT # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork map_reads returned $exit for unknown reasons"
-		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_MAP_READS_UNKNOWN_ERROR" > ERROR.TXT # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
@@ -522,11 +484,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork remove_contam timed out"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR
+			echo "DECONTAMINATION_RM_CONTAM_TIMEOUT" > ERROR.TXT
 			exit 0
 		fi
 	elif [[ $exit = 137 ]]
@@ -534,11 +496,11 @@ task clean_and_decontam_and_check {
 		echo "ERROR -- clockwork remove_contam was killed -- it may have run out of memory"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
-			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR  # since we exit 1 after this, this output may not be delocalized
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 			set -eux -o pipefail
 			exit 1
 		else
-			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR
+			echo "DECONTAMINATION_RM_CONTAM_KILLED" > ERROR.TXT
 			exit 0
 		fi
 	elif [[ $exit = 0 ]]
@@ -546,27 +508,23 @@ task clean_and_decontam_and_check {
 		echo "Reads successfully decontaminated" 
 	elif [[ $exit = 1 ]]
 	then
-		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
-		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR  # since we exit 1 after this, this output may not be delocalized
+		echo "ERROR -- clockwork remove_contam ERROR.TXTed out for unknown reasons"
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	else
 		echo "ERROR -- clockwork remove_contam returned $exit for unknown reasons"
-		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR  # since we exit 1 after this, this output may not be delocalized
+		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
 	fi
 	echo $(( SECONDS - start_rm_contam )) > timer_7_rm_contam
 	
 	echo "----------------------------------------------"
-	echo "(7) [fastp] Post-decontam QC check and/or clean"
-	echo "--> fastp_clean_after_decontam: ~{fastp_clean_after_decontam}"
+	echo "(7) [fastp] Post-decontam QC check"
 	echo "----------------------------------------------"
-	# What it does: Run fastp again, this time as a QC filter... or a cleaner.
+	# What it does: Run fastp again, this time as a QC filter
 	#
-	# Rationale: There is no point in running fastp as a cleaner twice, but users
-	# can do it. Our actual goal is to provide the option to do fastp before
-	# or after decontamination in order to test how the end result differs.
 	start_fastp_2=$SECONDS
 	if [ -f "~{reads_cleaned_1}" ]
 	then
@@ -580,142 +538,153 @@ task clean_and_decontam_and_check {
 		~{true="--detect_adapter_for_pe" false="" fastp_clean_detect_adapter_for_pe} \
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
 		--json "~{sample_name}_second_fastp.json"
-	if [[ "~{fastp_clean_after_decontam}" = "true" ]]
-	then
-		CLEANED_FQS=("~{reads_cleaned_1}" "~{reads_cleaned_2}")
-		readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
-	fi
 	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
 	
 	echo "----------------------------------------------"
 	echo "(8) [python/bash] Parse reports"
 	echo "----------------------------------------------"
 	start_parse=$SECONDS
-	
-	# parse decontam.counts.tsv
-	# different decontamination references have a different format, this should work with CDC and CRyPTIC
-	sum_contam_reads=0
-	tb_reads=0
-	unmapped_reads=0
-	kept_reads=0
-	while IFS=$'\t' read -r name is_contam reads
-	do
-		if [[ "$name" == "Name" ]]; then continue; fi
-		if [[ "$is_contam" -eq 1 ]]; then sum_contam_reads=$((sum_contam_reads + reads)); fi
-		if [[ "$name" == "Reads_kept_after_remove_contam" ]]; then kept_reads=$((kept_reads + reads)); fi
-		if [[ "$name" == "Unmapped" ]]; then unmapped_reads=$((unmapped_reads + reads)); fi
-		if [[ "$name" == "TB" || "$name" == "Reference" ]]  # CDC and CRyPTIC refs differ here
-		then
-			tb_reads=$((tb_reads + reads))
-		fi
-	done < "~{arg_counts_out}"
-	echo $sum_contam_reads > reads_is_contam
-	echo $tb_reads > reads_reference
-	echo $unmapped_reads > reads_unmapped
-	echo $kept_reads > reads_kept
-	
-	# parse fastp reports
+
 	python3 << CODE
 	import os
 	import json
+
+	# parse decontam.counts.tsv
+	# different decontamination references have a different format, this should work with CDC and CRyPTIC!
+	# the exact metric CDC wants is "At least >90% of the reads should map to Mycobacterium tuberculosis complex," but we are not
+	# going to filter on that yet as I'm unsure if this is measured before or after trying to decontaminate.
+	total_reads_kept, total_reads, total_reads_contam, total_reads_TB, total_reads_NTM, total_reads_human = -1
+	pct_reads_TB_predecon, pct_reads_TB_postdecon, pct_reads_NTM, pct_reads_human = -1
+
+	with open("~{arg_counts_out}", "r") as file:
+		lines = file.readlines()
+
+	header = lines[0].strip().split("\t")
+	rows = [line.strip().split("\t") for line in lines[1:]]
+	data = [{header[i]: row[i] for i in range(len(header))} for row in rows] # trying to stick to Python std library here
+	for row in data:
+		name, is_contam, read_counts = row["Name"], int(row["Is_contam"]), int(row["Reads"])
+		if name == "Reads_kept_after_remove_contam":
+			total_reads_kept = read_counts
+		else:
+			total_reads += read_counts
+		if is_contam == 1:
+			total_reads_contam += read_counts
+		if name == "TB" or name == "reference":
+			total_reads_TB = read_counts
+		elif name == "NTM":
+			total_reads_NTM = read_counts
+		elif name == "Human" or name == "human":
+			total_reads_human = read_counts
+		else:
+			pass
+
+	if total_reads != -1:
+		pct_reads_TB_predecon = ((total_reads_TB / total_reads) * 100 * 10000) / 10000
+	if total_reads_NTM != -1:
+		pct_reads_NTM = ((total_reads_NTM / total_reads) * 100 * 10000) / 10000
+	if total_reads_human != -1:
+		pct_reads_human = ((total_reads_human / total_reads) * 100 * 10000) / 10000
+	if total_reads_kept != -1:
+		pct_reads_TB_postdecon = ((total_reads_TB / total_reads_kept) * 100 * 10000) / 10000
+	pct_loss_decon_per_decon = (((total_reads - total_reads_kept) / total_reads) * 100 * 10000) / 10000
+
+	with open("reads_postclean_per_decon.txt", "w") as file: file.write(str(total_reads))
+	with open("reads_postdecon_per_decon.txt", "w") as file: file.write(str(total_reads_kept))
+	with open("reads_TB.txt", "w") as file: file.write(str(total_reads_TB))
+	with open("reads_NTM.txt", "w") as file: file.write(str(total_reads_NTM))
+	with open("reads_human.txt", "w") as file: file.write(str(total_reads_human))
+	with open("reads_contam.txt", "w") as file. file.write(str(total_reads_contam))
+	with open("pct_reads_TB_predecon.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
+	with open("pct_reads_NTM.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
+	with open("pct_reads_human.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
+	with open("pct_reads_TB_postdecon.txt", "w") as file: file.write(str(pct_reads_TB_predecon))
+	with open("pct_loss_decon_per_decon.txt", "w") as file: file.write(str(pct_loss_decon_per_decon))
 	
-	# second fastp run
-	# we handle this one first to account for the "cleaning twice" case, as we want the first run's cleaned stats to be saved
-	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
-		fastp_2 = json.load(fastpJSON_2)
-	with open("~{sample_name}_fastp.txt", "a") as outfile: # appends to the same outfile as the first fastp
-		outfile.write("after decontamination:\n")
-		for keys, values in fastp_2["summary"]["before_filtering"].items():
-			outfile.write(f"{keys}\t{values}\n")
-			if "~{fastp_clean_after_decontam}" == "true":
-				outfile.write("after fastp cleaned the decontaminated fastqs:\n")
-				for keys, values in fastp_2["summary"]["after_filtering"].items():
-					outfile.write(f"{keys}\t{values}\n")
-				reads_cleaned = fastp_1["summary"]["after_filtering"]["total_reads"] # like the files, this can be overwritten
-				with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_2["summary"]["after_filtering"]["q20_rate"]))
-				with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_2["summary"]["after_filtering"]["q30_rate"]))
-				with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(reads_cleaned))
-			else:
-				outfile.write("no additional cleaning was performed post-decontamination.\n")
-	dcntmd_total_reads = fastp_2["summary"]["before_filtering"]["total_reads"]
-	with open("q20_decontaminated.txt", "w") as q20_in: q20_in.write(str(fastp_2["summary"]["before_filtering"]["q20_rate"]))
-	with open("q30_decontaminated.txt", "w") as q30_in: q30_in.write(str(fastp_2["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_decontaminated.txt", "w") as reads_in: reads_in.write(str(dcntmd_total_reads))
-	
-	
-	# first fastp run
+	# parse fastp reports
 	with open("~{sample_name}_first_fastp.json", "r") as fastpJSON_1:
 		fastp_1 = json.load(fastpJSON_1)
-	with open("~{sample_name}_fastp.txt", "w") as outfile:
-		outfile.write("before any filtering or decontamination:\n")
-		for keys, values in fastp_1["summary"]["before_filtering"].items():
-			outfile.write(f"{keys}\t{values}\n")
-		if "~{fastp_clean_before_decontam}" == "true":
-			outfile.write("after fastp cleaned the non-decontaminated fastqs:\n")
-			for keys, values in fastp_1["summary"]["after_filtering"].items():
-				outfile.write(f"{keys}\t{values}\n")
-			# if both cleans are true, this section will overwrite the other files and dcntmd_total_reads -- this is intended!
-			# cleaning a second time doesn't do much, so what we care about are stats from the first cleaning
-			cleaned_total_reads = fastp_1["summary"]["after_filtering"]["total_reads"]
-			with open("q20_cleaned.txt", "w") as q20_out: q20_out.write(str(fastp_1["summary"]["after_filtering"]["q20_rate"]))
-			with open("q30_cleaned.txt", "w") as q30_out: q30_out.write(str(fastp_1["summary"]["after_filtering"]["q30_rate"]))
-			with open("reads_cleaned.txt", "w") as reads_out: reads_out.write(str(cleaned_total_reads))
-		else:
-			outfile.write("reads were not cleaned before decontamination.\n")
-	raw_total_reads = fastp_1["summary"]["before_filtering"]["total_reads"]
-	with open("q20_raw.txt", "w") as q20_in: q20_in.write(str(fastp_1["summary"]["before_filtering"]["q20_rate"]))
-	with open("q30_raw.txt", "w") as q30_in: q30_in.write(str(fastp_1["summary"]["before_filtering"]["q30_rate"]))
-	with open("reads_raw.txt", "w") as reads_in: reads_in.write(str(raw_total_reads))
+	with open("~{sample_name}_second_fastp.json", "r") as fastpJSON_2:
+		fastp_2 = json.load(fastpJSON_2)
 
-	# actual filtering
-	try:
-		q30_after_everything = fastp_2["summary"]["after_filtering"]["q30_rate"] # post clean and decontam
-		print("Checking Q30 rate post-decontamination-then-cleaning...")
-	except KeyError:
-		q30_after_everything = fastp_2["summary"]["before_filtering"]["q30_rate"] # post decontam (pre-decontam cleaning not relevent)
-		print("Checking Q30 rate post-decontamination...")
-	
-	if q30_after_everything < ~{QC_min_q30}:
-		print(f"ERROR -- Q30 rate after filtering was only {q30_after_everything} (out of 1.0, minimum ~{QC_min_q30})")
-		with open("ERROR", "w") as err:
+	# IN: Files before any decontamination or filtering
+	q20_in = int(fastp_1["summary"]["before_filtering"]["q20_rate"] * 100 * 10000) / 10000
+	q30_in = int(fastp_1["summary"]["before_filtering"]["q30_rate"] * 100 * 10000) / 10000
+	reads_in = fastp_1["summary"]["before_filtering"]["total_reads"]
+	mean_r1_len_in = fastp_1["summary"]["before_filtering"]["read1_mean_length"]
+	mean_r2_len_in = fastp_1["summary"]["before_filtering"]["read2_mean_length"]
+
+	# CLEANED: Files after being cleaned by fastp, but before decontamination
+	q20_postclean = int(fastp_1["summary"]["after_filtering"]["q20_rate"] * 100 * 10000) / 10000
+	q30_postclean = int(fastp_1["summary"]["after_filtering"]["q30_rate"] * 100 * 10000) / 10000
+	reads_postclean_per_fastp = fastp_1["summary"]["after_filtering"]["total_reads"]
+	mean_r1_len_postclean = fastp_1["summary"]["after_filtering"]["read1_mean_length"]
+	mean_r2_len_postclean = fastp_1["summary"]["after_filtering"]["read2_mean_length"]
+
+	# DECON: Files after decontamination -- comes from the second fastp run, but before it tries to filter
+	q20_postdecon = int(fastp_2["summary"]["before_filtering"]["q20_rate"] * 100 * 10000) / 10000
+	q30_postdecon = int(fastp_2["summary"]["before_filtering"]["q30_rate"] * 100 * 10000) / 10000
+	reads_postdecon_per_fastp = fastp_2["summary"]["before_filtering"]["total_reads"]
+	mean_r1_len_postdecon = fastp_2["summary"]["before_filtering"]["read1_mean_length"]
+	mean_r2_len_postdecon = fastp_2["summary"]["before_filtering"]["read2_mean_length"]
+
+	if q30_postdecon < ~{QC_min_q30}:
+		print(f"ERROR -- Q30 rate after filtering and decontamination was only {q30_postdecon} (out of 100, minimum ~{QC_min_q30})")
+		with open("ERROR.TXT", "w") as err:
 			err.write(f"DECONTAMINATION_{q30_after_everything}_Q30_RATE")
 		exit(100)
 	
-	# more stats, because Terra doesn't support outputs based on other outputs
-	pct_loss_cleaning = ((raw_total_reads - cleaned_total_reads) / raw_total_reads) * 100
-	pct_loss_decon = ((cleaned_total_reads - dcntmd_total_reads) / cleaned_total_reads) * 100
-	pct_loss_total = ((raw_total_reads - dcntmd_total_reads) / raw_total_reads) * 100
-	with open("pct_loss_cleaning.txt", "w") as reads_in: reads_in.write(str(pct_loss_cleaning))
-	with open("pct_loss_decon.txt", "w") as reads_in: reads_in.write(str(pct_loss_decon))
-	with open("pct_loss_total.txt", "w") as reads_in: reads_in.write(str(pct_loss_total))
-	
+	# Terra doesn't support outputs based on other outputs, so it's best that we squeeze as much out of this in this block as we can
+	pct_loss_cleaning = (((reads_in - reads_postclean) / reads_in) * 100 * 10000) / 10000
+	pct_loss_decon = (((reads_postclean - reads_postdecon) / reads_postclean) * 100 * 10000) / 10000
+	pct_loss_total = (((reads_in - reads_postdecon) / reads_in) * 100 * 10000) / 10000
+
+	with open("pct_loss_cleaning.txt", "w") as file: file.write(str(pct_loss_cleaning))
+	with open("pct_loss_decon_per_fastp.txt", "w") as file: file.write(str(pct_loss_decon))
+	with open("pct_loss_total.txt", "w") as file: file.write(str(pct_loss_total))
+	with open("q20_in", "w") as file: file.write(str(q20_in))
+	with open("q30_in", "w") as file: file.write(str(q30_in))
+	with open("reads_in", "w") as file: file.write(str(reads_in))
+	with open("mean_r1_len_in", "w") as file: file.write(str(mean_r1_len_in))
+	with open("mean_r2_len_in", "w") as file: file.write(str(mean_r2_len_in))
+	with open("q20_postclean", "w") as file: file.write(str(q20_postclean))
+	with open("q30_postclean", "w") as file: file.write(str(q30_postclean))
+	with open("reads_postclean", "w") as file: file.write(str(reads_postclean))
+	with open("mean_r1_len_postclean", "w") as file: file.write(str(mean_r1_len_postclean))
+	with open("mean_r2_len_postclean", "w") as file: file.write(str(mean_r2_len_postclean))
+	with open("q20_postdecon", "w") as file: file.write(str(q20_postdecon))
+	with open("q30_postdecon", "w") as file: file.write(str(q30_postdecon))
+	with open("reads_postdecon", "w") as file: file.write(str(reads_postdecon))
+	with open("mean_r1_len_postdecon", "w") as file: file.write(str(mean_r1_len_postdecon))
+	with open("mean_r2_len_postdecon", "w") as file: file.write(str(mean_r2_len_postdecon))
+
 	CODE
-	exit=$?
-	if [[ $exit = 100 ]]
-	then
-		if [[ "~{soft_qc}" = "false" ]]
-		then
-			if [[ "~{crash_loudly}" = "true" ]]
-			then
-				set -eux -o pipefail
-				echo "Due to QC failure, no .fq output will be given. Crashing!"
-				exit 1
-			else
-				rm "~{usual_final_fastq1}" 
-				rm "~{usual_final_fastq2}"
-				echo "Due to QC failure, no .fq output will be given."
-				exit 0
-			fi
-		fi
-	fi
 
 	if [[ $(fqtools count "~{usual_final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
 	then
 		echo "This sample has less than ~{minimum_number_of_passing_reads} reads and risks breaking the variant caller. We're getting rid of it."
-		echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_LATE" > ERROR
+		echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_LATE" > ERROR.TXT
 		rm "~{usual_final_fastq1}" 
 		rm "~{usual_final_fastq2}"
-		exit 0
+		# exit handled in grep block below
+	fi
+
+	# we used to be able to check exit codes of inline python for an exit code of 100, but something seems to have changed.
+	# instead, we'll just check ERROR.TXT for underscores (this does mean we shouldn't reformat the error codes without
+	# changing this block!)
+	if grep -q '_' ERROR.TXT
+	then
+		if [[ "~{crash_loudly}" = "true" ]]
+		then
+			set -eux -o pipefail
+			echo "Due to QC failure, no .fq output will be given. Crashing!"
+			exit 1
+		else
+			rm "~{usual_final_fastq1}" 
+			rm "~{usual_final_fastq2}"
+			echo "Due to QC failure, no .fq output will be given."
+			exit 0
+		fi
 	fi
 	
 	# rename outputs if necessary
@@ -725,7 +694,7 @@ task clean_and_decontam_and_check {
 		mv "~{usual_final_fastq2}" "~{final_fastq2}"
 	fi
 	
-	echo "PASS" > ERROR
+	echo "PASS" > ERROR.TXT
 	
 	echo $(( SECONDS - start_parse )) > timer_9_parse
 	
@@ -752,40 +721,57 @@ task clean_and_decontam_and_check {
 		# other important things
 		String sample = sample_name # needed by ThiagenTBProfiler
 		
-		# fastp stuff
-		Float  raw_pct_above_q20  = read_float("q20_raw.txt")
-		Float  raw_pct_above_q30  = read_float("q30_raw.txt")
-		Int    raw_total_reads    = read_int("reads_raw.txt")
-		Float  cleaned_pct_above_q20   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q20_cleaned.txt") else read_float("q20_raw.txt")
-		Float  cleaned_pct_above_q30   = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_float("q30_cleaned.txt") else read_float("q30_raw.txt")
-		Int    cleaned_total_reads     = if (fastp_clean_before_decontam || fastp_clean_after_decontam) then read_int("reads_cleaned.txt") else read_int("reads_raw.txt")
-		Float  dcntmd_pct_above_q20  = read_float("q20_decontaminated.txt")
-		Float  dcntmd_pct_above_q30  = read_float("q30_decontaminated.txt")
-		Int    dcntmd_total_reads    = read_int("reads_decontaminated.txt")
-		Float pct_loss_cleaning = read_float("pct_loss_cleaning.txt")
-		Float pct_loss_decon    = read_float("pct_loss_decon.txt")
-		Float pct_loss_total    = read_float("pct_loss_total.txt")
+		# before cleaning, before decontamination -- metrics according to fastp
+		Float q20_in = read_float("q20_in")
+		Float q30_in = read_float("q30_in")
+		Int reads_in = read_int("reads_in")
+		Int mean_r1_len_in = read_int("mean_r1_len_in")
+		Int mean_r2_len_in = read_int("mean_r2_len_in")
+
+		# after cleaning, before decontamination -- metrics according to fastp
+		Float q20_postclean = read_float("q20_postclean")
+		Float q30_postclean = read_float("q30_postclean")
+		Int reads_postclean_per_fastp = read_int("reads_postclean") # compare reads_postclean_per_decon
+		Int mean_r1_len_postclean = read_int("mean_r1_len_postclean")
+		Int mean_r2_len_postclean = read_int("mean_r2_len_postclean")
+		Float pct_loss_cleaning_per_fastp = read_float("pct_loss_cleaning.txt")
+
+		# after cleaning, before decontamination -- metrics according to decontamination
+		Int reads_postclean_per_decon = read_int("reads_postclean_per_decon.txt") # compare reads_postclean_per_fastp
+		Int reads_postdecon_per_decon = read_int("reads_postdecon_per_decon.txt") # compare reads_postdecon_per_fastp
+		Int reads_TB = read_int("reads_TB.txt")
+		Int reads_NTM = read_int("reads_NTM.txt")
+		Int reads_human = read_int("reads_human.txt")
+		Int reads_contam = read_int("reads_contam.txt")
+		Float pct_reads_TB_predecon = read_float("pct_reads_TB_predecon.txt")
+		Float pct_reads_NTM = read_float("pct_reads_NTM.txt")
+		Float pct_reads_human = read_float("pct_reads_human.txt")
+
+		# after cleaning, after decontamination -- metrics according to decontamination
+		Float pct_reads_TB_postdecon = read_float("pct_reads_TB_postdecon.txt")
+		Float pct_loss_decon_per_decon = read_float("pct_loss_decon_per_decon.txt")
+		Float pct_loss_total = read_float("pct_loss_total.txt")
+
+		# after cleaning, after decontamination -- metrics according to second run of fastp
+		Float pct_loss_decon_per_fastp = read_float("pct_loss_decon_per_fastp.txt")
+		Float q20_postdecon = read_float("q20_postdecon")
+		Float q30_postdecon = read_float("q30_postdecon")
+		Int reads_postdecon_per_fastp = read_int("reads_postdecon") # compare reads_postdecon_per_decon
+		Int mean_r1_len_postdecon = read_int("mean_r1_len_postdecon") 
+		Int mean_r2_len_postdecon = read_int("mean_r2_len_postdecon")
 		
 		# timers and debug information
-		String errorcode = read_string("ERROR")
-		#Int timer_1_prep  = read_int("timer_1_process")
-		#Int timer_2_size  = read_int("timer_2_size")
-		#Int timer_3_clean = read_int("timer_3_clean")
+		String error_code = read_string("ERROR.TXT")
 		Int timer_a_mapFQ = read_int("timer_5_map_reads")
 		Int timer_b_sort  = read_int("timer_6_sort")
 		Int timer_c_dcnFQ = read_int("timer_7_rm_contam")
-		#Int timer_8_qchck = read_int("timer_8_qc")
-		#Int timer_9_parse = read_int("timer_9_parse")
 		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
-		Int reads_is_contam = read_int("reads_is_contam")
-		Int reads_reference = read_int("reads_reference")
-		Int reads_unmapped  = read_int("reads_unmapped")
-		Int reads_clck_kept = read_int("reads_kept")
 		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
+		File? fastp_report_1 = sample_name + "_first_fastp.json"
+		File? fastp_report_2 = sample_name + "_second_fastp.json"
 		
 		# you probably don't want these...
 		#File? mapped_to_decontam = glob("*.sam")[0]
-	}
-	
+	}	
 }
