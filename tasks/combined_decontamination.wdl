@@ -130,16 +130,19 @@ task clean_and_decontam_and_check {
 	# way of saying "don't try to read_int() this nonexistent file." Making the Int
 	# an optional Int? does not work as the rest of the TB pipeline expects Ints,
 	# even though those values will not even be called should a sample fail decontam.
-	FALLBACK_FILES=( q20_raw.txt q30_raw.txt reads_raw.txt )
-	FALLBACK_FILES+=( q20_cleaned.txt q30_cleaned.txt reads_cleaned.txt q20_decontaminated.txt q30_decontaminated.txt reads_decontaminated.txt )
+	FALLBACK_FILES=(  ERROR.TXT duplication_rate.txt reads_adapter.txt )
+	FALLBACK_FILES+=( q20_in.txt q30_in.txt reads_in.txt mean_r1_len_in.txt mean_r2_len_in.txt )
+	FALLBACK_FILES+=( q20_postclean.txt q30_postclean.txt reads_postclean_per_fastp.txt mean_r1_len_postclean.txt mean_r2_len_postclean.txt pct_loss_cleaning_per_fastp.txt reads_postclean_per_decon.txt )
+	FALLBACK_FILES+=( reads_postdecon_per_decon.txtreads_TB.txtreads_NTM.txt reads_human.txt reads_contam.txt )
+	FALLBACK_FILES+=( pct_reads_TB_predecon.txt pct_reads_NTM.txt pct_reads_human.txt pct_reads_TB_postdecon.txt )
+	FALLBACK_FILES+=( pct_loss_decon_per_decon.txt pct_loss_total.txt pct_loss_decon_per_fastp.txt )
+	FALLBACK_FILES+=( q20_postdecon.txtq30_postdecon.txt reads_postdecon_per_fastp.txt mean_r1_len_postdecon.txt mean_r2_len_postdecon.txt )
 	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
-	FALLBACK_FILES+=( ERROR.TXT reads_is_contam reads_reference reads_unmapped reads_kept )
-	FALLBACK_FILES+=( pct_loss_total.txt pct_loss_decon.txt pct_loss_cleaning.txt )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
 		echo -1 > "$fallback_file"
 	done
-	# TODO: force pct_loss_* to be negative
+	# TODO: force pct_loss_* to be negative?
 
 	echo "----------------------------------------------"
 	echo "(0.5) [tar] Expand decontamination reference"
@@ -744,10 +747,10 @@ task clean_and_decontam_and_check {
 		# after cleaning, before decontamination -- metrics according to fastp
 		Float q20_postclean = read_float("q20_postclean.txt")
 		Float q30_postclean = read_float("q30_postclean.txt")
-		Int reads_postclean_per_fastp = read_int("reads_postclean.txt") # compare reads_postclean_per_decon
+		Int reads_postclean_per_fastp = read_int("reads_postclean_per_fastp.txt") # compare reads_postclean_per_decon
 		Int mean_r1_len_postclean = read_int("mean_r1_len_postclean.txt")
 		Int mean_r2_len_postclean = read_int("mean_r2_len_postclean.txt")
-		Float pct_loss_cleaning_per_fastp = read_float("pct_loss_cleaning.txt")
+		Float pct_loss_cleaning_per_fastp = read_float("pct_loss_cleaning_per_fastp.txt")
 
 		# after cleaning, before decontamination -- metrics according to decontamination
 		Int reads_postclean_per_decon = read_int("reads_postclean_per_decon.txt") # compare reads_postclean_per_fastp
@@ -769,7 +772,7 @@ task clean_and_decontam_and_check {
 		Float pct_loss_decon_per_fastp = read_float("pct_loss_decon_per_fastp.txt")
 		Float q20_postdecon = read_float("q20_postdecon.txt")
 		Float q30_postdecon = read_float("q30_postdecon.txt")
-		Int reads_postdecon_per_fastp = read_int("reads_postdecon.txt") # compare reads_postdecon_per_decon
+		Int reads_postdecon_per_fastp = read_int("reads_postdecon_per_fastp.txt") # compare reads_postdecon_per_decon
 		Int mean_r1_len_postdecon = read_int("mean_r1_len_postdecon.txt") 
 		Int mean_r2_len_postdecon = read_int("mean_r2_len_postdecon.txt")
 		
