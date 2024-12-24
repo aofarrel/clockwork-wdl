@@ -133,10 +133,10 @@ task clean_and_decontam_and_check {
 	FALLBACK_FILES=(  ERROR.TXT duplication_rate.txt reads_adapter.txt )
 	FALLBACK_FILES+=( q20_in.txt q30_in.txt reads_in.txt mean_r1_len_in.txt mean_r2_len_in.txt )
 	FALLBACK_FILES+=( q20_postclean.txt q30_postclean.txt reads_postclean_per_fastp.txt mean_r1_len_postclean.txt mean_r2_len_postclean.txt pct_loss_cleaning_per_fastp.txt reads_postclean_per_decon.txt )
-	FALLBACK_FILES+=( reads_postdecon_per_decon.txtreads_TB.txtreads_NTM.txt reads_human.txt reads_contam.txt )
+	FALLBACK_FILES+=( reads_postdecon_per_decon.txt reads_TB.txt reads_NTM.txt reads_human.txt reads_contam.txt )
 	FALLBACK_FILES+=( pct_reads_TB_predecon.txt pct_reads_NTM.txt pct_reads_human.txt pct_reads_TB_postdecon.txt )
 	FALLBACK_FILES+=( pct_loss_decon_per_decon.txt pct_loss_total.txt pct_loss_decon_per_fastp.txt )
-	FALLBACK_FILES+=( q20_postdecon.txtq30_postdecon.txt reads_postdecon_per_fastp.txt mean_r1_len_postdecon.txt mean_r2_len_postdecon.txt )
+	FALLBACK_FILES+=( q20_postdecon.txt q30_postdecon.txt reads_postdecon_per_fastp.txt mean_r1_len_postdecon.txt mean_r2_len_postdecon.txt )
 	FALLBACK_FILES+=( timer_1_process timer_2_size timer_3_clean timer_4_untar timer_5_map_reads timer_6_sort timer_7_rm_contam timer_8_qc timer_9_parse timer_total )
 	for fallback_file in "${FALLBACK_FILES[@]}"
 	do
