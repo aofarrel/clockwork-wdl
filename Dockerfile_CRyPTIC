@@ -1,6 +1,7 @@
 # FROM line is set by build_dockers.sh, don't edit it here
-FROM ashedpotatoes/clockwork-plus:v0.12.5.2-slim
+FROM ashedpotatoes/clockwork-plus:v0.12.5.3-slim
 RUN mkdir /ref/Ref.remove_contam
 COPY references/clockwork-v0.12.5/Ref.remove_contam/ref.fa ./ref/Ref.remove_contam/ref.fa
 COPY references/clockwork-v0.12.5/Ref.remove_contam/ref.fa.fai ./ref/Ref.remove_contam/ref.fa.fai
 COPY references/clockwork-v0.12.5/Ref.remove_contam/remove_contam_metadata.tsv ./ref/Ref.remove_contam/remove_contam_metadata.tsv
+COPY references/clockwork-v0.12.5/Ref.remove_contam/ref.fa.minimap2_idx ./ref/Ref.remove_contam/ref.fa.minimap2_idx

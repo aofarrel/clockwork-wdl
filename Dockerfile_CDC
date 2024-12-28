@@ -1,5 +1,5 @@
 # FROM line is set by build_dockers.sh, don't edit it here
-FROM ashedpotatoes/clockwork-plus:v0.12.5.2-slim
+FROM ashedpotatoes/clockwork-plus:v0.12.5.3-slim
 RUN mkdir ./ref/Ref.remove_contam
 COPY references/CDC-varpipe/Ref.remove_contam/ref.fa ./ref/Ref.remove_contam/ref.fa 
 COPY references/CDC-varpipe/Ref.remove_contam/ref.fa.fai ./ref/Ref.remove_contam/ref.fa.fai
