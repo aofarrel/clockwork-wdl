@@ -212,13 +212,17 @@ task clean_and_decontam_and_check {
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t BADFQ < <(find . -iname "*.fq*" -print0)
 	readarray -d '' -t FQ < <(find . -iname "*.fq" -print0)
+	readarray -d '' -t FQ_GZ < <(find . -iname "*.fq.gz" -print0)
 	readarray -d '' -t FASTQ < <(find . -iname "*.fastq" -print0)
+	readarray -d '' -t FASTQ_GZ < <(find . -iname "*.fastq.gz" -print0)
 	readarray -d '' -t TAR < <(find . -iname "*.tar*" -print0)
 	fx_echo_array "Located these .fq* files: " "${BAD_FQ[@]}"
 	echo "^ If your FQ files show up here, but not down here \/, rename them. We don't support matching on"
 	echo "*.fq* because this sometimes picks up on temp files (tmp.FQnvHo, etc)"
 	fx_echo_array "Located these .fq files: " "${FQ[@]}"
+	fx_echo_array "Located these .fq.gz files: " "${FQ_GZ[@]}"
 	fx_echo_array "Located these .fastq files: " "${FASTQ[@]}"
+	fx_echo_array "Located these .fastq.gz files: " "${FASTQ_GZ[@]}"
 	fx_echo_array "Located these .tar files: " "${TAR[@]}"
 	# check length of arrays -- we do not want "fq.fastq" files to cause issues
 	if (( "${#FQ[@]}" != 0 && "${#FASTQ[@]}" != 0 ))
@@ -231,7 +235,7 @@ task clean_and_decontam_and_check {
 	then
 		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FASTQ[@]}")
 	else
-		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${TAR[@]}")
+		readarray -d ' ' -t READS_FILES_UNSORTED < <(echo "${FQ[@]}" "${FASTQ[@]}" "${TAR[@]}" "${FQ_GZ[@]}" "${FASTQ_GZ[@]}")
 	fi
 	fx_echo_array "Probable input files:" "${READS_FILES_UNSORTED[@]}"
 	READS_FILES=( $(fx_sort_array "${READS_FILES_UNSORTED[@]}") ) # this appears to be more consistent than mapfile
@@ -240,7 +244,7 @@ task clean_and_decontam_and_check {
 	if (( "${#READS_FILES[@]}" != 2 ))
 	then
 		# check for gzipped or tarball inputs
-		# clockwork can handle gzipped inputs, we only unzip in case there's multiple fqs in a single zip
+		# clockwork and fastp can handle gzipped inputs without unzipping; we only unzip in case there's multiple fqs in a single zip
 		some_base=$(basename -- "${READS_FILES[0]}") # just check the first element; should never be a mix of gzipped and not-gzipped fqs
 		some_extension="${some_base##*.}"
 		if [[ $some_extension = "gz" ]]
