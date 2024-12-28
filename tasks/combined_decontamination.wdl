@@ -750,7 +750,7 @@ task clean_and_decontam_and_check {
 		Int mean_r1_len_in = read_int("mean_r1_len_in.txt")
 		Int mean_r2_len_in = read_int("mean_r2_len_in.txt")
 		Float duplication_rate = read_float("duplication_rate.txt")
-		Int reads_adapter = read_int("reads_adapter.txt")
+		Int reads_adapter_trimmed = read_int("reads_adapter.txt")
 
 		# after cleaning, before decontamination -- metrics according to fastp
 		Float q20_postclean = read_float("q20_postclean.txt")
