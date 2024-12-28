@@ -72,8 +72,8 @@ task clean_and_decontam_and_check {
 	}
 
 	# The Docker image has our reference information, so these can be hardcoded.
-	String arg_metadata_tsv = "Ref.remove_contam/remove_contam_metadata.tsv"
-	String arg_ref_fasta = "Ref.remove_contam/ref.fa"
+	String arg_metadata_tsv = "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
+	String arg_ref_fasta = "/ref/Ref.remove_contam/ref.fa"
 
 	# We need to derive the sample name from our inputs because sample name is a
 	# required input for clockwork map_reads. This needs to be to handle inputs
@@ -154,16 +154,16 @@ task clean_and_decontam_and_check {
 	# untar any of the read files.
 	#
 	# Dev note: Terra-Cromwell does not place you in the home dir, but rather one folder down, so we
-	# go up one to get the ref genome. miniwdl goes further. So, we place the untarred directory in
-	# the workdir rather than in-place for consistency's sake. If we are using the CDC (varpipe) 
-	# decontamination reference, this also renames the output from "varpipe.Ref.remove_contam"
+	# go up one to get the ref genome. miniwdl goes further. To account for this, we are using
+	# absolute paths -- see also ~{arg_metadata_tsv} and ~{arg_ref_fasta}
 	if [ -f /ref/Ref.remove_contam.tar ]
 	then
-		mkdir Ref.remove_contam
-		tar -xvf /ref/Ref.remove_contam.tar -C Ref.remove_contam --strip-components 1
+		mv /ref/
+		tar -xvf /ref/Ref.remove_contam.tar
+		mv ..
 	elif [ -f /ref/Ref.remove_contam/ref.fa ]
 	then
-		echo "Decontamination reference already expanded, moving to workdir"
+		echo "Decontamination reference already expanded"
 	else
 		echo "Failed to located decontamination reference"
 		exit 1
@@ -210,9 +210,13 @@ task clean_and_decontam_and_check {
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
-	readarray -d '' -t FQ < <(find . -iname "*.fq*" -print0) 
-	readarray -d '' -t FASTQ < <(find . -iname "*.fastq*" -print0)
+	readarray -d '' -t BADFQ < <(find . -iname "*.fq*" -print0)
+	readarray -d '' -t FQ < <(find . -iname "*.fq" -print0)
+	readarray -d '' -t FASTQ < <(find . -iname "*.fastq" -print0)
 	readarray -d '' -t TAR < <(find . -iname "*.tar*" -print0)
+	fx_echo_array "Located these .fq* files: " "${BAD_FQ[@]}"
+	echo "^ If your FQ files show up here, but not down here \/, rename them. We don't support matching on"
+	echo "*.fq* because this sometimes picks up on temp files (tmp.FQnvHo, etc)"
 	fx_echo_array "Located these .fq files: " "${FQ[@]}"
 	fx_echo_array "Located these .fastq files: " "${FASTQ[@]}"
 	fx_echo_array "Located these .tar files: " "${TAR[@]}"
