@@ -88,16 +88,6 @@ task variant_call_one_sample_ref_included {
 	echo "~{sample_name}"
 	arg_outdir="var_call_~{sample_name}"
 
-	if [[ "~{debug}" = "true" ]]
-	then
-		ls -R ./* > contents_1.txt
-		READS_FILES=("~{sep='" "' reads_files}")
-		for inputfq in "${READS_FILES[@]}"
-		do
-			cp "$inputfq" "~{sample_name}_varclfail.fastq.gz"
-		done
-	fi
-
 	timeout -v ~{timeout}m clockwork variant_call_one_sample \
 	--sample_name "~{sample_name}" \
 	~{arg_debug} \
@@ -108,10 +98,6 @@ task variant_call_one_sample_ref_included {
 	~{sep=" " reads_files}
 	
 	exit=$?
-
-	# Previously we caught the exit code directly and checked it, but something changed in either clockwork or Cromwell
-	# that breaks this. Everything seems to always return 0 now. I'm leaving this code in for the time being but we
-	# can no longer rely upon it.
 	
 	# rc 124 -- timed out
 	if [[ $exit = 124 ]]
@@ -158,34 +144,19 @@ task variant_call_one_sample_ref_included {
 		echo "Successfully called variants" 
 	
 	# rc 1
+	# Previously, when cortex failed to call variants, clockwork would return 1 and we'd catch it here, then parse the
+	# cortex log for clues. But that seems to have changed in v0.12.x of clockwork -- the clockwork command returns 0
+	# and the cortex log doesn't seem helpful anymore.
+	# In case there's some weird edge case where clockwork can still return 1, I'm keeping the basics of this check in
+	# place, but we're no longer trying to parse logs. Instead, later on, we just check the line number in the final
+	# VCF file -- if it's less than four (1: VCF format version, 2: header, 3: blank newline) than we declare it invalid.
 	elif [[ $exit = 1 ]]
 	then
-		echo "ERROR -- clockwork variant_call_one_sample errored out for unknown reasons"
+		echo "ERROR -- clockwork variant_call_one_sample returned 1 for unknown reasons"
+		echo "VARIANT_CALLING_UNKNOWN_ERROR" >> ERROR
 		if [[ "~{debug}" = "true" ]]
 		then
 			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
-		fi
-		# check to see if the Cortex log has any information
-		# TODO: I don't remember if minos_adjudicate crashes due to small sample size have an rc of 1 or something else; ideally we'd only
-		# put this check in one place
-		CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
-		if [[ $CORTEX_WARNING == WARNING* ]] ;
-		then
-			echo "***********"
-			echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling, but not small enough to fail minimap2."
-			echo "Expect this task to have errored at minos adjudicate."
-			size_of_read1=$(stat -c %s var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz)
-			echo "Read 1 is $size_of_read1"
-			#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
-			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-			head -50 var_call_"~{sample_name}"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
-			echo "***********"
-			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
-		else
-			echo "This sample likely didn't throw a warning during cortex's clean binaries step. Cause of error unknown."
-			echo "VARIANT_CALLING_UNKNOWN_ERROR" >> ERROR
 		fi
 		
 		if [[ "~{crash_on_error}" = "true" ]]
@@ -200,31 +171,10 @@ task variant_call_one_sample_ref_included {
 	# I don't know if this ever happens, but sure, let's handle it just in case
 	else
 		echo "ERROR -- clockwork variant_call_one_sample returned $exit for unknown reasons"
+		echo "VARIANT_CALLING_UNKNOWN_ERROR_$exit" >> ERROR
 		if [[ "~{debug}" = "true" ]]
 		then
 			tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
-		fi
-		# check to see if the Cortex log has any information
-		# TODO: I don't remember if minos_adjudicate crashes due to small sample size have an rc of 1 or something else; ideally we'd only
-		# put this check in one place
-		CORTEX_WARNING=$(head -22 var_call_"~{sample_name}"/cortex/cortex.log | tail -1)
-		if [[ $CORTEX_WARNING == WARNING* ]] ;
-		then
-			echo "***********"
-			echo "This sample threw a warning during cortex's clean binaries step. This likely means it's too small for variant calling, but not small enough to fail minimap2."
-			echo "Expect this task to have errored at minos adjudicate."
-			size_of_read1=$(stat -c %s var_call_"~{sample_name}"/trimmed_reads.0.1.fq.gz)
-			echo "Read 1 is $size_of_read1"
-			#echo "Read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq.gz | awk '{print $5}')"
-			#gunzip -dk var_call_$sample_name/trimmed_reads.0.2.fq.gz
-			#echo "Decompressed read 2 is $(ls -lh var_call_$sample_name/trimmed_reads.0.2.fq | awk '{print $5}')"
-			echo "The first 50 lines of the Cortex VCF (if all you see are about 30 lines of headers, this is likely an empty VCF!):"
-			head -50 var_call_"~{sample_name}"/cortex/cortex.out/vcfs/cortex_wk_flow_I_RefCC_FINALcombined_BC_calls_at_all_k.decomp.vcf
-			echo "***********"
-			echo "VARIANT_CALLING_ADJUDICATION_FAILURE"
-		else
-			echo "This sample likely didn't throw a warning during cortex's clean binaries step. Cause of error unknown."
-			echo "VARIANT_CALLING_UNKNOWN_ERROR_$exit" >> ERROR
 		fi
 		if [[ "~{crash_on_error}" = "true" ]]
 		then
@@ -261,12 +211,7 @@ task variant_call_one_sample_ref_included {
 		echo "VCF file is $(wc -l var_call_'~{sample_name}'/final.vcf) lines long. It's probably fine."
 	fi
 
-	
-	if [[ "~{debug}" = "true" ]]
-	then
-		ls -R ./* > contents_2.txt
-		echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
-	fi
+	echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
 
 	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
 	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
@@ -286,9 +231,7 @@ task variant_call_one_sample_ref_included {
 
 	if [[ "~{debug}" = "true" ]]
 	then
-		ls -R ./* > contents_3.txt
 		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
-		rm "~{sample_name}_varclfail.fastq"
 	fi
 	
 	echo "PASS" >> ERROR
@@ -305,19 +248,14 @@ task variant_call_one_sample_ref_included {
 	}
 
 	output {
-		# the outputs you care about
+		String errorcode = read_string("ERROR")
+
+		# these NEED to be optional to allow a sample to fail QC and get dropped without erroring out the entire pipeline
 		File? bam = sample_name+"_to_H37Rv.bam"
 		File? bai = sample_name+"_to_H37Rv.bam.bai"
 		File? adjudicated_vcf = sample_name+".vcf"
 		File? bam_and_bai = sample_name+".tar"
-
-		# debugging stuff
-		File? check_this_fastq = sample_name+"_varclfail.fastq.gz"
-		File? cortex_log = "var_call_"+sample_name+"/cortex/cortex.log"
-		String errorcode = read_string("ERROR")
-		#File? ls1 = "contents_1.txt"
-		#File? ls2 = "contents_2.txt"
-		#File? ls3 = "contents_3.txt"
+		
 		File? workdir_tarball = sample_name+".tar"  # only if debug is true and something breaks
 	}
 }
