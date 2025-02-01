@@ -108,6 +108,10 @@ task variant_call_one_sample_ref_included {
 	~{sep=" " reads_files}
 	
 	exit=$?
+
+	# Previously we caught the exit code directly and checked it, but something changed in either clockwork or Cromwell
+	# that breaks this. Everything seems to always return 0 now. I'm leaving this code in for the time being but we
+	# can no longer rely upon it.
 	
 	# rc 124 -- timed out
 	if [[ $exit = 124 ]]
@@ -230,6 +234,33 @@ task variant_call_one_sample_ref_included {
 			exit 0
 		fi
 	fi
+
+	# check that the final VCF file is more than four lines in length
+	if [ "$(wc -l < file.txt)" -lt 4 ]
+	then
+		echo "Adjudicated VCF file is less than four lines long. This almost certainly means that no variants were found!"
+		echo "Dump of all VCF files to stdout:"
+		echo "Samtools:"
+		cat var_call_"~{sample_name}"/samtools.vcf
+		echo "Cortex:"
+		cat var_call_"~{sample_name}"/cortex.vcf
+		echo "Adjudicated:"
+		cat var_call_"~{sample_name}"/final.vcf
+
+		# delete the VCF so it doesn't get delocalized
+		rm var_call_"~{sample_name}"/final.vcf
+		echo "VARIANT_CALLING_EMPTY_FILE" >> ERROR
+		if [[ "~{crash_on_error}" = "true" ]]
+		then
+			set -eux -o pipefail
+			exit 1
+		else
+			exit 0
+		fi
+	else
+		echo "VCF file is $(wc -l var_call_'~{sample_name}'/final.vcf) lines long. It's probably fine."
+	fi
+
 	
 	if [[ "~{debug}" = "true" ]]
 	then
