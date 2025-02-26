@@ -14,7 +14,7 @@ version 1.0
 # * Comes with H37Rv reference (cannot be overwritten)
 # * Read files can be fq or fastq
 # * Exits gracefully if variants cannot be called unless crash_on_error is true
-# * Supports timing out after n minutes to avoid runaway cloud comput costs
+# * Supports timing out after n minutes to avoid runaway cloud compute costs
 #
 # variant_call_one_sample_simple [legacy]
 # * Uses 0.11.3 of clockwork
@@ -214,8 +214,6 @@ task variant_call_one_sample_ref_included {
 	echo mving VCFs from var_call_"~{sample_name}"/*.vcf to ./"~{sample_name}"*.vcf
 
 	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
-	mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
-	mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 
 	# rename the bam and bai files
 	mv var_call_"~{sample_name}"/map.bam ./"~{sample_name}"_to_H37Rv.bam
@@ -231,7 +229,8 @@ task variant_call_one_sample_ref_included {
 
 	if [[ "~{debug}" = "true" ]]
 	then
-		tar -c "var_call_~{sample_name}/" > "~{sample_name}.tar"
+		mv var_call_"~{sample_name}"/cortex.vcf ./"~{sample_name}"_cortex.vcf
+		mv var_call_"~{sample_name}"/samtools.vcf ./"~{sample_name}"_samtools.vcf
 	fi
 	
 	echo "PASS" >> ERROR
@@ -254,9 +253,11 @@ task variant_call_one_sample_ref_included {
 		File? bam = sample_name+"_to_H37Rv.bam"
 		File? bai = sample_name+"_to_H37Rv.bam.bai"
 		File? adjudicated_vcf = sample_name+".vcf"
-		File? bam_and_bai = sample_name+".tar"
 		
-		File? workdir_tarball = sample_name+".tar"  # only if debug is true and something breaks
+		# only if debug is true
+		File? debug_samtools_vcf = sample_name+"_samtools.vcf"
+		File? debug_cortex_vcf = sample_name+"_cortex.vcf"
+		File? debug_workdir_tarball = sample_name+".tar"  # only if debug is true and something breaks
 	}
 }
 
