@@ -4,12 +4,11 @@ version 1.0
 
 
 task clean_and_decontam_and_check {
-	# This is similar to combined_decontamination_single but with the decontamination ref included
-	# in the Docker image, and also includes fastp. The decision was made to make this one "mega
-	# task" because "clockwork rm_contam" and "clockwork map_reads" were already combined, and
-	# adding fastp is trival in terms of execution resources. This also makes it much easier to
-	# toggle fastp filtering -- optional tasks in WDL workflows are much more difficult to deal
-	# with than an optional few lines of bash script.
+	# This all-in-one task does the following:
+	#  * cleans input FQs with fastp
+	#  * runs clockwork map_reads to map cleaned FQs to decontamination reference
+	#  * runs clockwork rm_contam to remove contamination from the cleaned FQs
+	# The decontamination reference is already included. 
 	input {
 		
 		Array[File] reads_files
@@ -27,9 +26,11 @@ task clean_and_decontam_and_check {
 		Boolean fastp_clean_detect_adapter_for_pe = true
 		
 		# decontamination options
+		Boolean     CDC_decontamination_reference
 		Boolean     crash_loudly = false
 		Int         timeout_map_reads = 120
 		Int         timeout_decontam  = 120
+		Boolean     oldschool_docker
 		Boolean     unsorted_sam = false
 		
 		# fastp QC cleaning options
@@ -46,7 +47,6 @@ task clean_and_decontam_and_check {
 		# runtime attributes (applies to entire WDL task)
 		Int addldisk = 100
 		Int cpu = 8
-		String docker_image = "ashedpotatoes/clockwork-plus:v0.12.5.1-CRyPTIC"
 		Int max_retries = 0
 		Int memory = 32
 		Int preempt = 1
@@ -72,6 +72,9 @@ task clean_and_decontam_and_check {
 	}
 
 	# The Docker image has our reference information, so these can be hardcoded.
+	String docker_version = if oldschool_docker then "ashedpotatoes/clockwork-plus:v0.11.3.11" else "ashedpotatoes/clockwork-plus:v0.12.5.3"
+	String docker_decontam = if CDC_decontamination_reference then "-CDC" else "-CRyPTIC"
+	String docker_image = docker_version + docker_decontam
 	String arg_metadata_tsv = "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
 	String arg_ref_fasta = "/ref/Ref.remove_contam/ref.fa"
 
@@ -158,9 +161,7 @@ task clean_and_decontam_and_check {
 	# absolute paths -- see also ~{arg_metadata_tsv} and ~{arg_ref_fasta}
 	if [ -f /ref/Ref.remove_contam.tar ]
 	then
-		mv /ref/
 		tar -xvf /ref/Ref.remove_contam.tar
-		mv ..
 	elif [ -f /ref/Ref.remove_contam/ref.fa ]
 	then
 		echo "Decontamination reference already expanded"
@@ -210,7 +211,7 @@ task clean_and_decontam_and_check {
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
-	readarray -d '' -t BADFQ < <(find . -iname "*.fq*" -print0)
+	readarray -d '' -t BAD_FQ < <(find . -iname "*.fq*" -print0)
 	readarray -d '' -t FQ < <(find . -iname "*.fq" -print0)
 	readarray -d '' -t FQ_GZ < <(find . -iname "*.fq.gz" -print0)
 	readarray -d '' -t FASTQ < <(find . -iname "*.fastq" -print0)
