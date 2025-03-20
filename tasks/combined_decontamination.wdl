@@ -26,11 +26,11 @@ task clean_and_decontam_and_check {
 		Boolean fastp_clean_detect_adapter_for_pe = true
 		
 		# decontamination options
-		Boolean     CDC_decontamination_reference
+		Boolean     CDC_decontamination_reference = false
 		Boolean     crash_loudly = false
 		Int         timeout_map_reads = 120
 		Int         timeout_decontam  = 120
-		Boolean     oldschool_docker
+		Boolean     oldschool_docker = false
 		Boolean     unsorted_sam = false
 		
 		# fastp QC cleaning options
