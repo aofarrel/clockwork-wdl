@@ -56,7 +56,7 @@ task clean_and_decontam_and_check {
 	parameter_meta {
 		reads_files: "FASTQs to decontaminate"
 		
-		crash_loudly: "If true, force a WDL task failure if handled ERROR.TXT (failed QC, timeout, etc). If false, handled ERROR.TXTs will return 0 but give no fastq output."
+		crash_loudly: "If true, force a WDL task failure if handled error (failed QC, timeout, etc). If false, handled errors will return 0 but give no fastq output."
 		docker_image: "Docker image with /ref/Ref.remove_contam.tar inside. Use default to use default CRyPTIC ref, or set to ashedpotatoes/clockwork-plus:v0.12.5.2-CDC for CDC varpipe ref"
 		fastp_clean_avg_qual: "If one read's average quality score <avg_qual, then this read/pair is discarded. WDL default: 29. fastp default: 0 (no requirement)."
 		fastp_clean_disable_adapter_trimming: "Disable adaptor trimming. WDL and fastp default: false"
@@ -329,7 +329,7 @@ task clean_and_decontam_and_check {
 	done
 	if (( $input_fq_reads < ~{minimum_number_of_passing_reads} ))
 	then
-		echo "ERROR.TXT: We're already starting out below the minimum number of passing reads!"
+		echo "ERROR: We're already starting out below the minimum number of passing reads!"
 		if [[ "~{crash_loudly}" = "true" ]]
 		then
 			set -eux -o pipefail
@@ -519,7 +519,7 @@ task clean_and_decontam_and_check {
 		echo "Reads successfully decontaminated" 
 	elif [[ $exit = 1 ]]
 	then
-		echo "ERROR -- clockwork remove_contam ERROR.TXTed out for unknown reasons"
+		echo "ERROR -- clockwork remove_contam errored out for unknown reasons"
 		echo "DECONTAMINATION_RM_CONTAM_UNKNOWN_ERROR" > ERROR.TXT  # since we exit 1 after this, this output may not be delocalized
 		set -eux -o pipefail
 		exit 1
