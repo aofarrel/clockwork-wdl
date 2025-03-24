@@ -34,7 +34,7 @@ task clean_and_decontam_and_check {
 		Boolean     unsorted_sam = false
 		
 		# fastp QC cleaning options
-		Float QC_min_q30 = 50
+		Int QC_min_q30 = 50
 
 		# rename outs
 		String? force_rename_out
