@@ -37,6 +37,7 @@ task clean_and_decontam_and_check {
 		Int QC_min_q30 = 50
 
 		# rename outs
+		Boolean strip_all_underscores = True
 		String? force_rename_out
 		String? no_match_out_1
 		String? no_match_out_2
@@ -91,7 +92,9 @@ task clean_and_decontam_and_check {
 	# So, we instead need to know output filenames before the command block
 	# executes.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
+	String sample_name_if_strip_all_underscores = (sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
+	String sample_name_if_more_polite_strip = (sub(sub(sub(read_file_basename, "_[0-9]$", ""), ".gz", ""), ".tar", "")
+	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else sample_name_if_more_polite_strip
 	String outfile_sam = sample_name + ".sam"
 	
 	# Hardcoded to make delocalization less of a pain
