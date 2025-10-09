@@ -101,8 +101,8 @@ task clean_and_decontam_and_check {
 	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
 	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
-	String reads_cleaned_1 = sub(sub(sample_name, ".fq.gz", ".clean.fq.gz"), ".fastq.gz", ".clean.fq.gz")
-	String reads_cleaned_2 = sub(sub(sample_name, ".fq.gz", ".clean.fq.gz"), ".fastq.gz", ".clean.fq.gz")
+	String reads_cleaned_1 = sub(sub(sample_name, ".fq.gz", "_1.clean.fq.gz"), ".fastq.gz", "_1.clean.fq.gz")
+	String reads_cleaned_2 = sub(sub(sample_name, ".fq.gz", "_2.clean.fq.gz"), ".fastq.gz", "_2.clean.fq.gz")
 	String usual_final_fastq1 = arg_reads_out1
 	String usual_final_fastq2 = arg_reads_out2
 	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
@@ -290,7 +290,22 @@ task clean_and_decontam_and_check {
 		READS_FILES=( "~{sample_name}_cat_R1.fq" "~{sample_name}_cat_R2.fq" )
 		fx_echo_array "After merging:" "${READS_FILES[@]}"
 	fi
-		
+
+	# this is cringe, but helps debug certain annoying edge cases
+	echo "read_file_basename: ~{read_file_basename}"
+	echo "sample_name_if_strip_all_underscores: ~{sample_name_if_strip_all_underscores}"
+	echo "sample_name_if_more_polite_strip: ~{sample_name_if_more_polite_strip}"
+	echo "sample_name: ~{sample_name}"
+	echo "arg_counts_out: ~{arg_counts_out}"
+	echo "arg_reads_out1: ~{arg_reads_out1}"
+	echo "arg_reads_out2: ~{arg_reads_out2}"
+	echo "reads_cleaned_1: ~{reads_cleaned_1}"
+	echo "reads_cleaned_2: ~{reads_cleaned_2}"
+	echo "usual_final_fastq1: ~{usual_final_fastq1}"
+	echo "usual_final_fastq2: ~{usual_final_fastq2}"
+	echo "final_fastq1: ~{final_fastq1}"
+	echo "final_fastq2: ~{final_fastq2}"
+
 	timer_first=$(( SECONDS - start_first ))
 	echo ${timer_first} > timer_1_process
 
