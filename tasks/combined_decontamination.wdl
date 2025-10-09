@@ -93,7 +93,7 @@ task clean_and_decontam_and_check {
 	# executes.
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
 	String sample_name_if_strip_all_underscores = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
-	String sample_name_if_more_polite_strip = sub(sub(sub(read_file_basename, "_[0-9]$", ""), ".gz", ""), ".tar", "")
+	String sample_name_if_more_polite_strip     = sub(sub(read_file_basename, ".gz", ""), ".tar", "")
 	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else sample_name_if_more_polite_strip
 	String outfile_sam = sample_name + ".sam"
 	
