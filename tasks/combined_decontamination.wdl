@@ -101,8 +101,8 @@ task clean_and_decontam_and_check {
 	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
 	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
-	String reads_cleaned_1 = sub(arg_reads_out1, ".fq.gz", ".clean.fq.gz")
-	String reads_cleaned_2 = sub(arg_reads_out2, ".fq.gz", ".clean.fq.gz")
+	String reads_cleaned_1 = sub(sub(sample_name, ".fq.gz", ".clean.fq.gz"), ".fastq.gz", ".clean.fq.gz")
+	String reads_cleaned_2 = sub(sub(sample_name, ".fq.gz", ".clean.fq.gz"), ".fastq.gz", ".clean.fq.gz")
 	String usual_final_fastq1 = arg_reads_out1
 	String usual_final_fastq2 = arg_reads_out2
 	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
@@ -344,6 +344,8 @@ task clean_and_decontam_and_check {
 		fi
 	fi
 	echo $(( SECONDS - start_subsample )) > timer_2_size
+
+	tree
 	
 	echo "----------------------------------------------"
 	echo "(3) [fastp] Check and clean reads"
@@ -398,6 +400,8 @@ task clean_and_decontam_and_check {
 	readarray -t MAP_THESE_FQS < <(for fq in "${CLEANED_FQS[@]}"; do echo "$fq"; done | sort)
 
 	echo $(( SECONDS - start_fastp_1 )) > timer_3_clean
+
+	tree
 
 	echo "----------------------------------------------"
 	echo "(4) [clockwork] Map FQs to decontam reference"
@@ -455,6 +459,8 @@ task clean_and_decontam_and_check {
 	rm "${MAP_THESE_FQS[0]}"
 	rm "${MAP_THESE_FQS[1]}"
 	echo $(( SECONDS - start_map_reads )) > timer_5_map_reads
+
+	tree
 
 	echo "----------------------------------------------"
 	echo "(5) [samtools] Sort by read name"
@@ -533,6 +539,8 @@ task clean_and_decontam_and_check {
 		exit 1
 	fi
 	echo $(( SECONDS - start_rm_contam )) > timer_7_rm_contam
+
+	tree
 	
 	echo "----------------------------------------------"
 	echo "(7) [fastp] Post-decontam QC check"
@@ -553,6 +561,8 @@ task clean_and_decontam_and_check {
 		~{true="--disable_adapter_trimming" false="" fastp_clean_disable_adapter_trimming} \
 		--json "~{sample_name}_second_fastp.json"
 	echo $(( SECONDS - start_fastp_2 )) > timer_8_qc
+
+	tree
 	
 	echo "----------------------------------------------"
 	echo "(8) [python/bash] Parse reports"
@@ -718,6 +728,8 @@ task clean_and_decontam_and_check {
 		mv "~{usual_final_fastq1}" "~{final_fastq1}"
 		mv "~{usual_final_fastq2}" "~{final_fastq2}"
 	fi
+
+	tree
 	
 	echo "PASS" > ERROR.TXT
 	
