@@ -101,8 +101,8 @@ task clean_and_decontam_and_check {
 	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
 	String arg_reads_out1 = sample_name + "_1.decontam.fq.gz"
 	String arg_reads_out2 = sample_name + "_2.decontam.fq.gz"
-	String reads_cleaned_1 = sub(sub(sample_name, ".fq.gz", "_1.clean.fq.gz"), ".fastq.gz", "_1.clean.fq.gz")
-	String reads_cleaned_2 = sub(sub(sample_name, ".fq.gz", "_2.clean.fq.gz"), ".fastq.gz", "_2.clean.fq.gz")
+	String reads_cleaned_1 = sub(sample_name, "\\.f(ast)?q\\.gz$", "_1.clean.fq.gz")
+	String reads_cleaned_2 = sub(sample_name, "\\.f(ast)?q\\.gz$", "_2.clean.fq.gz")
 	String usual_final_fastq1 = arg_reads_out1
 	String usual_final_fastq2 = arg_reads_out2
 	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, arg_reads_out1]) + "_1.fq.gz" else usual_final_fastq1
