@@ -65,8 +65,7 @@ task variant_call_one_sample_ref_included {
 	# we need to be able set the outputs name from an input name to use optional outs
 	# WDL's sub()'s regex seems a little odd ("_\d\.decontam\.fq\.gz" doesn't work)
 	# so we're going to do this the silly way
-	String basename_reads = sub(basename(reads_files[0], ".decontam.fq.gz"), "_1.fq.gz", "")
-	String sample_name =    sub(basename(reads_files[0], "_1.decontam.fq.gz"), _1.fq.gz", "")
+	String sample_name =    sub(basename(reads_files[0], "_1.decontam.fq.gz"), "_1.fq.gz", "")
 	
 	# generate command line arguments
 	String arg_debug = if(debug) then "--debug" else ""
