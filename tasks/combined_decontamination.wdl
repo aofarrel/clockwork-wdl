@@ -773,7 +773,7 @@ task clean_and_decontam_and_check {
 		File? decontaminated_fastq_2 = final_fastq2
 		
 		# other important things
-		String sample = sample_name # needed by ThiagenTBProfiler
+		String sample = if(defined(force_rename_out)) then force_rename_out else sample_name # needed by ThiagenTBProfiler
 		
 		# before cleaning, before decontamination -- metrics according to fastp
 		Float q20_in = read_float("q20_in.txt")
