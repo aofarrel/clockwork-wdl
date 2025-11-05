@@ -7,6 +7,8 @@ I provide support for running clockwork-wdl on one of three reference genome col
 
 Some parts of these reference genomes are very large, so md5 checksums are provided instead. Mirrors of these files are provided here: gs://ucsc-pathogen-genomics-public/tb/ref/
 
+The clockwork references both contain a very large index file that appears to be needed for the decontamination tasks to run properly. There is probably a way to generate this index at runtime, but I've decided to deprioritize investigating this. See https://github.com/aofarrel/clockwork-wdl/issues/43 for more info.
+
 
 ## CDC-varpipe
 This reference genome is widely used by CDC-affiliated tuberculosis projects, such as my myco_raw pipeline and Thiagen's fork of TBProfiler. I sourced it from the CDC's varpipe repository: https://github.com/CDCgov/NCHHSTP-DTBE-Varpipe-WGS
