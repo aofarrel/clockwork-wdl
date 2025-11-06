@@ -11,7 +11,7 @@ The clockwork references both contain a very large index file that appears to be
 
 
 ## CDC-varpipe
-This reference genome is widely used by CDC-affiliated tuberculosis projects, such as my myco_raw pipeline and Thiagen's fork of TBProfiler. I sourced it from the CDC's varpipe repository: https://github.com/CDCgov/NCHHSTP-DTBE-Varpipe-WGS
+This reference genome is widely used by CDC-affiliated tuberculosis projects. I sourced it from the CDC's varpipe repository: https://github.com/CDCgov/NCHHSTP-DTBE-Varpipe-WGS
 
 Unfortunately, there are several issues with this decontamination reference:
 * It seems to preform slightly worse at detecting NTM
