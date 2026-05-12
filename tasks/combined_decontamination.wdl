@@ -172,6 +172,7 @@ task clean_and_decontam_and_check {
 	else
 		echo "Failed to located decontamination reference"
 		exit 1
+	fi
 	if [ -f "~{arg_ref_fasta}" ]
 	then
 		echo "Located decontamination reference at ~{arg_ref_fasta}"
