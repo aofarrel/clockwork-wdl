@@ -75,8 +75,8 @@ task clean_and_decontam_and_check {
 	String docker_version = if oldschool_docker then "ashedpotatoes/clockwork-plus:v0.11.3.11" else "ashedpotatoes/clockwork-plus:v0.12.5.3"
 	String docker_decontam = if CDC_decontamination_reference then "-CDC" else "-CRyPTIC"
 	String docker_image = docker_version + docker_decontam
-	String arg_metadata_tsv = "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
-	String arg_ref_fasta = "/ref/Ref.remove_contam/ref.fa"
+	String arg_metadata_tsv = if oldschool_docker then "/Ref.remove_contam/remove_contam_metadata.tsv" else "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
+	String arg_ref_fasta = if oldschool_docker then "/Ref.remove_contam/ref.fa" else "/ref/Ref.remove_contam/ref.fa"
 
 	# We need to derive the sample name from our inputs because sample name is a
 	# required input for clockwork map_reads. This needs to be to handle inputs
