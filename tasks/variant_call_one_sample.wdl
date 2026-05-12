@@ -193,9 +193,9 @@ task variant_call_one_sample_ref_included {
 		echo "Samtools:"
 		cat "var_call_~{sample_name}/samtools.vcf"
 		echo "Cortex:"
-		cat "var_call_"~{sample_name}/cortex.vcf"
+		cat "var_call_~{sample_name}/cortex.vcf"
 		echo "Adjudicated:"
-		cat "var_call_"~{sample_name}/final.vcf"
+		cat "var_call_~{sample_name}/final.vcf"
 
 		# delete the VCF so it doesn't get delocalized
 		rm "var_call_~{sample_name}/final.vcf"
@@ -208,16 +208,16 @@ task variant_call_one_sample_ref_included {
 			exit 0
 		fi
 	else
-		echo "VCF file is $(wc -l var_call_'~{sample_name}'/final.vcf) lines long. It's probably fine."
+		echo "VCF file is $lines lines long. It's probably fine."
 	fi
 
 	echo mving VCFs from "var_call_~{sample_name}/*.vcf" to "./~{sample_name}*.vcf"
 
-	mv var_call_"~{sample_name}"/final.vcf ./"~{sample_name}".vcf
+	mv "var_call_~{sample_name}/final.vcf" "./~{sample_name}.vcf"
 
 	# rename the bam and bai files
 	mv "var_call_~{sample_name}/map.bam" "./~{sample_name}_to_H37Rv.bam"
-	mv "var_call_~{sample_name}/map.bam.bai" "./~{sample_name}"_to_H37Rv.bam.bai"
+	mv "var_call_~{sample_name}/map.bam.bai" "./~{sample_name}_to_H37Rv.bam.bai"
 	
 	if [[ "~{tarball_bams_and_bais}" = "true" ]]
 	then
