@@ -92,8 +92,10 @@ task clean_and_decontam_and_check {
 	# So, we instead need to know output filenames before the command block
 	# executes.
 	String fastq_suffix_regex = "\\.f(ast)?q(\\.gz)?$"
+	String pair_suffix_regex = "_[12]$"
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String clean_basename = sub(sub(read_file_basename, fastq_suffix_regex, ""), "\\.tar$", "")
+	String ext_stripped = sub(sub(read_file_basename, fastq_suffix_regex, ""), "\\.tar$", "")
+	String clean_basename = sub(ext_stripped, pair_suffix_regex, "")
 	String sample_name_if_strip_all_underscores = sub(clean_basename, "_.*", "")
 	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else clean_basename
 	String outfile_sam = sample_name + ".sam"
@@ -105,10 +107,8 @@ task clean_and_decontam_and_check {
 	String arg_reads_out2 = out_prefix + "_2.decontam.fq.gz"
 	String reads_cleaned_1 = out_prefix + "_1.clean.fq.gz"
 	String reads_cleaned_2 = out_prefix + "_2.clean.fq.gz"
-	String usual_final_fastq1 = arg_reads_out1
-	String usual_final_fastq2 = arg_reads_out2
-	String final_fastq1 = out_prefix + "_1.fq.gz"
-	String final_fastq2 = out_prefix + "_2.fq.gz"
+	String final_fastq1 = arg_reads_out1
+	String final_fastq2 = arg_reads_out2
 
 	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
@@ -304,8 +304,6 @@ task clean_and_decontam_and_check {
 	echo "arg_reads_out2: ~{arg_reads_out2}"
 	echo "reads_cleaned_1: ~{reads_cleaned_1}"
 	echo "reads_cleaned_2: ~{reads_cleaned_2}"
-	echo "usual_final_fastq1: ~{usual_final_fastq1}"
-	echo "usual_final_fastq2: ~{usual_final_fastq2}"
 	echo "final_fastq1: ~{final_fastq1}"
 	echo "final_fastq2: ~{final_fastq2}"
 
@@ -403,8 +401,8 @@ task clean_and_decontam_and_check {
 			echo "Due to QC failure, no .fq output will be given. Crashing!"
 			exit 1
 		else
-			rm "~{usual_final_fastq1}" 
-			rm "~{usual_final_fastq2}"
+			rm "~{final_fastq1}" 
+			rm "~{final_fastq2}"
 			echo "Due to QC failure, no .fq output will be given."
 			exit 0
 		fi
@@ -713,12 +711,12 @@ task clean_and_decontam_and_check {
 
 	CODE
 
-	if [[ $(fqtools count "~{usual_final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
+	if [[ $(fqtools count "~{final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
 	then
 		echo "This sample has less than ~{minimum_number_of_passing_reads} reads and risks breaking the variant caller. We're getting rid of it."
 		echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_LATE" > ERROR.TXT
-		rm "~{usual_final_fastq1}" 
-		rm "~{usual_final_fastq2}"
+		rm "~{final_fastq1}" 
+		rm "~{final_fastq2}"
 		# exit handled in grep block below
 	fi
 
@@ -733,18 +731,11 @@ task clean_and_decontam_and_check {
 			echo "Due to QC failure, no .fq output will be given. Crashing!"
 			exit 1
 		else
-			rm "~{usual_final_fastq1}" 
-			rm "~{usual_final_fastq2}"
+			rm "~{final_fastq1}" 
+			rm "~{final_fastq2}"
 			echo "Due to QC failure, no .fq output will be given."
 			exit 0
 		fi
-	fi
-	
-	# rename outputs if necessary
-	if [[ ! "~{force_rename_out}" = "" ]]
-	then
-		mv "~{usual_final_fastq1}" "~{final_fastq1}"
-		mv "~{usual_final_fastq2}" "~{final_fastq2}"
 	fi
 
 	tree
