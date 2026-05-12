@@ -91,23 +91,24 @@ task clean_and_decontam_and_check {
 	# having nothing at index 0 is okay if that output is an optional file.
 	# So, we instead need to know output filenames before the command block
 	# executes.
+	String fastq_suffix_regex = "\\.f(ast)?q(\\.gz)?$"
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name_if_strip_all_underscores = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
-	String sample_name_if_more_polite_strip     = sub(sub(read_file_basename, ".gz", ""), ".tar", "")
-	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else sample_name_if_more_polite_strip
+	String clean_basename = sub(sub(read_file_basename, fastq_suffix_regex, ""), "\\.tar$", "")
+	String sample_name_if_strip_all_underscores = sub(clean_basename, "_.*", "")
+	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else clean_basename
 	String outfile_sam = sample_name + ".sam"
 	
-	# Hardcoded to make delocalization less of a pain, at the cost of being ugly
-	# Note: For reads_cleaned I tried sub() with "\\.f(ast)?q\\.gz$" but that doesn't seem to work for .fastq.gz so I'm reverting to a more simple form
-	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
-	String arg_reads_out1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.decontam.fq.gz" else sample_name + "_1.decontam.fq.gz" 
-	String arg_reads_out2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.decontam.fq.gz" else sample_name + "_2.decontam.fq.gz"
-	String reads_cleaned_1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.clean.fq.gz" else sub(sample_name, ".fq.gz", "_1.clean.fq.gz")
-	String reads_cleaned_2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.clean.fq.gz" else sub(sample_name, ".fq.gz", "_2.clean.fq.gz")
+	# For the outputs -- hardcoded to make delocalization less terrible
+	String out_prefix = select_first([force_rename_out, sample_name])
+	String arg_counts_out = out_prefix + ".decontam.counts.tsv"
+	String arg_reads_out1 = out_prefix + "_1.decontam.fq.gz" 
+	String arg_reads_out2 = out_prefix + "_2.decontam.fq.gz"
+	String reads_cleaned_1 = out_prefix + "_1.clean.fq.gz"
+	String reads_cleaned_2 = out_prefix + "_2.clean.fq.gz"
 	String usual_final_fastq1 = arg_reads_out1
 	String usual_final_fastq2 = arg_reads_out2
-	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.fq.gz" else usual_final_fastq1
-	String final_fastq2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.fq.gz" else usual_final_fastq2
+	String final_fastq1 = out_prefix + "_1.fq.gz"
+	String final_fastq2 = out_prefix + "_2.fq.gz"
 
 	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
@@ -294,8 +295,8 @@ task clean_and_decontam_and_check {
 
 	# this is cringe, but helps debug certain annoying edge cases
 	echo "read_file_basename: ~{read_file_basename}"
+	echo "clean_basename: ~{clean_basename}"
 	echo "sample_name_if_strip_all_underscores: ~{sample_name_if_strip_all_underscores}"
-	echo "sample_name_if_more_polite_strip: ~{sample_name_if_more_polite_strip}"
 	echo "sample_name: ~{sample_name}"
 	echo "force_rename_out: ~{force_rename_out}"
 	echo "arg_counts_out: ~{arg_counts_out}"
