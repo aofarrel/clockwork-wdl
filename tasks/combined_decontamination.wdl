@@ -221,6 +221,16 @@ task clean_and_decontam_and_check {
 	READS_FILES_RAW=("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
+
+	# decapitalize because clockwork can't tell .FQ.GZ is gzipped and errors out
+	for file in *; do
+		case "$file" in
+			*.FASTQ)    echo "Renaming $file to ${file%.FASTQ}.fastq" ;;
+			*.FQ.GZ)    echo "Renaming $file to ${file%.FQ.GZ}.fq.gz" ;;
+			*.FASTQ.GZ) echo "Renaming $file to ${file%.FASTQ.GZ}.fastq.gz" ;;
+		esac
+	done
+
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t BAD_FQ < <(find . -iname "*.fq*" -print0)
