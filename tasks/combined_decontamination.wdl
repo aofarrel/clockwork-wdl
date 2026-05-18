@@ -823,9 +823,9 @@ task clean_and_decontam_and_check {
 		Int timer_c_dcnFQ = read_int("timer_7_rm_contam")
 		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
-		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
-		File? fastp_report_1 = sample_name + "_first_fastp.json"
-		File? fastp_report_2 = sample_name + "_second_fastp.json"
+		File? counts_out_tsv = arg_counts_out
+		File? fastp_report_1 = out_prefix + "_first_fastp.json"
+		File? fastp_report_2 = out_prefix + "_second_fastp.json"
 		
 		# you probably don't want these...
 		#File? mapped_to_decontam = glob("*.sam")[0]
