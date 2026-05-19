@@ -75,8 +75,8 @@ task clean_and_decontam_and_check {
 	String docker_version = if oldschool_docker then "ashedpotatoes/clockwork-plus:v0.11.3.11" else "ashedpotatoes/clockwork-plus:v0.12.5.3"
 	String docker_decontam = if CDC_decontamination_reference then "-CDC" else "-CRyPTIC"
 	String docker_image = docker_version + docker_decontam
-	String arg_metadata_tsv = "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
-	String arg_ref_fasta = "/ref/Ref.remove_contam/ref.fa"
+	String arg_metadata_tsv = if oldschool_docker then "./Ref.remove_contam/remove_contam_metadata.tsv" else "/ref/Ref.remove_contam/remove_contam_metadata.tsv"
+	String arg_ref_fasta = if oldschool_docker then "./Ref.remove_contam/ref.fa" else "/ref/Ref.remove_contam/ref.fa"
 
 	# We need to derive the sample name from our inputs because sample name is a
 	# required input for clockwork map_reads. This needs to be to handle inputs
@@ -91,23 +91,24 @@ task clean_and_decontam_and_check {
 	# having nothing at index 0 is okay if that output is an optional file.
 	# So, we instead need to know output filenames before the command block
 	# executes.
+	String fastq_suffix_regex = "\\.f(ast)?q(\\.gz)?$"
+	String pair_suffix_regex = "_[12]$"
 	String read_file_basename = basename(reads_files[0]) # used to calculate sample name + outfile_sam
-	String sample_name_if_strip_all_underscores = sub(sub(sub(read_file_basename, "_.*", ""), ".gz", ""), ".tar", "")
-	String sample_name_if_more_polite_strip     = sub(sub(read_file_basename, ".gz", ""), ".tar", "")
-	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else sample_name_if_more_polite_strip
+	String ext_stripped = sub(sub(read_file_basename, fastq_suffix_regex, ""), "\\.tar$", "")
+	String clean_basename = sub(ext_stripped, pair_suffix_regex, "")
+	String sample_name_if_strip_all_underscores = sub(clean_basename, "_.*", "")
+	String sample_name = if strip_all_underscores then sample_name_if_strip_all_underscores else clean_basename
 	String outfile_sam = sample_name + ".sam"
 	
-	# Hardcoded to make delocalization less of a pain, at the cost of being ugly
-	# Note: For reads_cleaned I tried sub() with "\\.f(ast)?q\\.gz$" but that doesn't seem to work for .fastq.gz so I'm reverting to a more simple form
-	String arg_counts_out = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + ".decontam.counts.tsv" else sample_name + ".decontam.counts.tsv"
-	String arg_reads_out1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.decontam.fq.gz" else sample_name + "_1.decontam.fq.gz" 
-	String arg_reads_out2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.decontam.fq.gz" else sample_name + "_2.decontam.fq.gz"
-	String reads_cleaned_1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.clean.fq.gz" else sub(sample_name, ".fq.gz", "_1.clean.fq.gz")
-	String reads_cleaned_2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.clean.fq.gz" else sub(sample_name, ".fq.gz", "_2.clean.fq.gz")
-	String usual_final_fastq1 = arg_reads_out1
-	String usual_final_fastq2 = arg_reads_out2
-	String final_fastq1 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_1.fq.gz" else usual_final_fastq1
-	String final_fastq2 = if(defined(force_rename_out)) then select_first([force_rename_out, sample_name]) + "_2.fq.gz" else usual_final_fastq2
+	# For the outputs -- hardcoded to make delocalization less terrible
+	String out_prefix = select_first([force_rename_out, sample_name])
+	String arg_counts_out = out_prefix + ".decontam.counts.tsv"
+	String arg_reads_out1 = out_prefix + "_1.decontam.fq.gz" 
+	String arg_reads_out2 = out_prefix + "_2.decontam.fq.gz"
+	String reads_cleaned_1 = out_prefix + "_1.clean.fq.gz"
+	String reads_cleaned_2 = out_prefix + "_2.clean.fq.gz"
+	String final_fastq1 = arg_reads_out1
+	String final_fastq2 = arg_reads_out2
 
 	# This region handles optional arguments
 	String arg_contam_out_1 = if(!defined(contam_out_1)) then "" else "--contam_out_1 ~{contam_out_1}"
@@ -172,6 +173,14 @@ task clean_and_decontam_and_check {
 		echo "Failed to located decontamination reference"
 		exit 1
 	fi
+	if [ -f "~{arg_ref_fasta}" ]
+	then
+		echo "Located decontamination reference at ~{arg_ref_fasta}"
+	else
+		echo "Could not find decontamination reference at ~{arg_ref_fasta} even after trying to untar!"
+		exit 1
+	fi
+
 	echo "workdir contents:"
 	tree
 
@@ -212,6 +221,16 @@ task clean_and_decontam_and_check {
 	READS_FILES_RAW=("~{sep='" "' reads_files}")
 	fx_echo_array "Inputs as passed in:" "${READS_FILES_RAW[@]}"
 	for fq in "${READS_FILES_RAW[@]}"; do mv "$fq" .; done 
+
+	# decapitalize because clockwork can't tell .FQ.GZ is gzipped and errors out
+	for file in *; do
+		case "$file" in
+			*.FASTQ)    echo "Renaming $file to ${file%.FASTQ}.fastq" ;;
+			*.FQ.GZ)    echo "Renaming $file to ${file%.FQ.GZ}.fq.gz" ;;
+			*.FASTQ.GZ) echo "Renaming $file to ${file%.FASTQ.GZ}.fastq.gz" ;;
+		esac
+	done
+
 	# I really did try to make these next three lines just one -iregex string but
 	# kept messing up the syntax -- this approach is unsatisfying but cleaner
 	readarray -d '' -t BAD_FQ < <(find . -iname "*.fq*" -print0)
@@ -294,8 +313,8 @@ task clean_and_decontam_and_check {
 
 	# this is cringe, but helps debug certain annoying edge cases
 	echo "read_file_basename: ~{read_file_basename}"
+	echo "clean_basename: ~{clean_basename}"
 	echo "sample_name_if_strip_all_underscores: ~{sample_name_if_strip_all_underscores}"
-	echo "sample_name_if_more_polite_strip: ~{sample_name_if_more_polite_strip}"
 	echo "sample_name: ~{sample_name}"
 	echo "force_rename_out: ~{force_rename_out}"
 	echo "arg_counts_out: ~{arg_counts_out}"
@@ -303,8 +322,6 @@ task clean_and_decontam_and_check {
 	echo "arg_reads_out2: ~{arg_reads_out2}"
 	echo "reads_cleaned_1: ~{reads_cleaned_1}"
 	echo "reads_cleaned_2: ~{reads_cleaned_2}"
-	echo "usual_final_fastq1: ~{usual_final_fastq1}"
-	echo "usual_final_fastq2: ~{usual_final_fastq2}"
 	echo "final_fastq1: ~{final_fastq1}"
 	echo "final_fastq2: ~{final_fastq2}"
 
@@ -402,8 +419,8 @@ task clean_and_decontam_and_check {
 			echo "Due to QC failure, no .fq output will be given. Crashing!"
 			exit 1
 		else
-			rm "~{usual_final_fastq1}" 
-			rm "~{usual_final_fastq2}"
+			rm "~{final_fastq1}" 
+			rm "~{final_fastq2}"
 			echo "Due to QC failure, no .fq output will be given."
 			exit 0
 		fi
@@ -712,12 +729,12 @@ task clean_and_decontam_and_check {
 
 	CODE
 
-	if [[ $(fqtools count "~{usual_final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
+	if [[ $(fqtools count "~{final_fastq1}") -le ~{minimum_number_of_passing_reads} ]]
 	then
 		echo "This sample has less than ~{minimum_number_of_passing_reads} reads and risks breaking the variant caller. We're getting rid of it."
 		echo "LESS_THAN_~{minimum_number_of_passing_reads}_READS_LATE" > ERROR.TXT
-		rm "~{usual_final_fastq1}" 
-		rm "~{usual_final_fastq2}"
+		rm "~{final_fastq1}" 
+		rm "~{final_fastq2}"
 		# exit handled in grep block below
 	fi
 
@@ -732,18 +749,11 @@ task clean_and_decontam_and_check {
 			echo "Due to QC failure, no .fq output will be given. Crashing!"
 			exit 1
 		else
-			rm "~{usual_final_fastq1}" 
-			rm "~{usual_final_fastq2}"
+			rm "~{final_fastq1}" 
+			rm "~{final_fastq2}"
 			echo "Due to QC failure, no .fq output will be given."
 			exit 0
 		fi
-	fi
-	
-	# rename outputs if necessary
-	if [[ ! "~{force_rename_out}" = "" ]]
-	then
-		mv "~{usual_final_fastq1}" "~{final_fastq1}"
-		mv "~{usual_final_fastq2}" "~{final_fastq2}"
 	fi
 
 	tree
@@ -823,9 +833,9 @@ task clean_and_decontam_and_check {
 		Int timer_c_dcnFQ = read_int("timer_7_rm_contam")
 		Int timer_total   = read_int("timer_total")
 		String docker_used = docker_image
-		File? counts_out_tsv = sample_name + ".decontam.counts.tsv"      # should match $arg_counts_out
-		File? fastp_report_1 = sample_name + "_first_fastp.json"
-		File? fastp_report_2 = sample_name + "_second_fastp.json"
+		File? counts_out_tsv = arg_counts_out
+		File? fastp_report_1 = out_prefix + "_first_fastp.json"
+		File? fastp_report_2 = out_prefix + "_second_fastp.json"
 		
 		# you probably don't want these...
 		#File? mapped_to_decontam = glob("*.sam")[0]
